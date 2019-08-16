@@ -24,10 +24,7 @@ public:
     int max_level() const { return max_level_; }
     int reserved_temp_layer() const { return reserved_temp_layer_; }
 
-    Ren::TexHandle handle() const { return { tex_id_, 0 }; }
-#if defined(USE_GL_RENDER)
-    uint32_t tex_id() const { return tex_id_; }
-#endif
+    Ren::TexHandle handle() const { return handle_; }
 
     void Resize(Ren::eTexFormat format, int res, int capacity, Ren::ILog *log);
 
@@ -39,7 +36,5 @@ private:
     int res_, size_, capacity_, max_level_;
     int reserved_temp_layer_;
     Sys::SmallVector<int, 32> free_indices_;
-#if defined(USE_GL_RENDER)
-    uint32_t tex_id_ = 0;
-#endif
+    Ren::TexHandle handle_;
 };

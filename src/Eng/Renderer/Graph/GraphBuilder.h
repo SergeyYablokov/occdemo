@@ -32,9 +32,7 @@ struct RpResource {
     RpResource(eRpResType _type, uint16_t __generation, uint32_t _index)
         : type(_type), _generation(__generation), index(_index) {}
 
-    operator bool() {
-        return type != eRpResType::Undefined;
-    }
+    operator bool() { return type != eRpResType::Undefined; }
 };
 
 const int MaxInOutCountPerPass = 16;
@@ -64,14 +62,13 @@ class RenderPassBase {
 
 struct RpBufDesc {
     uint32_t size;
-    Ren::eBufferType type;
-    Ren::eBufferAccessType access;
-    Ren::eBufferAccessFreq freq;
+    Ren::eBufType type;
+    Ren::eBufAccessType access;
+    Ren::eBufAccessFreq freq;
 };
 
 inline bool operator==(const RpBufDesc &lhs, const RpBufDesc &rhs) {
-    return lhs.size == rhs.size && lhs.type == rhs.type && lhs.access == rhs.access &&
-           lhs.freq == rhs.freq;
+    return lhs.size == rhs.size && lhs.type == rhs.type && lhs.access == rhs.access && lhs.freq == rhs.freq;
 }
 
 struct RpAllocBuf {
@@ -130,8 +127,7 @@ class RpBuilder {
 
     RpResource WriteTexture(RpResource handle, RenderPassBase &pass);
     RpResource WriteTexture(const char *name, RenderPassBase &pass);
-    RpResource WriteTexture(const char *name, const Ren::Tex2DParams &p,
-                            RenderPassBase &pass);
+    RpResource WriteTexture(const char *name, const Ren::Tex2DParams &p, RenderPassBase &pass);
 
     RpAllocBuf &GetReadBuffer(RpResource handle);
     RpAllocTex &GetReadTexture(RpResource handle);

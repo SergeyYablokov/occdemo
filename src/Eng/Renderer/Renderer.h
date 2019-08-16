@@ -105,7 +105,7 @@ class Renderer {
     DynArray<const Decal *> ditem_to_decal_;
 
     struct ProcessedObjData {
-        uint32_t instance_index;
+        int32_t instance_index;
         uint32_t base_vertex;
     };
     DynArray<ProcessedObjData> proc_objects_;
@@ -130,6 +130,9 @@ class Renderer {
 
     ShadowFrustumCache sun_shadow_cache_[4];
 
+    uint32_t temp_buf1_vtx_offset_, temp_buf2_vtx_offset_, temp_buf_ndx_offset_,
+        skinned_buf1_vtx_offset_, skinned_buf2_vtx_offset_;
+
 #if defined(USE_GL_RENDER)
     Ren::Tex2DRef temp_tex_;
 
@@ -137,8 +140,6 @@ class Renderer {
 
     // uint32_t unif_shared_data_block_[FrameSyncWindow];
     Ren::Vao temp_vao_;
-    uint32_t temp_buf1_vtx_offset_, temp_buf2_vtx_offset_, temp_buf_ndx_offset_,
-        skinned_buf1_vtx_offset_, skinned_buf2_vtx_offset_;
     Ren::Tex1DRef lights_tbo_[FrameSyncWindow], decals_tbo_[FrameSyncWindow];
     uint32_t /*reduce_pbo_[FrameSyncWindow], */ probe_sample_pbo_;
     // int cur_reduce_pbo_ = 0;
@@ -177,6 +178,7 @@ class Renderer {
 
     RpBuilder rp_builder_;
 
+#if defined(USE_GL_RENDER)
     RpUpdateBuffers rp_update_buffers_;
     RpSkinning rp_skinning_;
     RpShadowMaps rp_shadow_maps_ = {SHADOWMAP_WIDTH, SHADOWMAP_HEIGHT};
@@ -202,6 +204,7 @@ class Renderer {
     RpDebugEllipsoids rp_debug_ellipsoids_ = {prim_draw_};
     RpDebugProbes rp_debug_probes_ = {prim_draw_};
     RpDebugTextures rp_debug_textures_ = {prim_draw_};
+#endif
 
     ViewState view_state_;
     PrimDraw prim_draw_;

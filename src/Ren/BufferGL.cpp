@@ -8,44 +8,43 @@
 
 namespace Ren {
 const uint32_t g_gl_buf_targets[] = {
-    0xffffffff,              // Undefined
-    GL_ARRAY_BUFFER,         // VertexAttribs
-    GL_ELEMENT_ARRAY_BUFFER, // VertexIndices
-    GL_TEXTURE_BUFFER,       // Texture
-    GL_UNIFORM_BUFFER,       // Uniform
-    GL_SHADER_STORAGE_BUFFER // Storage
+    0xffffffff,               // Undefined
+    GL_ARRAY_BUFFER,          // VertexAttribs
+    GL_ELEMENT_ARRAY_BUFFER,  // VertexIndices
+    GL_TEXTURE_BUFFER,        // Texture
+    GL_UNIFORM_BUFFER,        // Uniform
+    GL_SHADER_STORAGE_BUFFER, // Storage
+    GL_COPY_READ_BUFFER       // Stage
 };
-static_assert(sizeof(g_gl_buf_targets) / sizeof(g_gl_buf_targets[0]) ==
-                  size_t(eBufferType::_Count),
-              "!");
+static_assert(sizeof(g_gl_buf_targets) / sizeof(g_gl_buf_targets[0]) == size_t(eBufType::_Count), "!");
 
-GLenum GetGLBufUsage(const eBufferAccessType access, const eBufferAccessFreq freq) {
-    if (access == eBufferAccessType::Draw) {
-        if (freq == eBufferAccessFreq::Stream) {
+GLenum GetGLBufUsage(const eBufAccessType access, const eBufAccessFreq freq) {
+    if (access == eBufAccessType::Draw) {
+        if (freq == eBufAccessFreq::Stream) {
             return GL_STREAM_DRAW;
-        } else if (freq == eBufferAccessFreq::Static) {
+        } else if (freq == eBufAccessFreq::Static) {
             return GL_STATIC_DRAW;
-        } else if (freq == eBufferAccessFreq::Dynamic) {
+        } else if (freq == eBufAccessFreq::Dynamic) {
             return GL_DYNAMIC_DRAW;
         } else {
             assert(false);
         }
-    } else if (access == eBufferAccessType::Read) {
-        if (freq == eBufferAccessFreq::Stream) {
+    } else if (access == eBufAccessType::Read) {
+        if (freq == eBufAccessFreq::Stream) {
             return GL_STREAM_READ;
-        } else if (freq == eBufferAccessFreq::Static) {
+        } else if (freq == eBufAccessFreq::Static) {
             return GL_STATIC_READ;
-        } else if (freq == eBufferAccessFreq::Dynamic) {
+        } else if (freq == eBufAccessFreq::Dynamic) {
             return GL_DYNAMIC_READ;
         } else {
             assert(false);
         }
-    } else if (access == eBufferAccessType::Copy) {
-        if (freq == eBufferAccessFreq::Stream) {
+    } else if (access == eBufAccessType::Copy) {
+        if (freq == eBufAccessFreq::Stream) {
             return GL_STREAM_COPY;
-        } else if (freq == eBufferAccessFreq::Static) {
+        } else if (freq == eBufAccessFreq::Static) {
             return GL_STATIC_COPY;
-        } else if (freq == eBufferAccessFreq::Dynamic) {
+        } else if (freq == eBufAccessFreq::Dynamic) {
             return GL_DYNAMIC_COPY;
         } else {
             assert(false);
@@ -60,8 +59,7 @@ GLenum GetGLBufUsage(const eBufferAccessType access, const eBufferAccessFreq fre
 
 int Ren::Buffer::g_GenCounter = 0;
 
-Ren::Buffer::Buffer(const char *name, const eBufferType type,
-                    const eBufferAccessType access, const eBufferAccessFreq freq,
+Ren::Buffer::Buffer(const char *name, const eBufType type, const eBufAccessType access, const eBufAccessFreq freq,
                     const uint32_t initial_size)
     : name_(name), type_(type), access_(access), freq_(freq), size_(0) {
     nodes_.reserve(1024);
@@ -87,16 +85,23 @@ Ren::Buffer &Ren::Buffer::operator=(Buffer &&rhs) noexcept {
         glDeleteBuffers(1, &buf);
     }
 
+    assert(!is_mapped_);
+
     handle_ = exchange(rhs.handle_, {});
     name_ = std::move(rhs.name_);
 
-    type_ = exchange(rhs.type_, eBufferType::Undefined);
+    type_ = exchange(rhs.type_, eBufType::Undefined);
 
     access_ = rhs.access_;
     freq_ = rhs.freq_;
 
     size_ = exchange(rhs.size_, 0);
     nodes_ = std::move(rhs.nodes_);
+    is_mapped_ = exchange(rhs.is_mapped_, false);
+
+#ifndef NDEBUG
+    flushed_ranges_ = std::move(rhs.flushed_ranges_);
+#endif
 
     return (*this);
 }
@@ -124,8 +129,8 @@ int Ren::Buffer::Alloc_Recursive(const int i, const uint32_t req_size, const cha
             return i;
         }
 
-        nodes_[i].child[0] = ch0 = nodes_.emplace();
-        nodes_[i].child[1] = ch1 = nodes_.emplace();
+        nodes_[i].child[0] = ch0 = int(nodes_.emplace());
+        nodes_[i].child[1] = ch1 = int(nodes_.emplace());
 
         Node &n = nodes_[i];
 
@@ -168,27 +173,32 @@ bool Ren::Buffer::Free_Node(int i) {
     }
 
     nodes_[i].is_free = true;
+#ifndef NDEBUG
+    nodes_[i].tag[0] = '\0';
+#endif
 
-    int par = nodes_[i].parent;
-    while (par != -1) {
-        int ch0 = nodes_[par].child[0], ch1 = nodes_[par].child[1];
+    { // merge empty nodes 1
+        int par = nodes_[i].parent;
+        while (par != -1) {
+            int ch0 = nodes_[par].child[0], ch1 = nodes_[par].child[1];
 
-        if (!nodes_[ch0].has_children() && nodes_[ch0].is_free &&
-            !nodes_[ch1].has_children() && nodes_[ch1].is_free) {
+            if (!nodes_[ch0].has_children() && nodes_[ch0].is_free && !nodes_[ch1].has_children() &&
+                nodes_[ch1].is_free) {
 
-            nodes_.erase(ch0);
-            nodes_.erase(ch1);
+                nodes_.erase(ch0);
+                nodes_.erase(ch1);
 
-            nodes_[par].child[0] = nodes_[par].child[1] = -1;
+                nodes_[par].child[0] = nodes_[par].child[1] = -1;
 
-            i = par;
-            par = nodes_[par].parent;
-        } else {
-            par = -1;
+                i = par;
+                par = nodes_[par].parent;
+            } else {
+                par = -1;
+            }
         }
     }
 
-    { // merge empty nodes
+    { // merge empty nodes 2
         int par = nodes_[i].parent;
         while (par != -1 && nodes_[par].child[0] == i && !nodes_[i].has_children()) {
             int gr_par = nodes_[par].parent;
@@ -222,29 +232,29 @@ void Ren::Buffer::PrintNode(int i, std::string prefix, bool is_tail, ILog *log) 
     const auto &node = nodes_[i];
     if (is_tail) {
         if (!node.has_children() && node.is_free) {
-            log->Info("%s+- [0x%08x..0x%08x) <free>", prefix.c_str(), node.offset,
-                      node.offset + node.size);
+            log->Info("%s+- %.3fMB [0x%08x..0x%08x) <free>", prefix.c_str(), float(node.size) / (1024.0f * 1024.0f),
+                      node.offset, node.offset + node.size);
         } else {
 #ifndef NDEBUG
-            log->Info("%s+- [0x%08x..0x%08x) <%s>", prefix.c_str(), node.offset,
-                      node.offset + node.size, node.tag);
+            log->Info("%s+- %.3fMB [0x%08x..0x%08x) <%s>", prefix.c_str(), float(node.size) / (1024.0f * 1024.0f),
+                      node.offset, node.offset + node.size, node.tag);
 #else
-            log->Info("%s+- [0x%08x..0x%08x) <occupied>", prefix.c_str(), node.offset,
-                      node.offset + node.size);
+            log->Info("%s+- %.3fMB [0x%08x..0x%08x) <occupied>", prefix.c_str(), float(node.size) / (1024.0f * 1024.0f),
+                      node.offset, node.offset + node.size);
 #endif
         }
         prefix += "   ";
     } else {
         if (!node.has_children() && node.is_free) {
-            log->Info("%s|- [0x%08x..0x%08x) <free>", prefix.c_str(), node.offset,
-                      node.offset + node.size);
+            log->Info("%s|- %.3fMB [0x%08x..0x%08x) <free>", prefix.c_str(), float(node.size) / (1024.0f * 1024.0f),
+                      node.offset, node.offset + node.size);
         } else {
 #ifndef NDEBUG
-            log->Info("%s|- [0x%08x..0x%08x) <%s>", prefix.c_str(), node.offset,
-                      node.offset + node.size, node.tag);
+            log->Info("%s|- %.3fMB [0x%08x..0x%08x) <%s>", prefix.c_str(), float(node.size) / (1024.0f * 1024.0f),
+                      node.offset, node.offset + node.size, node.tag);
 #else
-            log->Info("%s|- [0x%08x..0x%08x) <occupied>", prefix.c_str(), node.offset,
-                      node.offset + node.size);
+            log->Info("%s|- %.3fMB [0x%08x..0x%08x) <occupied>", prefix.c_str(), float(node.size) / (1024.0f * 1024.0f),
+                      node.offset, node.offset + node.size);
 #endif
         }
         prefix += "|  ";
@@ -259,23 +269,28 @@ void Ren::Buffer::PrintNode(int i, std::string prefix, bool is_tail, ILog *log) 
     }
 }
 
-uint32_t Ren::Buffer::AllocRegion(uint32_t req_size, const char *tag,
-                                  const void *init_data) {
+uint32_t Ren::Buffer::AllocRegion(uint32_t req_size, const char *tag, const Buffer *init_buf, void *, uint32_t init_off) {
     const int i = Alloc_Recursive(0, req_size, tag);
     if (i != -1) {
         Node &n = nodes_[i];
         assert(n.size == req_size);
 
-        if (init_data) {
-            glBindBuffer(g_gl_buf_targets[int(type_)], GLuint(handle_.id));
-            glBufferSubData(g_gl_buf_targets[int(type_)], n.offset, n.size, init_data);
+        if (init_buf) {
+            glBindBuffer(GL_COPY_READ_BUFFER, GLuint(init_buf->handle_.id));
+            glBindBuffer(GL_COPY_WRITE_BUFFER, GLuint(handle_.id));
+
+            glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER, GLintptr(init_off), GLintptr(n.offset),
+                                GLsizeiptr(n.size));
+
+            glBindBuffer(GL_COPY_READ_BUFFER, 0);
+            glBindBuffer(GL_COPY_WRITE_BUFFER, 0);
         }
 
         return n.offset;
     } else {
         assert(false && "Not implemented!");
         Resize(size_ + req_size);
-        return AllocRegion(req_size, tag, init_data);
+        return AllocRegion(req_size, tag, init_buf, nullptr, init_off);
     }
 }
 
@@ -303,15 +318,13 @@ void Ren::Buffer::Resize(uint32_t new_size) {
     GLuint gl_buffer;
     glGenBuffers(1, &gl_buffer);
     glBindBuffer(g_gl_buf_targets[int(type_)], gl_buffer);
-    glBufferData(g_gl_buf_targets[int(type_)], size_, nullptr,
-                 GetGLBufUsage(access_, freq_));
+    glBufferData(g_gl_buf_targets[int(type_)], size_, nullptr, GetGLBufUsage(access_, freq_));
 
     if (handle_.id) {
         glBindBuffer(g_gl_buf_targets[int(type_)], GLuint(handle_.id));
         glBindBuffer(GL_COPY_WRITE_BUFFER, gl_buffer);
 
-        glCopyBufferSubData(g_gl_buf_targets[int(type_)], GL_COPY_WRITE_BUFFER, 0, 0,
-                            old_size);
+        glCopyBufferSubData(g_gl_buf_targets[int(type_)], GL_COPY_WRITE_BUFFER, 0, 0, old_size);
 
         auto old_buffer = GLuint(handle_.id);
         glDeleteBuffers(1, &old_buffer);
@@ -323,31 +336,61 @@ void Ren::Buffer::Resize(uint32_t new_size) {
     handle_.generation = g_GenCounter++;
 }
 
-uint8_t *Ren::Buffer::MapRange(uint32_t offset, uint32_t size) {
-    const GLbitfield BufferRangeBindFlags =
-        GLbitfield(GL_MAP_WRITE_BIT) | GLbitfield(GL_MAP_INVALIDATE_RANGE_BIT) |
-        GLbitfield(GL_MAP_UNSYNCHRONIZED_BIT) | GLbitfield(GL_MAP_FLUSH_EXPLICIT_BIT);
+uint8_t *Ren::Buffer::MapRange(const uint8_t dir, const uint32_t offset, const uint32_t size) {
+    assert(!is_mapped_);
+    assert(offset + size <= size_);
+
+#ifndef NDEBUG
+    for (auto it = std::begin(flushed_ranges_); it != std::end(flushed_ranges_);) {
+        if (offset + size >= it->range.first && offset < it->range.first + it->range.second) {
+            const WaitResult res = it->fence.ClientWaitSync(0);
+            assert(res == WaitResult::Success);
+            it = flushed_ranges_.erase(it);
+        } else {
+            ++it;
+        }
+    }
+#endif
+
+    GLbitfield buf_map_range_flags = GLbitfield(GL_MAP_UNSYNCHRONIZED_BIT) | GLbitfield(GL_MAP_FLUSH_EXPLICIT_BIT);
+
+    if (dir & BufMapRead) {
+        buf_map_range_flags |= GLbitfield(GL_MAP_READ_BIT);
+    }
+
+    if (dir & BufMapWrite) {
+        buf_map_range_flags |= GLbitfield(GL_MAP_WRITE_BIT);
+        if ((dir & BufMapRead) == 0) {
+            // write only case
+            buf_map_range_flags |= GLbitfield(GL_MAP_INVALIDATE_RANGE_BIT);
+        }
+    }
 
     glBindBuffer(g_gl_buf_targets[int(type_)], GLuint(handle_.id));
-    uint8_t *ret =
-        (uint8_t *)glMapBufferRange(g_gl_buf_targets[int(type_)], GLintptr(offset),
-                                    GLsizeiptr(size), BufferRangeBindFlags);
+    auto *ret = (uint8_t *)glMapBufferRange(g_gl_buf_targets[int(type_)], GLintptr(offset), GLsizeiptr(size),
+                                            buf_map_range_flags);
     glBindBuffer(g_gl_buf_targets[int(type_)], GLuint(0));
 
+    is_mapped_ = true;
     return ret;
 }
 
 void Ren::Buffer::FlushRange(uint32_t offset, uint32_t size) {
     glBindBuffer(g_gl_buf_targets[int(type_)], GLuint(handle_.id));
-    glFlushMappedBufferRange(g_gl_buf_targets[int(type_)], GLintptr(offset),
-                             GLsizeiptr(size));
+    glFlushMappedBufferRange(g_gl_buf_targets[int(type_)], GLintptr(offset), GLsizeiptr(size));
+#ifndef NDEBUG
+    flushed_ranges_.emplace_back(std::make_pair(offset, size),
+                                 SyncFence{glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0)});
+#endif
     glBindBuffer(g_gl_buf_targets[int(type_)], GLuint(0));
 }
 
 void Ren::Buffer::Unmap() {
+    assert(is_mapped_);
     glBindBuffer(g_gl_buf_targets[int(type_)], GLuint(handle_.id));
     glUnmapBuffer(g_gl_buf_targets[int(type_)]);
     glBindBuffer(g_gl_buf_targets[int(type_)], GLuint(0));
+    is_mapped_ = false;
 }
 
 void Ren::GLUnbindBufferUnits(int start, int count) {
@@ -359,8 +402,7 @@ void Ren::GLUnbindBufferUnits(int start, int count) {
 
 void Ren::Buffer::Print(ILog *log) {
     log->Info("=================================================================");
-    log->Info("Buffer %s, %f MB, %i nodes", name_.c_str(),
-              float(size_) / (1024.0f * 1024.0f), int(nodes_.size()));
+    log->Info("Buffer %s, %f MB, %i nodes", name_.c_str(), float(size_) / (1024.0f * 1024.0f), int(nodes_.size()));
     PrintNode(0, "", true, log);
     log->Info("=================================================================");
 }

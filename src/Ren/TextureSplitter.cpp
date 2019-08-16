@@ -25,8 +25,7 @@ bool Ren::TextureSplitter::Free(const int i) {
     while (par != -1) {
         int ch0 = nodes_[par].child[0], ch1 = nodes_[par].child[1];
 
-        if (!nodes_[ch0].has_children() && nodes_[ch0].is_free &&
-            !nodes_[ch1].has_children() && nodes_[ch1].is_free) {
+        if (!nodes_[ch0].has_children() && nodes_[ch0].is_free && !nodes_[ch1].has_children() && nodes_[ch1].is_free) {
 
             SafeErase(ch0, &par, 1);
             ch1 = nodes_[par].child[1];
@@ -68,7 +67,8 @@ int Ren::TextureSplitter::Insert_Recursive(const int i, const int res[2]) {
 
     if (ch0 != -1) {
         const int new_node = Insert_Recursive(ch0, res);
-        if (new_node != -1) return new_node;
+        if (new_node != -1)
+            return new_node;
 
         return Insert_Recursive(ch1, res);
     } else {
@@ -88,15 +88,19 @@ int Ren::TextureSplitter::Insert_Recursive(const int i, const int res[2]) {
         int dh = n.size[1] - res[1];
 
         if (dw > dh) {
-            nodes_[ch0].pos[0] = n.pos[0];  nodes_[ch0].pos[1] = n.pos[1];
-            nodes_[ch0].size[0] = res[0];   nodes_[ch0].size[1] = n.size[1];
+            nodes_[ch0].pos[0] = n.pos[0];
+            nodes_[ch0].pos[1] = n.pos[1];
+            nodes_[ch0].size[0] = res[0];
+            nodes_[ch0].size[1] = n.size[1];
             nodes_[ch1].pos[0] = n.pos[0] + res[0];
             nodes_[ch1].pos[1] = n.pos[1];
             nodes_[ch1].size[0] = n.size[0] - res[0];
             nodes_[ch1].size[1] = n.size[1];
         } else {
-            nodes_[ch0].pos[0] = n.pos[0];  nodes_[ch0].pos[1] = n.pos[1];
-            nodes_[ch0].size[0] = n.size[0]; nodes_[ch0].size[1] = res[1];
+            nodes_[ch0].pos[0] = n.pos[0];
+            nodes_[ch0].pos[1] = n.pos[1];
+            nodes_[ch0].size[0] = n.size[0];
+            nodes_[ch0].size[1] = res[1];
             nodes_[ch1].pos[0] = n.pos[0];
             nodes_[ch1].pos[1] = n.pos[1] + res[1];
             nodes_[ch1].size[0] = n.size[0];
@@ -110,8 +114,8 @@ int Ren::TextureSplitter::Insert_Recursive(const int i, const int res[2]) {
 }
 
 int Ren::TextureSplitter::Find_Recursive(const int i, const int pos[2]) const {
-    if (pos[0] < nodes_[i].pos[0] || pos[0] > (nodes_[i].pos[0] + nodes_[i].size[0]) ||
-        pos[1] < nodes_[i].pos[1] || pos[1] > (nodes_[i].pos[1] + nodes_[i].size[1])) {
+    if (pos[0] < nodes_[i].pos[0] || pos[0] > (nodes_[i].pos[0] + nodes_[i].size[0]) || pos[1] < nodes_[i].pos[1] ||
+        pos[1] > (nodes_[i].pos[1] + nodes_[i].size[1])) {
         return -1;
     }
 
@@ -119,7 +123,8 @@ int Ren::TextureSplitter::Find_Recursive(const int i, const int pos[2]) const {
 
     if (ch0 != -1) {
         int ndx = Find_Recursive(ch0, pos);
-        if (ndx != -1) return ndx;
+        if (ndx != -1)
+            return ndx;
         return Find_Recursive(ch1, pos);
     } else {
         if (!nodes_[i].is_free && pos[0] == nodes_[i].pos[0] && pos[1] == nodes_[i].pos[1]) {
@@ -134,8 +139,7 @@ void Ren::TextureSplitter::SafeErase(const int i, int *indices, const int num) {
     const int last = (int)nodes_.size() - 1;
 
     if (last != i) {
-        int ch0 = nodes_[last].child[0],
-            ch1 = nodes_[last].child[1];
+        int ch0 = nodes_[last].child[0], ch1 = nodes_[last].child[1];
 
         if (ch0 != -1 && nodes_[i].parent != last) {
             nodes_[ch0].parent = nodes_[ch1].parent = i;

@@ -258,7 +258,7 @@ int ModlApp::Init(const int w, const int h) {
     SDL_GL_SetSwapInterval(1);
 #endif
 
-    ctx_.Init(w, h, &log_);
+    ctx_.Init(w, h, &log_, nullptr);
     InitInternal();
 
     Sys::InitWorker();

@@ -1,14 +1,14 @@
 #pragma once
 
 struct DebugMarker {
-    explicit DebugMarker(const char* name);
+    explicit DebugMarker(const char *name);
     ~DebugMarker();
 };
 
 #if defined(USE_GL_RENDER)
 #include <Ren/GL.h>
 
-inline DebugMarker::DebugMarker(const char* name) {
+inline DebugMarker::DebugMarker(const char *name) {
 #ifndef DISABLE_MARKERS
     glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 0, -1, name);
 #endif
@@ -19,4 +19,8 @@ inline DebugMarker::~DebugMarker() {
     glPopDebugGroup();
 #endif
 }
+#elif defined(USE_VK_RENDER)
+inline DebugMarker::DebugMarker(const char *name) {}
+
+inline DebugMarker::~DebugMarker() {}
 #endif

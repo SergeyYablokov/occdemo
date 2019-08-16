@@ -142,7 +142,7 @@ bool SceneManager::HPreprocessShader(assets_context_t &ctx, const char *in_file,
 
                 dst_stream << "\r\n#line " << line_counter << "\r\n";
             } else if (line.find("PERM ") == 0) { // NOLINT
-                permutations.emplace_back(std::move(line.substr(5)));
+                permutations.emplace_back(line.substr(5));
             } else {
                 InlineShaderConstants(ctx, line);
 
@@ -154,160 +154,185 @@ bool SceneManager::HPreprocessShader(assets_context_t &ctx, const char *in_file,
     }
 
     if (strcmp(ctx.platform, "pc") == 0) {
-        for (const std::string &perm : permutations) {
-            std::string spv_file = out_file + perm;
+        for (const bool is_vk : {false, true}) {
+            for (const std::string &perm : permutations) {
+                std::string spv_file = out_file + perm;
 
-            size_t n;
-            if ((n = spv_file.find(".glsl")) != std::string::npos) {
-                spv_file.replace(n + 1, 4, "spv", 3);
-            }
-
-            std::remove(spv_file.c_str());
-
-            std::string compile_cmd = "src/libs/spirv/glslangValidator";
-
-            if (!perm.empty()) {
-                const char *params = perm.c_str();
-                if (!params || params[0] != '@') {
-                    continue;
+                { // replace extension
+                    const size_t n = spv_file.rfind(".glsl");
+                    assert(n != std::string::npos);
+                    if (is_vk) {
+                        spv_file.replace(n + 1, 4, "spv");
+                    } else {
+                        spv_file.replace(n + 1, 4, "spv_ogl");
+                    }
                 }
 
-                int count = 0;
+                std::remove(spv_file.c_str());
 
-                const char *p1 = params + 1;
-                const char *p2 = p1 + 1;
-                while (*p2) {
-                    if (*p2 == '=') {
-                        compile_cmd += " -D";
-                        compile_cmd += std::string(p1, p2);
+                std::string compile_cmd = "src/libs/spirv/glslangValidator";
 
-                        p1 = p2 + 1;
-                        while (p2 && *p2 && *p2 != ';') {
-                            ++p2;
+                if (!perm.empty()) {
+                    const char *params = perm.c_str();
+                    if (!params || params[0] != '@') {
+                        continue;
+                    }
+
+                    int count = 0;
+
+                    const char *p1 = params + 1;
+                    const char *p2 = p1 + 1;
+                    while (*p2) {
+                        if (*p2 == '=') {
+                            compile_cmd += " -D";
+                            compile_cmd += std::string(p1, p2);
+
+                            p1 = p2 + 1;
+                            while (p2 && *p2 && *p2 != ';') {
+                                ++p2;
+                            }
+
+                            compile_cmd += std::string(p1, p2);
+
+                            if (*p2) {
+                                p1 = ++p2;
+                            }
+                            ++count;
+                        } else if (*p2 == ';') {
+                            compile_cmd += " -D";
+                            compile_cmd += std::string(p1, p2);
+                            p1 = ++p2;
+                            ++count;
                         }
-
-                        compile_cmd += std::string(p1, p2);
 
                         if (*p2) {
-                            p1 = ++p2;
+                            ++p2;
                         }
-                        ++count;
-                    } else if (*p2 == ';') {
+                    }
+
+                    if (p1 != p2) {
                         compile_cmd += " -D";
                         compile_cmd += std::string(p1, p2);
-                        p1 = ++p2;
                         ++count;
                     }
-
-                    if (*p2) {
-                        ++p2;
-                    }
                 }
 
-                if (p1 != p2) {
-                    compile_cmd += " -D";
-                    compile_cmd += std::string(p1, p2);
-                    ++count;
+                if (is_vk) {
+                    compile_cmd += " -V ";
+                } else {
+                    compile_cmd += " -G ";
                 }
-            }
-
-            compile_cmd += " -G ";
-            compile_cmd += out_file;
-            compile_cmd += " -o \"";
-            compile_cmd += spv_file;
-            compile_cmd += '\"';
+                compile_cmd += out_file;
+                compile_cmd += " -o \"";
+                compile_cmd += spv_file;
+                compile_cmd += '\"';
 
 #ifdef _WIN32
-            std::replace(compile_cmd.begin(), compile_cmd.end(), '/', '\\');
+                std::replace(compile_cmd.begin(), compile_cmd.end(), '/', '\\');
 #endif
-            int res = system(compile_cmd.c_str());
-            if (res != 0) {
-                ctx.log->Error("[PrepareAssets] Failed to compile %s", spv_file.c_str());
+                int res = system(compile_cmd.c_str());
+                if (res != 0) {
+                    ctx.log->Error("[PrepareAssets] Failed to compile %s",
+                                   spv_file.c_str());
 #if !defined(NDEBUG) && defined(_WIN32)
-                //__debugbreak();
+                    __debugbreak();
 #endif
-                return false;
-            }
+                    return false;
+                }
 
-            std::string optimize_cmd = "src/libs/spirv/spirv-opt "
-                                       "--eliminate-dead-branches "
-                                       "--merge-return "
-                                       "--inline-entry-points-exhaustive "
-                                       "--loop-unswitch --loop-unroll "
-                                       "--eliminate-dead-code-aggressive "
-                                       "--private-to-local "
-                                       "--eliminate-local-single-block "
-                                       "--eliminate-local-single-store "
-                                       "--eliminate-dead-code-aggressive "
-                                       //"--scalar-replacement=100 "
-                                       "--convert-local-access-chains "
-                                       "--eliminate-local-single-block "
-                                       "--eliminate-local-single-store "
-                                       //"--eliminate-dead-code-aggressive "
-                                       //"--eliminate-local-multi-store "
-                                       //"--eliminate-dead-code-aggressive "
-                                       "--ccp "
-                                       //"--eliminate-dead-code-aggressive "
-                                       "--redundancy-elimination "
-                                       "--combine-access-chains "
-                                       "--simplify-instructions "
-                                       "--vector-dce "
-                                       "--eliminate-dead-inserts "
-                                       "--eliminate-dead-branches "
-                                       "--simplify-instructions "
-                                       "--if-conversion "
-                                       "--copy-propagate-arrays "
-                                       "--reduce-load-size "
-                                       //"--eliminate-dead-code-aggressive "
-                                       //"--merge-blocks "
-                                       "--redundancy-elimination "
-                                       "--eliminate-dead-branches "
-                                       //"--merge-blocks "
-                                       "--simplify-instructions "
-                                       "--validate-after-all ";
+                std::string optimize_cmd = "src/libs/spirv/spirv-opt "
+                                           "--wrap-opkill "
+                                           "--eliminate-dead-branches "
+                                           "--merge-return "
+                                           //"--inline-entry-points-exhaustive "
+                                           "--eliminate-dead-functions "
+                                           "--eliminate-dead-code-aggressive "
+                                           "--private-to-local "
+                                           "--eliminate-local-single-block "
+                                           "--eliminate-local-single-store "
+                                           "--eliminate-dead-code-aggressive "
+                                           "--scalar-replacement=100 "
+                                           "--convert-local-access-chains "
+                                           "--eliminate-local-single-block "
+                                           "--eliminate-local-single-store "
+                                           "--eliminate-dead-code-aggressive "
+                                           //"--ssa-rewrite "
+                                           "--eliminate-dead-code-aggressive "
+                                           "--ccp "
+                                           "--eliminate-dead-code-aggressive "
+                                           "--loop-unroll "
+                                           "--eliminate-dead-branches "
+                                           "--redundancy-elimination "
+                                           "--combine-access-chains "
+                                           "--simplify-instructions "
+                                           "--scalar-replacement=100 "
+                                           "--convert-local-access-chains "
+                                           //"--eliminate-local-single-block "
+                                           "--eliminate-local-single-store "
+                                           "--eliminate-dead-code-aggressive "
+                                           //"--ssa-rewrite "
+                                           "--eliminate-dead-code-aggressive "
+                                           "--vector-dce "
+                                           "--eliminate-dead-inserts "
+                                           "--eliminate-dead-branches "
+                                           "--simplify-instructions "
+                                            "--if-conversion "
+                                           "--copy-propagate-arrays "
+                                           "--reduce-load-size "
+                                           "--eliminate-dead-code-aggressive "
+                                           "--merge-blocks "
+                                           "--redundancy-elimination "
+                                           "--eliminate-dead-branches "
+                                           "--merge-blocks "
+                                           "--simplify-instructions "
+                                           "--validate-after-all ";
 
-            optimize_cmd += '\"';
-            optimize_cmd += spv_file;
-            optimize_cmd += "\" -o \"";
-            optimize_cmd += spv_file;
-            optimize_cmd += '\"';
+                optimize_cmd += '\"';
+                optimize_cmd += spv_file;
+                optimize_cmd += "\" -o \"";
+                optimize_cmd += spv_file;
+                optimize_cmd += '\"';
 
 #ifdef _WIN32
-            std::replace(optimize_cmd.begin(), optimize_cmd.end(), '/', '\\');
+                std::replace(optimize_cmd.begin(), optimize_cmd.end(), '/', '\\');
 #endif
-            res = system(optimize_cmd.c_str());
-            if (res != 0) {
-                ctx.log->Error("[PrepareAssets] Failed to optimize %s", spv_file.c_str());
+                res = system(optimize_cmd.c_str());
+                if (res != 0) {
+                    ctx.log->Error("[PrepareAssets] Failed to optimize %s",
+                                   spv_file.c_str());
 #if !defined(NDEBUG) && defined(_WIN32)
-                __debugbreak();
+                    __debugbreak();
 #endif
-                return false;
-            }
+                    return false;
+                }
 
-            std::string cross_cmd = "src/libs/spirv/spirv-cross ";
-            if (strcmp(ctx.platform, "pc") == 0) {
-                cross_cmd += "--version 430 ";
-            } else if (strcmp(ctx.platform, "android") == 0) {
-                cross_cmd += "--version 310 --es ";
-                cross_cmd += "--extension GL_EXT_texture_buffer ";
-            }
-            cross_cmd +=
-                "--no-support-nonzero-baseinstance --glsl-emit-push-constant-as-ubo ";
-            cross_cmd += spv_file;
-            cross_cmd += " --output ";
-            cross_cmd += out_file;
+#if 0
+                std::string cross_cmd = "src/libs/spirv/spirv-cross ";
+                if (strcmp(ctx.platform, "pc") == 0) {
+                    cross_cmd += "--version 430 ";
+                } else if (strcmp(ctx.platform, "android") == 0) {
+                    cross_cmd += "--version 310 --es ";
+                    cross_cmd += "--extension GL_EXT_texture_buffer ";
+                }
+                cross_cmd +=
+                    "--no-support-nonzero-baseinstance --glsl-emit-push-constant-as-ubo ";
+                cross_cmd += spv_file;
+                cross_cmd += " --output ";
+                cross_cmd += out_file;
 
 #ifdef _WIN32
-            std::replace(cross_cmd.begin(), cross_cmd.end(), '/', '\\');
+                std::replace(cross_cmd.begin(), cross_cmd.end(), '/', '\\');
 #endif
-            // res = system(cross_cmd.c_str());
-            if (res != 0) {
-                ctx.log->Error("[PrepareAssets] Failed to cross-compile %s",
-                               spv_file.c_str());
+                // res = system(cross_cmd.c_str());
+                if (res != 0) {
+                    ctx.log->Error("[PrepareAssets] Failed to cross-compile %s",
+                                   spv_file.c_str());
 #if !defined(NDEBUG) && defined(_WIN32)
-                __debugbreak();
+                    __debugbreak();
 #endif
-                return false;
+                    return false;
+                }
+#endif
             }
         }
     }

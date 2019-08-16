@@ -33,9 +33,8 @@ class RpDebugEllipsoids : public RenderPassBase {
   public:
     RpDebugEllipsoids(PrimDraw &prim_draw) : prim_draw_(prim_draw) {}
 
-    void Setup(RpBuilder &builder, const DrawList &list, const ViewState *view_state,
-               int orphan_index, const char shared_data_buf_name[],
-               const char output_tex_name[]);
+    void Setup(RpBuilder &builder, const DrawList &list, const ViewState *view_state, int orphan_index,
+               const char shared_data_buf_name[], const char output_tex_name[]);
     void Execute(RpBuilder &builder) override;
 
     // TODO: remove this

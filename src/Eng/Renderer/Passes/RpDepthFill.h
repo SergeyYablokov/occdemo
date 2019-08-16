@@ -12,13 +12,11 @@ class RpDepthFill : public RenderPassBase {
     int orphan_index_ = 0;
 
     // lazily initialized data
-    Ren::ProgramRef fillz_solid_prog_, fillz_solid_mov_prog_, fillz_vege_solid_prog_,
-        fillz_vege_solid_vel_prog_, fillz_vege_solid_vel_mov_prog_, fillz_transp_prog_,
-        fillz_transp_mov_prog_, fillz_vege_transp_prog_, fillz_vege_transp_vel_prog_,
-        fillz_vege_transp_vel_mov_prog_, fillz_skin_solid_prog_,
-        fillz_skin_solid_vel_prog_, fillz_skin_solid_vel_mov_prog_,
-        fillz_skin_transp_prog_, fillz_skin_transp_vel_prog_,
-        fillz_skin_transp_vel_mov_prog_;
+    Ren::ProgramRef fillz_solid_prog_, fillz_solid_mov_prog_, fillz_vege_solid_prog_, fillz_vege_solid_vel_prog_,
+        fillz_vege_solid_vel_mov_prog_, fillz_transp_prog_, fillz_transp_mov_prog_, fillz_vege_transp_prog_,
+        fillz_vege_transp_vel_prog_, fillz_vege_transp_vel_mov_prog_, fillz_skin_solid_prog_,
+        fillz_skin_solid_vel_prog_, fillz_skin_solid_vel_mov_prog_, fillz_skin_transp_prog_,
+        fillz_skin_transp_vel_prog_, fillz_skin_transp_vel_mov_prog_;
     Ren::Tex2DRef dummy_white_;
     Ren::TexHandle noise_tex_;
 
@@ -37,23 +35,19 @@ class RpDepthFill : public RenderPassBase {
     RpResource depth_tex_;
     RpResource velocity_tex_;
 
-    void LazyInit(Ren::Context &ctx, ShaderLoader &sh, RpAllocTex &depth_tex,
-                  RpAllocTex &velocity_tex);
+    void LazyInit(Ren::Context &ctx, ShaderLoader &sh, RpAllocTex &depth_tex, RpAllocTex &velocity_tex);
     void DrawDepth(RpBuilder &builder);
 
 #if defined(USE_GL_RENDER)
-    Ren::Vao depth_pass_solid_vao_, depth_pass_vege_solid_vao_, depth_pass_transp_vao_,
-        depth_pass_vege_transp_vao_, depth_pass_skin_solid_vao_,
-        depth_pass_skin_transp_vao_;
+    Ren::Vao depth_pass_solid_vao_, depth_pass_vege_solid_vao_, depth_pass_transp_vao_, depth_pass_vege_transp_vao_,
+        depth_pass_skin_solid_vao_, depth_pass_skin_transp_vao_;
 
     Ren::Framebuffer depth_fill_fb_, depth_fill_vel_fb_;
 #endif
   public:
-    void Setup(RpBuilder &builder, const DrawList &list, const ViewState *view_state,
-               const PersistentBuffers *bufs, int orphan_index,
-               const char instances_buf[], const char shared_data_buf[],
-               const char main_depth_tex[], const char main_velocity_tex[],
-               Ren::TexHandle noise_tex);
+    void Setup(RpBuilder &builder, const DrawList &list, const ViewState *view_state, const PersistentBuffers *bufs,
+               int orphan_index, const char instances_buf[], const char shared_data_buf[], const char main_depth_tex[],
+               const char main_velocity_tex[], Ren::TexHandle noise_tex);
     void Execute(RpBuilder &builder) override;
 
     const char *name() const override { return "DEPTH FILL"; }

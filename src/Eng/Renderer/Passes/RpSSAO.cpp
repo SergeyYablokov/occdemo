@@ -8,9 +8,8 @@
 #include "../PrimDraw.h"
 #include "../Renderer_Structs.h"
 
-void RpSSAO::Setup(RpBuilder &builder, const ViewState *view_state,
-                   const int orphan_index, Ren::TexHandle rand2d_dirs_4x4_tex,
-                   const char shared_data_buf[], const char depth_down_2x[],
+void RpSSAO::Setup(RpBuilder &builder, const ViewState *view_state, const int orphan_index,
+                   Ren::TexHandle rand2d_dirs_4x4_tex, const char shared_data_buf[], const char depth_down_2x[],
                    const char depth_tex[], const char output_tex[]) {
     view_state_ = view_state;
     orphan_index_ = orphan_index;
@@ -65,37 +64,33 @@ void RpSSAO::Execute(RpBuilder &builder) {
 
     { // prepare ao buffer
         const PrimDraw::Binding bindings[] = {
-            {Ren::eBindTarget::Tex2D, REN_BASE0_TEX_SLOT,
-             down_depth_2x_tex.ref->handle()},
+            {Ren::eBindTarget::Tex2D, REN_BASE0_TEX_SLOT, down_depth_2x_tex.ref->handle()},
             {Ren::eBindTarget::Tex2D, REN_BASE1_TEX_SLOT, rand2d_dirs_4x4_tex_},
-            {Ren::eBindTarget::UBuf, REN_UB_SHARED_DATA_LOC,
-             orphan_index_ * SharedDataBlockSize, sizeof(SharedDataBlock),
-             unif_shared_data_buf.ref->handle()}};
+            {Ren::eBindTarget::UBuf, REN_UB_SHARED_DATA_LOC, orphan_index_ * SharedDataBlockSize,
+             sizeof(SharedDataBlock), unif_shared_data_buf.ref->handle()}};
 
         const PrimDraw::Uniform uniforms[] = {{0, Ren::Vec4f{applied_state.viewport}}};
 
-        prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, {ssao_buf1_fb_.id(), 0},
-                            blit_ao_prog_.get(), bindings, 3, uniforms, 1);
+        prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, {ssao_buf1_fb_.id(), 0}, blit_ao_prog_.get(), bindings, 3, uniforms,
+                            1);
     }
 
     { // blur ao buffer
-        PrimDraw::Binding bindings[] = {
-            {Ren::eBindTarget::Tex2D, 0, down_depth_2x_tex.ref->handle()},
-            {Ren::eBindTarget::Tex2D, 1, ssao1_tex.ref->handle()}};
+        PrimDraw::Binding bindings[] = {{Ren::eBindTarget::Tex2D, 0, down_depth_2x_tex.ref->handle()},
+                                        {Ren::eBindTarget::Tex2D, 1, ssao1_tex.ref->handle()}};
 
-        PrimDraw::Uniform uniforms[] = {{0, Ren::Vec4f{applied_state.viewport}},
-                                        {3, 0.0f}};
+        PrimDraw::Uniform uniforms[] = {{0, Ren::Vec4f{applied_state.viewport}}, {3, 0.0f}};
 
-        prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, {ssao_buf2_fb_.id(), 0},
-                            blit_bilateral_prog_.get(), bindings, 2, uniforms, 2);
+        prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, {ssao_buf2_fb_.id(), 0}, blit_bilateral_prog_.get(), bindings, 2,
+                            uniforms, 2);
 
         bindings[1] = {Ren::eBindTarget::Tex2D, 1, ssao2_tex.ref->handle()};
 
         uniforms[0] = {0, Ren::Vec4f{applied_state.viewport}};
         uniforms[1] = {3, 1.0f};
 
-        prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, {ssao_buf1_fb_.id(), 0},
-                            blit_bilateral_prog_.get(), bindings, 2, uniforms, 2);
+        prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, {ssao_buf1_fb_.id(), 0}, blit_bilateral_prog_.get(), bindings, 2,
+                            uniforms, 2);
     }
 
     rast_state.viewport[2] = view_state_->act_res[0];
@@ -105,13 +100,12 @@ void RpSSAO::Execute(RpBuilder &builder) {
     applied_state = rast_state;
 
     { // upsample ao
-        PrimDraw::Binding bindings[] = {
-            {Ren::eBindTarget::Tex2D, 0, depth_tex.ref->handle()},
-            {Ren::eBindTarget::Tex2D, 1, down_depth_2x_tex.ref->handle()},
-            {Ren::eBindTarget::Tex2D, 2, ssao1_tex.ref->handle()},
-            {Ren::eBindTarget::UBuf, REN_UB_SHARED_DATA_LOC,
-             orphan_index_ * SharedDataBlockSize, sizeof(SharedDataBlock),
-             unif_shared_data_buf.ref->handle()}};
+        PrimDraw::Binding bindings[] = {{Ren::eBindTarget::Tex2D, 0, depth_tex.ref->handle()},
+                                        {Ren::eBindTarget::Tex2D, 1, down_depth_2x_tex.ref->handle()},
+                                        {Ren::eBindTarget::Tex2D, 2, ssao1_tex.ref->handle()},
+                                        {Ren::eBindTarget::UBuf, REN_UB_SHARED_DATA_LOC,
+                                         orphan_index_ * SharedDataBlockSize, sizeof(SharedDataBlock),
+                                         unif_shared_data_buf.ref->handle()}};
 
         Ren::Program *blit_upscale_prog = nullptr;
         if (view_state_->is_multisampled) {
@@ -123,28 +117,23 @@ void RpSSAO::Execute(RpBuilder &builder) {
 
         const PrimDraw::Uniform uniforms[] = {{0, Ren::Vec4f{0.0f, 0.0f, 1.0f, 1.0f}}};
 
-        prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, {output_fb_.id(), 0},
-                            blit_upscale_prog, bindings, 4, uniforms, 1);
+        prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, {output_fb_.id(), 0}, blit_upscale_prog, bindings, 4, uniforms, 1);
     }
 }
 
-void RpSSAO::LazyInit(Ren::Context &ctx, ShaderLoader &sh, RpAllocTex &ssao1_tex,
-                      RpAllocTex &ssao2_tex, RpAllocTex &output_tex) {
+void RpSSAO::LazyInit(Ren::Context &ctx, ShaderLoader &sh, RpAllocTex &ssao1_tex, RpAllocTex &ssao2_tex,
+                      RpAllocTex &output_tex) {
     if (!initialized) {
-        blit_ao_prog_ = sh.LoadProgram(ctx, "blit_ao", "internal/blit.vert.glsl",
-                                       "internal/blit_ssao.frag.glsl");
+        blit_ao_prog_ = sh.LoadProgram(ctx, "blit_ao", "internal/blit.vert.glsl", "internal/blit_ssao.frag.glsl");
         assert(blit_ao_prog_->ready());
         blit_bilateral_prog_ =
-            sh.LoadProgram(ctx, "blit_bilateral", "internal/blit.vert.glsl",
-                           "internal/blit_bilateral.frag.glsl");
+            sh.LoadProgram(ctx, "blit_bilateral", "internal/blit.vert.glsl", "internal/blit_bilateral.frag.glsl");
         assert(blit_bilateral_prog_->ready());
         blit_upscale_prog_ =
-            sh.LoadProgram(ctx, "blit_upscale", "internal/blit.vert.glsl",
-                           "internal/blit_upscale.frag.glsl");
+            sh.LoadProgram(ctx, "blit_upscale", "internal/blit.vert.glsl", "internal/blit_upscale.frag.glsl");
         assert(blit_upscale_prog_->ready());
         blit_upscale_ms_prog_ =
-            sh.LoadProgram(ctx, "blit_upscale_ms", "internal/blit.vert.glsl",
-                           "internal/blit_upscale.frag.glsl@MSAA_4");
+            sh.LoadProgram(ctx, "blit_upscale_ms", "internal/blit.vert.glsl", "internal/blit_upscale.frag.glsl@MSAA_4");
         assert(blit_upscale_ms_prog_->ready());
 
         { // dummy 1px texture
@@ -157,10 +146,8 @@ void RpSSAO::LazyInit(Ren::Context &ctx, ShaderLoader &sh, RpAllocTex &ssao1_tex
             static const uint8_t white[] = {255, 255, 255, 255};
 
             Ren::eTexLoadStatus status;
-            dummy_white_ =
-                ctx.LoadTexture2D("dummy_white", white, sizeof(white), p, &status);
-            assert(status == Ren::eTexLoadStatus::CreatedFromData ||
-                   status == Ren::eTexLoadStatus::Found);
+            dummy_white_ = ctx.LoadTexture2D("dummy_white", white, sizeof(white), p, &status);
+            assert(status == Ren::eTexLoadStatus::CreatedFromData || status == Ren::eTexLoadStatus::Found);
         }
 
         initialized = true;

@@ -25,8 +25,8 @@ class RpTAA : public RenderPassBase {
     RpResource velocity_tex_;
     RpResource output_tex_;
 
-    void LazyInit(Ren::Context &ctx, ShaderLoader &sh, RpAllocTex &depth_tex,
-                  RpAllocTex &velocity_tex, RpAllocTex &output_tex);
+    void LazyInit(Ren::Context &ctx, ShaderLoader &sh, RpAllocTex &depth_tex, RpAllocTex &velocity_tex,
+                  RpAllocTex &output_tex);
 
 #if defined(USE_GL_RENDER)
     Ren::Framebuffer velocity_fb_, resolve_fb_;
@@ -34,11 +34,9 @@ class RpTAA : public RenderPassBase {
   public:
     RpTAA(PrimDraw &prim_draw) : prim_draw_(prim_draw) {}
 
-    void Setup(RpBuilder &builder, const ViewState *view_state, int orphan_index,
-               Ren::TexHandle history_tex, float reduced_average, float max_exposure,
-               const char shared_data_buf[], const char color_tex[],
-               const char depth_tex[], const char velocity_tex[],
-               const char output_tex_name[]);
+    void Setup(RpBuilder &builder, const ViewState *view_state, int orphan_index, Ren::TexHandle history_tex,
+               float reduced_average, float max_exposure, const char shared_data_buf[], const char color_tex[],
+               const char depth_tex[], const char velocity_tex[], const char output_tex_name[]);
     void Execute(RpBuilder &builder) override;
 
     const char *name() const override { return "TAA"; }

@@ -1,7 +1,9 @@
 #version 310 es
 #extension GL_EXT_texture_buffer : enable
 #extension GL_OES_texture_buffer : enable
+#if !defined(VULKAN) && !defined(GL_SPIRV)
 #extension GL_ARB_bindless_texture: enable
+#endif
 //#extension GL_EXT_control_flow_attributes : enable
 
 $ModifyWarning
@@ -20,7 +22,7 @@ layout(location = REN_VTX_UV1_LOC) in vec2 aVertexUVs1;
 layout(location = REN_VTX_AUX_LOC) in uint aVertexColorPacked;
 
 #if defined(VULKAN) || defined(GL_SPIRV)
-layout (binding = 0, std140)
+layout (binding = REN_UB_SHARED_DATA_LOC, std140)
 #else
 layout (std140)
 #endif
@@ -28,17 +30,22 @@ uniform SharedDataBlock {
     SharedData shrd_data;
 };
 
-layout(location = REN_U_MAT_INDEX_LOC) uniform uint uMaterialIndex;
-layout (location = REN_U_INSTANCES_LOC) uniform ivec4 uInstanceIndices[REN_MAX_BATCH_SIZE / 4];
+#if defined(VULKAN)
+layout(push_constant) uniform PushConstants {
+    ivec2 uInstanceIndices[REN_MAX_BATCH_SIZE];
+};
+#else
+layout(location = REN_U_INSTANCES_LOC) uniform ivec2 uInstanceIndices[REN_MAX_BATCH_SIZE];
+#endif
 
 layout(binding = REN_INST_BUF_SLOT) uniform highp samplerBuffer instances_buffer;
 
-layout(binding = REN_MATERIALS_SLOT) buffer Materials {
+layout(binding = REN_MATERIALS_SLOT) readonly buffer Materials {
 	MaterialData materials[];
 };
 
 #if defined(GL_ARB_bindless_texture)
-layout(binding = REN_BINDLESS_TEX_SLOT) buffer TextureHandles {
+layout(binding = REN_BINDLESS_TEX_SLOT) readonly buffer TextureHandles {
 	uvec2 texture_handles[];
 };
 #endif
@@ -56,6 +63,7 @@ layout(location = 10) out flat uvec2 spec_texture;
 layout(location = 11) out flat uvec2 sss_texture;
 layout(location = 12) out flat uvec2 norm_detail_texture;
 #endif // GL_ARB_bindless_texture
+layout(location = 13) out flat vec4 material_params;
 #else
 out highp vec3 aVertexPos_;
 out mediump vec3 aVertexUVAndCurvature_;
@@ -69,18 +77,15 @@ out flat uvec2 spec_texture;
 out flat uvec2 sss_texture;
 out flat uvec2 norm_detail_texture;
 #endif // GL_ARB_bindless_texture
-#endif
-
-#ifdef VULKAN
-    #define gl_InstanceID gl_InstanceIndex
+out flat vec4 material_params;
 #endif
 
 invariant gl_Position;
 
 void main(void) {
-    int instance = uInstanceIndices[gl_InstanceID / 4][gl_InstanceID % 4];
+    ivec2 instance = uInstanceIndices[gl_InstanceIndex];
 
-    mat4 model_matrix = FetchModelMatrix(instances_buffer, instance);
+    mat4 model_matrix = FetchModelMatrix(instances_buffer, instance.x);
 
     vec3 vtx_pos_ls = aVertexPosition;
     float vtx_curvature = unpackUnorm4x8(aVertexColorPacked).r;
@@ -108,8 +113,9 @@ void main(void) {
         aVertexShUVs_[i].xy += offsets[i];
     }
     
+	MaterialData mat = materials[instance.y];
+	material_params = mat.params;
 #if defined(GL_ARB_bindless_texture)
-	MaterialData mat = materials[uMaterialIndex];
 	diff_texture = texture_handles[mat.texture_indices[0]];
 	norm_texture = texture_handles[mat.texture_indices[1]];
 	spec_texture = texture_handles[mat.texture_indices[2]];

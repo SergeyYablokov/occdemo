@@ -8,11 +8,9 @@
 #include "../PrimDraw.h"
 #include "../Renderer_Structs.h"
 
-void RpTAA::Setup(RpBuilder &builder, const ViewState *view_state, const int orphan_index,
-                  Ren::TexHandle history_tex, float reduced_average, float max_exposure,
-                  const char shared_data_buf[], const char color_tex[],
-                  const char depth_tex[], const char velocity_tex[],
-                  const char output_tex_name[]) {
+void RpTAA::Setup(RpBuilder &builder, const ViewState *view_state, const int orphan_index, Ren::TexHandle history_tex,
+                  float reduced_average, float max_exposure, const char shared_data_buf[], const char color_tex[],
+                  const char depth_tex[], const char velocity_tex[], const char output_tex_name[]) {
     view_state_ = view_state;
     orphan_index_ = orphan_index;
     history_tex_ = history_tex;
@@ -67,16 +65,14 @@ void RpTAA::Execute(RpBuilder &builder) {
 
         Ren::Program *blit_prog = blit_static_vel_prog_.get();
 
-        const PrimDraw::Binding bindings[] = {
-            {Ren::eBindTarget::Tex2D, 0, depth_tex.ref->handle()},
-            {Ren::eBindTarget::UBuf, REN_UB_SHARED_DATA_LOC,
-             orphan_index_ * SharedDataBlockSize, sizeof(SharedDataBlock),
-             unif_shared_data_buf.ref->handle()}};
+        const PrimDraw::Binding bindings[] = {{Ren::eBindTarget::Tex2D, 0, depth_tex.ref->handle()},
+                                              {Ren::eBindTarget::UBuf, REN_UB_SHARED_DATA_LOC,
+                                               orphan_index_ * SharedDataBlockSize, sizeof(SharedDataBlock),
+                                               unif_shared_data_buf.ref->handle()}};
 
         const PrimDraw::Uniform uniforms[] = {{0, Ren::Vec4f{applied_state.viewport}}};
 
-        prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, {velocity_fb_.id(), 0}, blit_prog,
-                            bindings, 2, uniforms, 2);
+        prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, {velocity_fb_.id(), 0}, blit_prog, bindings, 2, uniforms, 2);
     }
 
     { // Blit taa
@@ -87,44 +83,36 @@ void RpTAA::Execute(RpBuilder &builder) {
         Ren::Program *blit_prog = blit_taa_prog_.get();
 
         // exposure from previous frame
-        float exposure = reduced_average_ > std::numeric_limits<float>::epsilon()
-                             ? (1.0f / reduced_average_)
-                             : 1.0f;
+        float exposure = reduced_average_ > std::numeric_limits<float>::epsilon() ? (1.0f / reduced_average_) : 1.0f;
         exposure = std::min(exposure, max_exposure_);
 
-        const PrimDraw::Binding bindings[] = {
-            {Ren::eBindTarget::Tex2D, 0, clean_tex.ref->handle()},
-            {Ren::eBindTarget::Tex2D, 1, history_tex_},
-            {Ren::eBindTarget::Tex2D, 2, depth_tex.ref->handle()},
-            {Ren::eBindTarget::Tex2D, 3, velocity_tex.ref->handle()}};
+        const PrimDraw::Binding bindings[] = {{Ren::eBindTarget::Tex2D, 0, clean_tex.ref->handle()},
+                                              {Ren::eBindTarget::Tex2D, 1, history_tex_},
+                                              {Ren::eBindTarget::Tex2D, 2, depth_tex.ref->handle()},
+                                              {Ren::eBindTarget::Tex2D, 3, velocity_tex.ref->handle()}};
 
         const PrimDraw::Uniform uniforms[] = {
             {0, Ren::Vec4f{applied_state.viewport}},
-            {13,
-             Ren::Vec2f{float(view_state_->act_res[0]), float(view_state_->act_res[1])}},
+            {13, Ren::Vec2f{float(view_state_->act_res[0]), float(view_state_->act_res[1])}},
             {14, exposure}};
 
-        prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, {resolve_fb_.id(), 0}, blit_prog,
-                            bindings, 4, uniforms, 3);
+        prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, {resolve_fb_.id(), 0}, blit_prog, bindings, 4, uniforms, 3);
     }
 }
 
-void RpTAA::LazyInit(Ren::Context &ctx, ShaderLoader &sh, RpAllocTex &depth_tex,
-                     RpAllocTex &velocity_tex, RpAllocTex &output_tex) {
+void RpTAA::LazyInit(Ren::Context &ctx, ShaderLoader &sh, RpAllocTex &depth_tex, RpAllocTex &velocity_tex,
+                     RpAllocTex &output_tex) {
     if (!initialized) {
-        blit_taa_prog_ = sh.LoadProgram(ctx, "blit_taa_prog", "internal/blit.vert.glsl",
-                                        "internal/blit_taa.frag.glsl");
+        blit_taa_prog_ = sh.LoadProgram(ctx, "blit_taa_prog", "internal/blit.vert.glsl", "internal/blit_taa.frag.glsl");
         assert(blit_taa_prog_->ready());
-        blit_static_vel_prog_ =
-            sh.LoadProgram(ctx, "blit_static_vel_prog", "internal/blit.vert.glsl",
-                           "internal/blit_static_vel.frag.glsl");
+        blit_static_vel_prog_ = sh.LoadProgram(ctx, "blit_static_vel_prog", "internal/blit.vert.glsl",
+                                               "internal/blit_static_vel.frag.glsl");
         assert(blit_static_vel_prog_->ready());
 
         initialized = true;
     }
 
-    if (!velocity_fb_.Setup(velocity_tex.ref->handle(), {}, depth_tex.ref->handle(),
-                            false)) {
+    if (!velocity_fb_.Setup(velocity_tex.ref->handle(), {}, depth_tex.ref->handle(), false)) {
         ctx.log()->Error("RpTAA: velocity_fb_ init failed!");
     }
 

@@ -2,17 +2,16 @@
 
 #include <Ren/Context.h>
 
-#include "../Renderer_Structs.h"
 #include "../../Utils/ShaderLoader.h"
+#include "../Renderer_Structs.h"
 
 namespace RpSkydomeInternal {
 #include "__skydome_mesh.inl"
 }
 
-void RpSkydome::Setup(RpBuilder &builder, const DrawList &list,
-                      const ViewState *view_state, const int orphan_index,
-                      const char shared_data_buf[], const char color_tex[],
-                      const char spec_tex[], const char depth_tex[]) {
+void RpSkydome::Setup(RpBuilder &builder, const DrawList &list, const ViewState *view_state, const int orphan_index,
+                      const char shared_data_buf[], const char color_tex[], const char spec_tex[],
+                      const char depth_tex[]) {
     orphan_index_ = orphan_index;
     view_state_ = view_state;
 
@@ -25,8 +24,7 @@ void RpSkydome::Setup(RpBuilder &builder, const DrawList &list,
         Ren::Tex2DParams params;
         params.w = view_state->scr_res[0];
         params.h = view_state->scr_res[1];
-#if (REN_OIT_MODE == REN_OIT_WEIGHTED_BLENDED) ||                                        \
-    (REN_OIT_MODE == REN_OIT_MOMENT_BASED && REN_OIT_MOMENT_RENORMALIZE)
+#if (REN_OIT_MODE == REN_OIT_WEIGHTED_BLENDED) || (REN_OIT_MODE == REN_OIT_MOMENT_BASED && REN_OIT_MOMENT_RENORMALIZE)
         // renormalization requires buffer with alpha channel
         params.format = Ren::eTexFormat::RawRGBA16F;
 #else
@@ -68,19 +66,17 @@ void RpSkydome::Execute(RpBuilder &builder) {
     DrawSkydome(builder);
 }
 
-void RpSkydome::LazyInit(Ren::Context &ctx, ShaderLoader &sh, RpAllocTex &color_tex,
-                         RpAllocTex &spec_tex, RpAllocTex &depth_tex) {
+void RpSkydome::LazyInit(Ren::Context &ctx, ShaderLoader &sh, RpAllocTex &color_tex, RpAllocTex &spec_tex,
+                         RpAllocTex &depth_tex) {
     using namespace RpSkydomeInternal;
 
     if (!initialized) {
-        skydome_prog_ = sh.LoadProgram(ctx, "skydome", "internal/skydome.vert.glsl",
-                                       "internal/skydome.frag.glsl");
+        skydome_prog_ = sh.LoadProgram(ctx, "skydome", "internal/skydome.vert.glsl", "internal/skydome.frag.glsl");
         assert(skydome_prog_->ready());
 
         Ren::eMeshLoadStatus status;
-        skydome_mesh_ =
-            ctx.LoadMesh("__skydome", __skydome_positions, __skydome_vertices_count,
-                         __skydome_indices, __skydome_indices_count, &status);
+        skydome_mesh_ = ctx.LoadMesh("__skydome", __skydome_positions, __skydome_vertices_count, __skydome_indices,
+                                     __skydome_indices_count, &status);
         assert(status == Ren::eMeshLoadStatus::CreatedFromData);
 
         initialized = true;
@@ -88,17 +84,16 @@ void RpSkydome::LazyInit(Ren::Context &ctx, ShaderLoader &sh, RpAllocTex &color_
 
     const int buf1_stride = 16, buf2_stride = 16;
 
-    const Ren::VtxAttribDesc attribs[] = {
-        {skydome_mesh_->attribs_buf1_handle(), REN_VTX_POS_LOC, 3, Ren::eType::Float32,
-         buf1_stride, uintptr_t(skydome_mesh_->attribs_buf1().offset)}};
+    const Ren::VtxAttribDesc attribs[] = {{skydome_mesh_->attribs_buf1_handle(), REN_VTX_POS_LOC, 3,
+                                           Ren::eType::Float32, buf1_stride,
+                                           uintptr_t(skydome_mesh_->attribs_buf1().offset)}};
     if (!skydome_vao_.Setup(attribs, 1, skydome_mesh_->indices_buf_handle())) {
         ctx.log()->Error("RpSkydome: vao init failed!");
     }
 
-    const Ren::TexHandle color_attachments[] = {
-        color_tex.ref->handle(), {}, spec_tex.ref->handle()};
-    if (!cached_fb_.Setup(color_attachments, 3, depth_tex.ref->handle(),
-                          depth_tex.ref->handle(), view_state_->is_multisampled)) {
+    const Ren::TexHandle color_attachments[] = {color_tex.ref->handle(), {}, spec_tex.ref->handle()};
+    if (!cached_fb_.Setup(color_attachments, 3, depth_tex.ref->handle(), depth_tex.ref->handle(),
+                          view_state_->is_multisampled)) {
         ctx.log()->Error("RpSkydome: fbo init failed!");
     }
 }

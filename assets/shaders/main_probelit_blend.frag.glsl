@@ -2,12 +2,15 @@
 #extension GL_EXT_texture_buffer : enable
 #extension GL_OES_texture_buffer : enable
 #extension GL_EXT_texture_cube_map_array : enable
+#if !defined(VULKAN) && !defined(GL_SPIRV)
 #extension GL_ARB_bindless_texture: enable
+#endif
 //#extension GL_EXT_control_flow_attributes : enable
 
 $ModifyWarning
 
-#ifdef GL_ES
+#if defined(GL_ES) || defined(VULKAN)
+	precision highp int;
     precision mediump float;
     precision mediump sampler2DShadow;
 #endif
@@ -32,7 +35,7 @@ layout(binding = REN_CELLS_BUF_SLOT) uniform highp usamplerBuffer cells_buffer;
 layout(binding = REN_ITEMS_BUF_SLOT) uniform highp usamplerBuffer items_buffer;
 
 #if defined(VULKAN) || defined(GL_SPIRV)
-layout (binding = 0, std140)
+layout (binding = REN_UB_SHARED_DATA_LOC, std140)
 #else
 layout (std140)
 #endif

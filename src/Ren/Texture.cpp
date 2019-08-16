@@ -65,6 +65,23 @@ int Ren::GetBlockLenBytes(const eTexFormat format, const eTexBlock block) {
 
 int Ren::GetBlockCount(const int w, const int h, const eTexBlock block) {
     const int i = int(block);
-    return ((w + g_block_res[i][0] - 1) / g_block_res[i][0]) *
-           ((h + g_block_res[i][1] - 1) / g_block_res[i][1]);
+    return ((w + g_block_res[i][0] - 1) / g_block_res[i][0]) * ((h + g_block_res[i][1] - 1) / g_block_res[i][1]);
+}
+
+uint32_t Ren::EstimateMemory(const Tex2DParams &params) {
+    if (IsCompressedFormat(params.format)) {
+        uint32_t total_len = 0;
+        for (int i = 0; i < params.mip_count; i++) {
+            const int w = std::max(params.w >> i, 1);
+            const int h = std::max(params.h >> i, 1);
+
+            const int block_len = GetBlockLenBytes(params.format, params.block);
+            const int block_cnt = GetBlockCount(w, h, params.block);
+
+            total_len += uint32_t(block_len) * block_cnt;
+        }
+        return total_len;
+    } else {
+        return 0;
+    }
 }

@@ -21,9 +21,9 @@
 #include "States/GSCreate.h"
 #include "Utils/Dictionary.h"
 
-Viewer::Viewer(const int w, const int h, const char *local_dir,
+Viewer::Viewer(const int w, const int h, const char *local_dir, const char *device_name,
                std::shared_ptr<Sys::ThreadWorker> aux_gfx_thread)
-    : GameBase(w, h, local_dir) {
+    : GameBase(w, h, device_name) {
     auto ren_ctx = GetComponent<Ren::Context>(REN_CONTEXT_KEY);
     auto snd_ctx = GetComponent<Snd::Context>(SND_CONTEXT_KEY);
     JsObject main_config;
@@ -65,8 +65,7 @@ Viewer::Viewer(const int w, const int h, const char *local_dir,
 #endif
             file_name += el.second.as_str().val;
 
-            std::shared_ptr<Gui::BitmapFont> loaded_font =
-                font_storage->LoadFont(name, file_name, ren_ctx.get());
+            std::shared_ptr<Gui::BitmapFont> loaded_font = font_storage->LoadFont(name, file_name, ren_ctx.get());
             (void)loaded_font;
         }
     }
@@ -79,9 +78,8 @@ Viewer::Viewer(const int w, const int h, const char *local_dir,
     { // create UI for performance debugging
         auto font_storage = GetComponent<FontStorage>(UI_FONTS_KEY);
         auto ui_root = GetComponent<Gui::BaseElement>(UI_ROOT_KEY);
-        auto debug_ui = std::make_shared<DebugInfoUI>(
-            Ren::Vec2f{-1.0f, -1.0f}, Ren::Vec2f{2.0f, 2.0f}, ui_root.get(),
-            font_storage->FindFont("main_font"));
+        auto debug_ui = std::make_shared<DebugInfoUI>(Ren::Vec2f{-1.0f, -1.0f}, Ren::Vec2f{2.0f, 2.0f}, ui_root.get(),
+                                                      font_storage->FindFont("main_font"));
         AddComponent(UI_DEBUG_KEY, debug_ui);
     }
 
@@ -97,13 +95,11 @@ Viewer::Viewer(const int w, const int h, const char *local_dir,
         s.w = w;
         s.h = h;
 
-        auto ray_renderer = Ray::CreateRenderer(
-            s, Ray::RendererRef | Ray::RendererSSE2 | Ray::RendererAVX |
-                   Ray::RendererAVX2 /*| Ray::RendererOCL*/);
+        auto ray_renderer = Ray::CreateRenderer(s, Ray::RendererRef | Ray::RendererSSE2 | Ray::RendererAVX |
+                                                       Ray::RendererAVX2 /*| Ray::RendererOCL*/);
         AddComponent(RAY_RENDERER_KEY, ray_renderer);
 
-        auto scene_manager = std::make_shared<SceneManager>(
-            *ren_ctx, *sh_loader, *snd_ctx, *ray_renderer, *threads);
+        auto scene_manager = std::make_shared<SceneManager>(*ren_ctx, *sh_loader, *snd_ctx, *ray_renderer, *threads);
         AddComponent(SCENE_MANAGER_KEY, scene_manager);
     }
 
@@ -139,9 +135,191 @@ Viewer::Viewer(const int w, const int h, const char *local_dir,
 
 void Viewer::Resize(const int w, const int h) { GameBase::Resize(w, h); }
 
+#if defined(USE_VK_RENDER)
+#include <Ren/VKCtx.h>
+#endif
+
 void Viewer::Frame() {
+#if defined(USE_VK_RENDER)
+    auto ctx = GetComponent<Ren::Context>(REN_CONTEXT_KEY);
+    Ren::VkContext *vk_ctx = ctx->vk_ctx();
+
+    const int current_frame = vk_ctx->current_frame;
+
+    vkWaitForFences(vk_ctx->device, 1, &vk_ctx->in_flight_fences[current_frame], VK_TRUE, UINT64_MAX);
+
+    uint32_t next_image_index = 0;
+    VkResult res =
+        vkAcquireNextImageKHR(vk_ctx->device, vk_ctx->swapchain, UINT64_MAX,
+                              vk_ctx->image_avail_semaphores[current_frame], VK_NULL_HANDLE, &next_image_index);
+    if (res != VK_SUCCESS) {
+        ctx->log()->Error("Failed to acquire next image!");
+    };
+
+    ///////////////////////////////////////////////////////////////
+
+    VkCommandBufferBeginInfo begin_info = {};
+    begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+    vkBeginCommandBuffer(vk_ctx->draw_cmd_buf[current_frame], &begin_info);
+
+    { // change layout from present_src to attachment_optimal
+        VkImageMemoryBarrier layout_transition_barrier = {};
+        layout_transition_barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+        layout_transition_barrier.srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+        layout_transition_barrier.dstAccessMask =
+            VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+        layout_transition_barrier.oldLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+        layout_transition_barrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        layout_transition_barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        layout_transition_barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        layout_transition_barrier.image = vk_ctx->present_images[next_image_index];
+        VkImageSubresourceRange resource_range = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
+        layout_transition_barrier.subresourceRange = resource_range;
+
+        vkCmdPipelineBarrier(vk_ctx->draw_cmd_buf[current_frame], VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+                             VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, 0, 0, nullptr, 0, nullptr, 1,
+                             &layout_transition_barrier);
+    }
+
+    const VkViewport viewport = {0.0f, 0.0f, float(vk_ctx->res.width), float(vk_ctx->res.height), 0.0f, 1.0f};
+    vkCmdSetViewport(vk_ctx->draw_cmd_buf[current_frame], 0, 1, &viewport);
+
+    const VkRect2D scissor = {0, 0, vk_ctx->res.width, vk_ctx->res.height};
+    vkCmdSetScissor(vk_ctx->draw_cmd_buf[current_frame], 0, 1, &scissor);
+
+    {     // clear image (for testing)
+        { // change layout to transfer_dst
+            VkImageMemoryBarrier layout_transition_barrier = {};
+            layout_transition_barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+            layout_transition_barrier.srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+            layout_transition_barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT | VK_ACCESS_TRANSFER_WRITE_BIT;
+            layout_transition_barrier.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+            layout_transition_barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+            layout_transition_barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            layout_transition_barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            layout_transition_barrier.image = vk_ctx->present_images[next_image_index];
+            VkImageSubresourceRange resource_range = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
+            layout_transition_barrier.subresourceRange = resource_range;
+
+            vkCmdPipelineBarrier(vk_ctx->draw_cmd_buf[current_frame], VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+                                 VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0, nullptr, 1,
+                                 &layout_transition_barrier);
+        }
+
+        static float k = 0.0f;
+        k += 0.001f;
+        if (k > 1.0f) {
+            k = 0.0f;
+        }
+
+        VkClearColorValue clear_val = {};
+        clear_val.float32[0] = k;
+        clear_val.float32[1] = 0.0f;
+        clear_val.float32[2] = 0.0f;
+        clear_val.float32[3] = 1.0f;
+
+        VkImageSubresourceRange sub_range = {};
+        sub_range.baseArrayLayer = 0;
+        sub_range.baseMipLevel = 0;
+        sub_range.layerCount = 1;
+        sub_range.levelCount = 1;
+        sub_range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+
+        vkCmdClearColorImage(vk_ctx->draw_cmd_buf[current_frame], vk_ctx->present_images[next_image_index],
+                             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, &clear_val, 1, &sub_range);
+
+        { // change layout back
+            VkImageMemoryBarrier layout_transition_barrier = {};
+            layout_transition_barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+            layout_transition_barrier.srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+            layout_transition_barrier.dstAccessMask =
+                VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+            layout_transition_barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+            layout_transition_barrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+            layout_transition_barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            layout_transition_barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            layout_transition_barrier.image = vk_ctx->present_images[next_image_index];
+            VkImageSubresourceRange resource_range = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
+            layout_transition_barrier.subresourceRange = resource_range;
+
+            vkCmdPipelineBarrier(vk_ctx->draw_cmd_buf[current_frame], VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+                                 VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, 0, 0, nullptr, 0, nullptr, 1,
+                                 &layout_transition_barrier);
+        }
+    }
+#endif
+
     auto state_manager = GetComponent<GameStateManager>(STATE_MANAGER_KEY);
     state_manager->Draw();
+
+#if defined(USE_VK_RENDER)
+    { // change layout from  attachment_optimal to present_src
+        VkImageMemoryBarrier layout_transition_barrier = {};
+        layout_transition_barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+        layout_transition_barrier.srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+        layout_transition_barrier.dstAccessMask =
+            VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+        layout_transition_barrier.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        layout_transition_barrier.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+        layout_transition_barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        layout_transition_barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        layout_transition_barrier.image = vk_ctx->present_images[next_image_index];
+        VkImageSubresourceRange resource_range = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
+        layout_transition_barrier.subresourceRange = resource_range;
+
+        vkCmdPipelineBarrier(vk_ctx->draw_cmd_buf[current_frame], VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+                             VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, 0, 0, nullptr, 0, nullptr, 1,
+                             &layout_transition_barrier);
+    }
+
+    vkEndCommandBuffer(vk_ctx->draw_cmd_buf[current_frame]);
+
+    //////////////////////////////////////////////////////////////////////////////////////////////////
+
+    VkSubmitInfo submit_info = {};
+    submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+
+    VkSemaphore wait_semaphores[] = {vk_ctx->image_avail_semaphores[current_frame]};
+    VkPipelineStageFlags wait_stages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
+
+    submit_info.waitSemaphoreCount = 1;
+    submit_info.pWaitSemaphores = wait_semaphores;
+    submit_info.pWaitDstStageMask = wait_stages;
+
+    submit_info.commandBufferCount = 1;
+    submit_info.pCommandBuffers = &vk_ctx->draw_cmd_buf[current_frame];
+
+    VkSemaphore signal_semaphores[] = {vk_ctx->render_finished_semaphores[current_frame]};
+    submit_info.signalSemaphoreCount = 1;
+    submit_info.pSignalSemaphores = signal_semaphores;
+
+    vkResetFences(vk_ctx->device, 1, &vk_ctx->in_flight_fences[current_frame]);
+
+    res = vkQueueSubmit(vk_ctx->graphics_queue, 1, &submit_info, vk_ctx->in_flight_fences[current_frame]);
+    if (res != VK_SUCCESS) {
+        ctx->log()->Error("Failed to submit into a queue!");
+    }
+
+    VkPresentInfoKHR present_info = {};
+    present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+
+    present_info.waitSemaphoreCount = 1;
+    present_info.pWaitSemaphores = signal_semaphores;
+
+    present_info.swapchainCount = 1;
+    present_info.pSwapchains = &vk_ctx->swapchain;
+
+    present_info.pImageIndices = &next_image_index;
+
+    res = vkQueuePresentKHR(vk_ctx->present_queue, &present_info);
+    if (res != VK_SUCCESS) {
+        ctx->log()->Error("Failed to present queue!");
+    }
+
+    vk_ctx->current_frame = (vk_ctx->current_frame + 1) % Ren::MaxFramesInFlight;
+#endif
 }
 
 void Viewer::PrepareAssets(const char *platform) {
@@ -157,16 +335,14 @@ void Viewer::PrepareAssets(const char *platform) {
     } else {
         std::string out_folder = "assets_";
         out_folder += platform;
-        SceneManager::PrepareAssets("assets", out_folder.c_str(), platform, nullptr,
-                                    &log);
+        SceneManager::PrepareAssets("assets", out_folder.c_str(), platform, nullptr, &log);
     }
 #endif
     const double t2 = Sys::GetTimeS();
     log.Info("Assets processed in %fs", t2 - t1);
 }
 
-bool Viewer::HConvTEIToDict(assets_context_t &ctx, const char *in_file,
-                            const char *out_file) {
+bool Viewer::HConvTEIToDict(assets_context_t &ctx, const char *in_file, const char *out_file) {
     ctx.log->Info("[PrepareAssets] Prep %s", out_file);
 
     struct dict_link_t {
@@ -391,27 +567,23 @@ bool Viewer::HConvTEIToDict(assets_context_t &ctx, const char *in_file,
 
                 { // correct word writing
                     const size_t len = src_entry.orth.length();
-                    memcpy(&comb_str_buf[comb_str_buf_ndx1], src_entry.orth.c_str(),
-                           len + 1);
+                    memcpy(&comb_str_buf[comb_str_buf_ndx1], src_entry.orth.c_str(), len + 1);
                     dst_entry.orth_str_off = (uint32_t)comb_str_buf_ndx1;
                     comb_str_buf_ndx1 += len + 1;
                 }
 
                 if (!src_entry.pron.empty()) { // word pronunciation
                     const size_t len = src_entry.pron.length();
-                    memcpy(&comb_str_buf[comb_str_buf_ndx1], src_entry.pron.c_str(),
-                           len + 1);
+                    memcpy(&comb_str_buf[comb_str_buf_ndx1], src_entry.pron.c_str(), len + 1);
                     dst_entry.pron_str_off = (uint32_t)comb_str_buf_ndx1;
                     comb_str_buf_ndx1 += len + 1;
                 } else {
                     dst_entry.pron_str_off = 0xffffffff;
                 }
 
-                for (uint32_t j = src_entry.trans_index;
-                     j < src_entry.trans_index + src_entry.trans_count; j++) {
+                for (uint32_t j = src_entry.trans_index; j < src_entry.trans_index + src_entry.trans_count; j++) {
                     const size_t len = translations[j].length();
-                    memcpy(&comb_str_buf[comb_str_buf_ndx2], translations[j].c_str(),
-                           len + 1);
+                    memcpy(&comb_str_buf[comb_str_buf_ndx2], translations[j].c_str(), len + 1);
 
                     if (j == src_entry.trans_index) {
                         dst_entry.trans_str_off = (uint32_t)comb_str_buf_ndx2;
@@ -425,17 +597,14 @@ bool Viewer::HConvTEIToDict(assets_context_t &ctx, const char *in_file,
             }
         }
 
-        assert(comb_str_buf_ndx1 == str_mem_trans_off &&
-               "Translations start is not right!");
+        assert(comb_str_buf_ndx1 == str_mem_trans_off && "Translations start is not right!");
         assert(comb_str_buf_ndx2 == str_mem_req && "Buffer end is not right!");
-        assert(translations_processed == translations_count &&
-               "Translations count does not match!");
+        assert(translations_processed == translations_count && "Translations count does not match!");
         assert(links_count == dict_entries.size() && "Links count is wrong!");
 
         std::ofstream out_stream(out_file, std::ios::binary);
         const uint32_t header_size =
-            4 + sizeof(uint32_t) +
-            int(Dictionary::eDictChunks::DictChCount) * 3 * sizeof(uint32_t);
+            4 + sizeof(uint32_t) + int(Dictionary::eDictChunks::DictChCount) * 3 * sizeof(uint32_t);
         uint32_t hdr_offset = 0, data_offset = header_size;
 
         { // File format string
@@ -450,10 +619,8 @@ bool Viewer::HConvTEIToDict(assets_context_t &ctx, const char *in_file,
         }
 
         { // Info data offsets
-            const uint32_t info_data_chunk_id =
-                               uint32_t(Dictionary::eDictChunks::DictChInfo),
-                           info_data_offset = data_offset,
-                           info_data_size = sizeof(Dictionary::dict_info_t);
+            const uint32_t info_data_chunk_id = uint32_t(Dictionary::eDictChunks::DictChInfo),
+                           info_data_offset = data_offset, info_data_size = sizeof(Dictionary::dict_info_t);
             out_stream.write((const char *)&info_data_chunk_id, sizeof(uint32_t));
             out_stream.write((const char *)&info_data_offset, sizeof(uint32_t));
             out_stream.write((const char *)&info_data_size, sizeof(uint32_t));
@@ -462,12 +629,9 @@ bool Viewer::HConvTEIToDict(assets_context_t &ctx, const char *in_file,
         }
 
         { // Link data offsets
-            const uint32_t link_data_chunk_id =
-                               uint32_t(Dictionary::eDictChunks::DictChLinks),
+            const uint32_t link_data_chunk_id = uint32_t(Dictionary::eDictChunks::DictChLinks),
                            link_data_offset = data_offset,
-                           link_data_size =
-                               uint32_t(sizeof(Dictionary::dict_link_compact_t) *
-                                        links_compact.size());
+                           link_data_size = uint32_t(sizeof(Dictionary::dict_link_compact_t) * links_compact.size());
             out_stream.write((const char *)&link_data_chunk_id, sizeof(uint32_t));
             out_stream.write((const char *)&link_data_offset, sizeof(uint32_t));
             out_stream.write((const char *)&link_data_size, sizeof(uint32_t));
@@ -476,12 +640,10 @@ bool Viewer::HConvTEIToDict(assets_context_t &ctx, const char *in_file,
         }
 
         { // Entry data offsets
-            const uint32_t entry_data_chunk_id =
-                               uint32_t(Dictionary::eDictChunks::DictChEntries),
+            const uint32_t entry_data_chunk_id = uint32_t(Dictionary::eDictChunks::DictChEntries),
                            entry_data_offset = data_offset,
                            entry_data_size =
-                               uint32_t(sizeof(Dictionary::dict_entry_compact_t) *
-                                        entries_compact.size());
+                               uint32_t(sizeof(Dictionary::dict_entry_compact_t) * entries_compact.size());
             out_stream.write((const char *)&entry_data_chunk_id, sizeof(uint32_t));
             out_stream.write((const char *)&entry_data_offset, sizeof(uint32_t));
             out_stream.write((const char *)&entry_data_size, sizeof(uint32_t));
@@ -490,10 +652,8 @@ bool Viewer::HConvTEIToDict(assets_context_t &ctx, const char *in_file,
         }
 
         { // String data offsets
-            const uint32_t string_data_chunk_id =
-                               uint32_t(Dictionary::eDictChunks::DictChStrings),
-                           string_data_offset = data_offset,
-                           string_data_size = (uint32_t)str_mem_req;
+            const uint32_t string_data_chunk_id = uint32_t(Dictionary::eDictChunks::DictChStrings),
+                           string_data_offset = data_offset, string_data_size = (uint32_t)str_mem_req;
             out_stream.write((const char *)&string_data_chunk_id, sizeof(uint32_t));
             out_stream.write((const char *)&string_data_offset, sizeof(uint32_t));
             out_stream.write((const char *)&string_data_size, sizeof(uint32_t));
@@ -521,8 +681,7 @@ bool Viewer::HConvTEIToDict(assets_context_t &ctx, const char *in_file,
 
         // Entry data
         out_stream.write((const char *)entries_compact.data(),
-                         sizeof(Dictionary::dict_entry_compact_t) *
-                             entries_compact.size());
+                         sizeof(Dictionary::dict_entry_compact_t) * entries_compact.size());
 
         // String data
         out_stream.write(comb_str_buf.get(), str_mem_req);

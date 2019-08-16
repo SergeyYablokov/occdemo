@@ -3,17 +3,6 @@
 #include "Buffer.h"
 
 namespace Ren {
-enum class eType : uint8_t {
-    Float16,
-    Float32,
-    Uint32,
-    Uint16UNorm,
-    Int16SNorm,
-    Uint8UNorm,
-    Int32,
-    _Count
-};
-
 struct VtxAttribDesc {
     BufHandle buf;
     uint8_t loc;

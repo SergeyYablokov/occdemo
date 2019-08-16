@@ -47,8 +47,13 @@ IF(WIN32)
 set(SOURCE_FILES ${SOURCE_FILES}
                  AsyncFileReader_win32.cpp)
 ELSE(WIN32)
-set(SOURCE_FILES ${SOURCE_FILES}
-                 AsyncFileReader_unix.cpp)
+IF(APPLE)
+    set(SOURCE_FILES ${SOURCE_FILES}
+                     AsyncFileReader_posix_aio.cpp)
+ELSE(APPLE)
+    set(SOURCE_FILES ${SOURCE_FILES}
+                     AsyncFileReader_aio.cpp)
+ENDIF(APPLE)
 ENDIF(WIN32)
 
 list(APPEND ALL_SOURCE_FILES ${SOURCE_FILES})

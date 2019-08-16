@@ -1,7 +1,9 @@
 #version 310 es
 #extension GL_EXT_texture_buffer : enable
 #extension GL_OES_texture_buffer : enable
+#if !defined(VULKAN) && !defined(GL_SPIRV)
 #extension GL_ARB_bindless_texture: enable
+#endif
 //#extension GL_EXT_control_flow_attributes : enable
 
 $ModifyWarning
@@ -20,7 +22,7 @@ layout(location = REN_VTX_UV1_LOC) in vec2 aVertexUVs1;
 layout(location = REN_VTX_AUX_LOC) in uint aVertexColorPacked;
 
 #if defined(VULKAN) || defined(GL_SPIRV)
-layout (binding = 0, std140)
+layout (binding = REN_UB_SHARED_DATA_LOC, std140)
 #else
 layout (std140)
 #endif
@@ -28,18 +30,23 @@ uniform SharedDataBlock {
     SharedData shrd_data;
 };
 
-layout(location = REN_U_MAT_INDEX_LOC) uniform uint uMaterialIndex;
-layout(location = REN_U_INSTANCES_LOC) uniform ivec4 uInstanceIndices[REN_MAX_BATCH_SIZE / 4];
+#if defined(VULKAN)
+layout(push_constant) uniform PushConstants {
+    ivec2 uInstanceIndices[REN_MAX_BATCH_SIZE];
+};
+#else
+layout(location = REN_U_INSTANCES_LOC) uniform ivec2 uInstanceIndices[REN_MAX_BATCH_SIZE];
+#endif
 
 layout(binding = REN_INST_BUF_SLOT) uniform highp samplerBuffer instances_buffer;
 layout(binding = REN_NOISE_TEX_SLOT) uniform sampler2D noise_texture;
 
-layout(binding = REN_MATERIALS_SLOT) buffer Materials {
+layout(binding = REN_MATERIALS_SLOT) readonly buffer Materials {
 	MaterialData materials[];
 };
 
 #if defined(GL_ARB_bindless_texture)
-layout(binding = REN_BINDLESS_TEX_SLOT) buffer TextureHandles {
+layout(binding = REN_BINDLESS_TEX_SLOT) readonly buffer TextureHandles {
 	uvec2 texture_handles[];
 };
 #endif
@@ -68,34 +75,28 @@ out flat uvec2 spec_texture;
 #endif // GL_ARB_bindless_texture
 #endif
 
-#ifdef VULKAN
-    #define gl_InstanceID gl_InstanceIndex
-#endif
-
 invariant gl_Position;
 
 void main(void) {
-    int instance = uInstanceIndices[gl_InstanceID / 4][gl_InstanceID % 4];
+    ivec2 instance = uInstanceIndices[gl_InstanceIndex];
 
-    mat4 model_matrix = FetchModelMatrix(instances_buffer, instance);
+    mat4 model_matrix = FetchModelMatrix(instances_buffer, instance.x);
 
     // load vegetation properties
-    vec4 veg_params = texelFetch(instances_buffer, instance * 4 + 3);
+    vec4 veg_params = texelFetch(instances_buffer, instance.x * INSTANCE_BUF_STRIDE + 3);
 
-    vec3 vtx_pos_ls = aVertexPosition;
     vec4 vtx_color = unpackUnorm4x8(aVertexColorPacked);
     
     vec3 obj_pos_ws = model_matrix[3].xyz;
-    vec4 wind_scroll = shrd_data.uWindScroll + vec4(VEGE_NOISE_SCALE_LF * obj_pos_ws.xz,
-                                                    VEGE_NOISE_SCALE_HF * obj_pos_ws.xz);
+    vec4 wind_scroll = shrd_data.uWindScroll + vec4(VEGE_NOISE_SCALE_LF * obj_pos_ws.xz, VEGE_NOISE_SCALE_HF * obj_pos_ws.xz);
     vec4 wind_params = unpackUnorm4x8(floatBitsToUint(veg_params.x));
-    vec4 wind_vec_ls = vec4(unpackHalf2x16(floatBitsToUint(veg_params.y)),
-                            unpackHalf2x16(floatBitsToUint(veg_params.z)));
+    vec4 wind_vec_ls = vec4(unpackHalf2x16(floatBitsToUint(veg_params.y)), unpackHalf2x16(floatBitsToUint(veg_params.z)));
     
-    vtx_pos_ls = TransformVegetation(vtx_pos_ls, vtx_color, wind_scroll, wind_params,
-                                     wind_vec_ls, noise_texture);
-    
+    vec3 vtx_pos_ls = TransformVegetation(aVertexPosition, vtx_color, wind_scroll, wind_params, wind_vec_ls, noise_texture);
     vec3 vtx_pos_ws = (model_matrix * vec4(vtx_pos_ls, 1.0)).xyz;
+	
+	gl_Position = shrd_data.uViewProjMatrix * vec4(vtx_pos_ws, 1.0);
+	
     vec3 vtx_nor_ws = normalize((model_matrix * vec4(aVertexNormal.xyz, 0.0)).xyz);
     vec3 vtx_tan_ws = normalize((model_matrix * vec4(aVertexNormal.w, aVertexTangent, 0.0)).xyz);
 
@@ -120,11 +121,9 @@ void main(void) {
     }
 	
 #if defined(GL_ARB_bindless_texture)
-	MaterialData mat = materials[uMaterialIndex];
+	MaterialData mat = materials[instance.y];
 	diff_texture = texture_handles[mat.texture_indices[0]];
 	norm_texture = texture_handles[mat.texture_indices[1]];
 	spec_texture = texture_handles[mat.texture_indices[2]];
 #endif // GL_ARB_bindless_texture
-    
-    gl_Position = shrd_data.uViewProjMatrix * vec4(vtx_pos_ws, 1.0);
 } 

@@ -8,7 +8,7 @@
 
 #include <dirent.h>
 
-#ifdef __linux__
+#if defined(__linux__) || defined(__APPLE__)
 #include <sys/stat.h>
 #endif
 

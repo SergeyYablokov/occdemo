@@ -1,8 +1,9 @@
 #version 310 es
 #extension GL_ARB_texture_multisample : enable
 
-#ifdef GL_ES
-    precision mediump float;
+#if defined(GL_ES) || defined(VULKAN)
+	precision highp int;
+	precision mediump float;
 #endif
 
 /*
@@ -15,11 +16,22 @@ layout(binding = 0) uniform mediump sampler2DMS s_texture;
 layout(binding = 0) uniform mediump sampler2D s_texture;
 #endif
 layout(binding = 1) uniform sampler2D s_blured_texture;
-layout(location = 12) uniform float tonemap;
+
+#if defined(VULKAN)
+layout(push_constant) uniform PushConstants {
+    layout(offset = 16) vec2 uTexSize;
+						float tonemap;
+						float gamma;
+						float exposure;
+						float fade;
+};
+#else
 layout(location = 13) uniform vec2 uTexSize;
+layout(location = 12) uniform float tonemap;
 layout(location = 14) uniform float gamma;
 layout(location = 15) uniform float exposure;
 layout(location = 16) uniform float fade;
+#endif
 
 #if defined(VULKAN) || defined(GL_SPIRV)
 layout(location = 0) in vec2 aVertexUVs_;

@@ -26,35 +26,6 @@ enum eTexFlags {
     TexUsageUI = (1u << 9u)
 };
 
-struct Tex2DParams {
-    uint16_t w = 0, h = 0;
-    uint16_t flags = 0;
-    uint8_t mip_count = 0;
-    uint8_t _pad = 0;
-    uint8_t cube = 0;
-    uint8_t samples = 1;
-    uint8_t fallback_color[4] = {0, 255, 255, 255};
-    eTexFormat format = eTexFormat::Undefined;
-    eTexBlock block = eTexBlock::_None;
-    SamplingParams sampling;
-};
-static_assert(sizeof(Tex2DParams) == 22, "!");
-
-inline bool operator==(const Tex2DParams &lhs, const Tex2DParams &rhs) {
-    return lhs.w == rhs.w && lhs.h == rhs.h && lhs.flags == rhs.flags &&
-           lhs.mip_count == rhs.mip_count && lhs.cube == rhs.cube &&
-           lhs.samples == rhs.samples && lhs.fallback_color[0] == rhs.fallback_color[0] &&
-           lhs.fallback_color[1] == rhs.fallback_color[1] &&
-           lhs.fallback_color[2] == rhs.fallback_color[2] &&
-           lhs.fallback_color[3] == rhs.fallback_color[3] && lhs.format == rhs.format &&
-           lhs.sampling == rhs.sampling;
-}
-inline bool operator!=(const Tex2DParams &lhs, const Tex2DParams &rhs) {
-    return !operator==(lhs, rhs);
-}
-
-uint32_t EstimateMemory(const Tex2DParams &params);
-
 struct TexHandle {
     uint32_t id = 0;         // native gl name
     uint32_t generation = 0; // used to identify unique texture (name can be reused)
@@ -67,9 +38,7 @@ struct TexHandle {
 inline bool operator==(const TexHandle lhs, const TexHandle rhs) {
     return lhs.id == rhs.id && lhs.generation == rhs.generation;
 }
-inline bool operator!=(const TexHandle lhs, const TexHandle rhs) {
-    return !operator==(lhs, rhs);
-}
+inline bool operator!=(const TexHandle lhs, const TexHandle rhs) { return !operator==(lhs, rhs); }
 inline bool operator<(const TexHandle lhs, const TexHandle rhs) {
     if (lhs.id < rhs.id) {
         return true;
@@ -80,29 +49,6 @@ inline bool operator<(const TexHandle lhs, const TexHandle rhs) {
 }
 
 class TextureStageBuf;
-
-class SyncFence {
-    void *sync_ = nullptr;
-
-  public:
-    SyncFence() = default;
-    explicit SyncFence(void *sync) : sync_(sync) {}
-    ~SyncFence();
-
-    SyncFence(const SyncFence &rhs) = delete;
-    SyncFence(SyncFence &&rhs);
-    SyncFence &operator=(const SyncFence &rhs) = delete;
-    SyncFence &operator=(SyncFence &&rhs);
-
-    operator bool() const { return sync_ != nullptr; }
-
-    enum class WaitResult { AlreadySignaled, TimeoutExpired, ConditionSatisfied, WaitFailed };
-
-    void WaitSync();
-    WaitResult ClientWaitSync(uint64_t timeout_us = 1000000000);
-};
-
-SyncFence MakeFence();
 
 class Texture2D : public RefCounter {
     TexHandle handle_;
@@ -124,12 +70,9 @@ class Texture2D : public RefCounter {
     void InitFromRAWData(const void *data[6], const Tex2DParams &p, ILog *log);
     void InitFromTGAFile(const void *data[6], const Tex2DParams &p, ILog *log);
     void InitFromTGA_RGBEFile(const void *data[6], const Tex2DParams &p, ILog *log);
-    void InitFromPNGFile(const void *data[6], const int size[6], const Tex2DParams &p,
-                         ILog *log);
-    void InitFromDDSFile(const void *data[6], const int size[6], const Tex2DParams &p,
-                         ILog *log);
-    void InitFromKTXFile(const void *data[6], const int size[6], const Tex2DParams &p,
-                         ILog *log);
+    void InitFromPNGFile(const void *data[6], const int size[6], const Tex2DParams &p, ILog *log);
+    void InitFromDDSFile(const void *data[6], const int size[6], const Tex2DParams &p, ILog *log);
+    void InitFromKTXFile(const void *data[6], const int size[6], const Tex2DParams &p, ILog *log);
 
   public:
     uint32_t first_user = 0xffffffff;
@@ -139,10 +82,10 @@ class Texture2D : public RefCounter {
     // TODO: remove this!
     Texture2D(const char *name, uint32_t tex_id, const Tex2DParams &params, ILog *log)
         : handle_{tex_id, 0}, params_(params), ready_(true), name_(name) {}
-    Texture2D(const char *name, const void *data, int size, const Tex2DParams &params,
+    Texture2D(const char *name, const void *data, int size, const Tex2DParams &params, eTexLoadStatus *load_status,
+              ILog *log);
+    Texture2D(const char *name, const void *data[6], const int size[6], const Tex2DParams &params,
               eTexLoadStatus *load_status, ILog *log);
-    Texture2D(const char *name, const void *data[6], const int size[6],
-              const Tex2DParams &params, eTexLoadStatus *load_status, ILog *log);
     Texture2D(const Texture2D &rhs) = delete;
     Texture2D(Texture2D &&rhs) noexcept { (*this) = std::move(rhs); }
     ~Texture2D();
@@ -153,13 +96,12 @@ class Texture2D : public RefCounter {
     uint64_t GetBindlessHandle() const;
 
     void Init(const Tex2DParams &params, ILog *log);
-    void Init(const void *data, int size, const Tex2DParams &params,
-              eTexLoadStatus *load_status, ILog *log);
-    void Init(const void *data[6], const int size[6], const Tex2DParams &params,
-              eTexLoadStatus *load_status, ILog *log);
+    void Init(const void *data, int size, const Tex2DParams &params, eTexLoadStatus *load_status, ILog *log);
+    void Init(const void *data[6], const int size[6], const Tex2DParams &params, eTexLoadStatus *load_status,
+              ILog *log);
 
-    void Realloc(int w, int h, int mip_count, int samples, Ren::eTexFormat format,
-                 Ren::eTexBlock block, bool is_srgb, ILog *log);
+    void Realloc(int w, int h, int mip_count, int samples, Ren::eTexFormat format, Ren::eTexBlock block, bool is_srgb,
+                 ILog *log);
 
     TexHandle handle() const { return handle_; }
     uint32_t id() const { return handle_.id; }
@@ -175,11 +117,10 @@ class Texture2D : public RefCounter {
     void SetSampling(SamplingParams sampling) { params_.sampling = sampling; }
     void ApplySampling(SamplingParams sampling, ILog *log);
 
-    void SetSubImage(int level, int offsetx, int offsety, int sizex, int sizey,
-                     Ren::eTexFormat format, const void *data, int data_len);
-    SyncFence SetSubImage(int level, int offsetx, int offsety, int sizex, int sizey,
-                          Ren::eTexFormat format, const TextureStageBuf &sbuf,
-                          int data_off, int data_len);
+    void SetSubImage(int level, int offsetx, int offsety, int sizex, int sizey, Ren::eTexFormat format,
+                     const void *data, int data_len);
+    SyncFence SetSubImage(int level, int offsetx, int offsety, int sizex, int sizey, Ren::eTexFormat format,
+                          const TextureStageBuf &sbuf, int data_off, int data_len);
 
     void DownloadTextureData(eTexFormat format, void *out_data) const;
 };
@@ -224,8 +165,7 @@ class Texture1D : public RefCounter {
     void Free();
 
   public:
-    Texture1D(const char *name, BufferRef buf, eTexFormat format, uint32_t offset,
-              uint32_t size, ILog *log);
+    Texture1D(const char *name, BufferRef buf, eTexFormat format, uint32_t offset, uint32_t size, ILog *log);
     Texture1D(const Texture1D &rhs) = delete;
     Texture1D(Texture1D &&rhs) noexcept { (*this) = std::move(rhs); }
     ~Texture1D();
@@ -241,8 +181,7 @@ class Texture1D : public RefCounter {
 
     const String &name() const { return name_; }
 
-    void Init(BufferRef buf, eTexFormat format, uint32_t offset, uint32_t size,
-              ILog *log);
+    void Init(BufferRef buf, eTexFormat format, uint32_t offset, uint32_t size, ILog *log);
 };
 
 uint32_t GLFormatFromTexFormat(eTexFormat format);
@@ -250,8 +189,7 @@ uint32_t GLInternalFormatFromTexFormat(eTexFormat format, bool is_srgb);
 uint32_t GLTypeFromTexFormat(eTexFormat format);
 uint32_t GLBindTarget(eBindTarget binding);
 
-eTexFormat FormatFromGLInternalFormat(uint32_t gl_internal_format, eTexBlock *block,
-                                      bool *is_srgb);
+eTexFormat FormatFromGLInternalFormat(uint32_t gl_internal_format, eTexBlock *block, bool *is_srgb);
 
 void GLUnbindTextureUnits(int start, int count);
 
@@ -272,13 +210,11 @@ class Framebuffer {
 
     uint32_t id() const { return id_; }
 
-    bool Setup(const TexHandle color_attachments[], int color_attachments_count,
-               TexHandle depth_attachment, TexHandle stencil_attachment,
-               bool is_multisampled);
-    bool Setup(const TexHandle color_attachment, const TexHandle depth_attachment,
-               const TexHandle stencil_attachment, const bool is_multisampled) {
-        return Setup(&color_attachment, 1, depth_attachment, stencil_attachment,
-                     is_multisampled);
+    bool Setup(const TexHandle color_attachments[], int color_attachments_count, TexHandle depth_attachment,
+               TexHandle stencil_attachment, bool is_multisampled);
+    bool Setup(const TexHandle color_attachment, const TexHandle depth_attachment, const TexHandle stencil_attachment,
+               const bool is_multisampled) {
+        return Setup(&color_attachment, 1, depth_attachment, stencil_attachment, is_multisampled);
     }
 };
 } // namespace Ren

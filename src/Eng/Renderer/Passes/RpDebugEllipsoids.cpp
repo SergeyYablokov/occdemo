@@ -7,10 +7,8 @@
 #include "../PrimDraw.h"
 #include "../Renderer_Structs.h"
 
-void RpDebugEllipsoids::Setup(RpBuilder &builder, const DrawList &list,
-                              const ViewState *view_state, const int orphan_index,
-                              const char shared_data_buf_name[],
-                              const char output_tex_name[]) {
+void RpDebugEllipsoids::Setup(RpBuilder &builder, const DrawList &list, const ViewState *view_state,
+                              const int orphan_index, const char shared_data_buf_name[], const char output_tex_name[]) {
 
     view_state_ = view_state;
     orphan_index_ = orphan_index;
@@ -28,19 +26,16 @@ void RpDebugEllipsoids::Execute(RpBuilder &builder) {
     DrawProbes(builder);
 }
 
-void RpDebugEllipsoids::LazyInit(Ren::Context &ctx, ShaderLoader &sh,
-                                 RpAllocTex &output_tex) {
+void RpDebugEllipsoids::LazyInit(Ren::Context &ctx, ShaderLoader &sh, RpAllocTex &output_tex) {
     if (!initialized) {
         ellipsoid_prog_ =
-            sh.LoadProgram(ctx, "ellipsoid_prog", "internal/ellipsoid.vert.glsl",
-                           "internal/ellipsoid.frag.glsl");
+            sh.LoadProgram(ctx, "ellipsoid_prog", "internal/ellipsoid.vert.glsl", "internal/ellipsoid.frag.glsl");
         assert(ellipsoid_prog_->ready());
 
         initialized = true;
     }
 
-    if (!draw_fb_.Setup(output_tex.ref->handle(), {}, {},
-                        view_state_->is_multisampled)) {
+    if (!draw_fb_.Setup(output_tex.ref->handle(), {}, {}, view_state_->is_multisampled)) {
         ctx.log()->Error("RpDebugEllipsoids: draw_fb_ init failed!");
     }
 }
@@ -57,8 +52,7 @@ void RpDebugEllipsoids::DrawProbes(RpBuilder &builder) {
     RpAllocBuf &unif_shared_data_buf = builder.GetReadBuffer(shared_data_buf_);
 
     const PrimDraw::Binding bindings[] = {{Ren::eBindTarget::UBuf, REN_UB_SHARED_DATA_LOC,
-                                           orphan_index_ * SharedDataBlockSize,
-                                           sizeof(SharedDataBlock),
+                                           orphan_index_ * SharedDataBlockSize, sizeof(SharedDataBlock),
                                            unif_shared_data_buf.ref->handle()}};
 
     for (int i = 0; i < int(ellipsoids_.count); i++) {
@@ -73,8 +67,8 @@ void RpDebugEllipsoids::DrawProbes(RpBuilder &builder) {
 
         sph_ls *= e.radius;
 
-        Ren::Mat4f world_from_object = Ren::Translate(
-            Ren::Mat4f{}, Ren::Vec3f{e.position[0], e.position[1], e.position[2]});
+        Ren::Mat4f world_from_object =
+            Ren::Translate(Ren::Mat4f{}, Ren::Vec3f{e.position[0], e.position[1], e.position[2]});
 
         world_from_object[0] = Ren::Vec4f{sph_ls[0]};
         world_from_object[1] = Ren::Vec4f{sph_ls[1]};
@@ -82,9 +76,7 @@ void RpDebugEllipsoids::DrawProbes(RpBuilder &builder) {
 
         const PrimDraw::Uniform uniforms[] = {{REN_U_M_MATRIX_LOC, &world_from_object}};
 
-        prim_draw_.DrawPrim(PrimDraw::ePrim::Sphere, {draw_fb_.id(), 0},
-                            ellipsoid_prog_.get(), bindings,
-                            sizeof(bindings) / sizeof(bindings[0]), uniforms,
-                            sizeof(uniforms) / sizeof(uniforms[0]));
+        prim_draw_.DrawPrim(PrimDraw::ePrim::Sphere, {draw_fb_.id(), 0}, ellipsoid_prog_.get(), bindings,
+                            sizeof(bindings) / sizeof(bindings[0]), uniforms, sizeof(uniforms) / sizeof(uniforms[0]));
     }
 }

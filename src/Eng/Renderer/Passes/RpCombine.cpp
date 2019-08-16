@@ -10,9 +10,8 @@
 #include "../PrimDraw.h"
 #include "../Renderer_Structs.h"
 
-void RpCombine::Setup(RpBuilder &builder, const ViewState *view_state, const float gamma,
-                      const float exposure, const float fade, bool const tonemap,
-                      const char color_tex_name[], const char blur_tex_name[],
+void RpCombine::Setup(RpBuilder &builder, const ViewState *view_state, const float gamma, const float exposure,
+                      const float fade, bool const tonemap, const char color_tex_name[], const char blur_tex_name[],
                       const char output_tex_name[]) {
     view_state_ = view_state;
     gamma_ = gamma;
@@ -70,8 +69,7 @@ void RpCombine::Execute(RpBuilder &builder) {
     Ren::RastState applied_state = rast_state;
 
     const PrimDraw::Uniform uniforms[] = {
-        {0, Ren::Vec4f{0.0f, 0.0f, float(view_state_->act_res[0]),
-                       float(view_state_->act_res[1])}},
+        {0, Ren::Vec4f{0.0f, 0.0f, float(view_state_->act_res[0]), float(view_state_->act_res[1])}},
         {12, tonemap_ ? 1.0f : 0.0f},
         {13, Ren::Vec2f{float(view_state_->scr_res[0]), float(view_state_->scr_res[1])}},
         {14, gamma_},
@@ -80,18 +78,16 @@ void RpCombine::Execute(RpBuilder &builder) {
 
     const PrimDraw::Binding bindings[] = {
         {Ren::eBindTarget::Tex2D, REN_BASE0_TEX_SLOT, color_tex.ref->handle()},
-        {Ren::eBindTarget::Tex2D, REN_BASE1_TEX_SLOT,
-         blur_tex ? blur_tex->ref->handle() : dummy_black_->handle()}};
+        {Ren::eBindTarget::Tex2D, REN_BASE1_TEX_SLOT, blur_tex ? blur_tex->ref->handle() : dummy_black_->handle()}};
 
-    prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, {output_fb_.id(), 0},
-                        blit_combine_prog_.get(), bindings, 2, uniforms, 6);
+    prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, {output_fb_.id(), 0}, blit_combine_prog_.get(), bindings, 2, uniforms,
+                        6);
 }
 
 void RpCombine::LazyInit(Ren::Context &ctx, ShaderLoader &sh, RpAllocTex *output_tex) {
     if (!initialized) {
         blit_combine_prog_ =
-            sh.LoadProgram(ctx, "blit_combine", "internal/blit.vert.glsl",
-                           "internal/blit_combine.frag.glsl");
+            sh.LoadProgram(ctx, "blit_combine", "internal/blit.vert.glsl", "internal/blit_combine.frag.glsl");
         assert(blit_combine_prog_->ready());
 
         static const uint8_t black[] = {0, 0, 0, 0};
@@ -103,8 +99,7 @@ void RpCombine::LazyInit(Ren::Context &ctx, ShaderLoader &sh, RpAllocTex *output
 
         Ren::eTexLoadStatus status;
         dummy_black_ = ctx.LoadTexture2D("dummy_black", black, sizeof(black), p, &status);
-        assert(status == Ren::eTexLoadStatus::CreatedFromData ||
-               status == Ren::eTexLoadStatus::Found);
+        assert(status == Ren::eTexLoadStatus::CreatedFromData || status == Ren::eTexLoadStatus::Found);
 
         initialized = true;
     }

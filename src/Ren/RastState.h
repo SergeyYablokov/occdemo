@@ -8,17 +8,7 @@
 
 namespace Ren {
 enum class eCullFace : uint8_t { Front, Back, _Count };
-enum class eTestFunc : uint8_t {
-    Always,
-    Never,
-    Less,
-    Equal,
-    Greater,
-    LEqual,
-    NotEqual,
-    GEqual,
-    _Count
-};
+enum class eTestFunc : uint8_t { Always, Never, Less, Equal, Greater, LEqual, NotEqual, GEqual, _Count };
 enum class eBlendFactor : uint8_t {
     Zero,
     One,
@@ -32,12 +22,8 @@ enum class eBlendFactor : uint8_t {
     OneMinusDstAlpha,
     _Count
 };
-enum class eStencilOp : uint8_t {
-    Keep, Zero, Replace, Incr, Decr, Invert, _Count
-};
-enum class ePolygonMode : uint8_t {
-    Fill, Line, _Count
-};
+enum class eStencilOp : uint8_t { Keep, Zero, Replace, Incr, Decr, Invert, _Count };
+enum class ePolygonMode : uint8_t { Fill, Line, _Count };
 
 struct RastState {
     struct {
@@ -87,9 +73,9 @@ struct RastState {
     bool multisample = true;
 
     void Apply() { Apply(nullptr); }
-    void ApplyChanged(const RastState& ref) { Apply(&ref); }
+    void ApplyChanged(const RastState &ref) { Apply(&ref); }
 
-private:
-    void Apply(const RastState* ref);
+  private:
+    void Apply(const RastState *ref);
 };
 } // namespace Ren

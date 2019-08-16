@@ -12,8 +12,8 @@ class RpReflections : public RenderPassBase {
 
     // lazily initialized data
     int orphan_index_ = -1;
-    Ren::ProgramRef blit_ssr_prog_, blit_ssr_ms_prog_, blit_ssr_dilate_prog_,
-        blit_ssr_compose_prog_, blit_ssr_compose_ms_prog_;
+    Ren::ProgramRef blit_ssr_prog_, blit_ssr_ms_prog_, blit_ssr_dilate_prog_, blit_ssr_compose_prog_,
+        blit_ssr_compose_ms_prog_;
 
     // temp data (valid only between Setup and Execute calls)
     Ren::TexHandle down_buf_4x_tex_;
@@ -32,8 +32,8 @@ class RpReflections : public RenderPassBase {
     RpResource ssr1_tex_, ssr2_tex_;
     RpResource output_tex_;
 
-    void LazyInit(Ren::Context &ctx, ShaderLoader &sh, RpAllocTex &ssr1_tex,
-                  RpAllocTex &ssr2_tex, RpAllocTex &output_tex);
+    void LazyInit(Ren::Context &ctx, ShaderLoader &sh, RpAllocTex &ssr1_tex, RpAllocTex &ssr2_tex,
+                  RpAllocTex &output_tex);
 
 #if defined(USE_GL_RENDER)
     Ren::Framebuffer ssr_buf1_fb_, ssr_buf2_fb_, output_fb_;
@@ -41,12 +41,10 @@ class RpReflections : public RenderPassBase {
   public:
     RpReflections(PrimDraw &prim_draw) : prim_draw_(prim_draw) {}
 
-    void Setup(RpBuilder &builder, const ViewState *view_state, int orphan_index,
-               const ProbeStorage *probe_storage, Ren::TexHandle down_buf_4x_tex,
-               Ren::Tex2DRef brdf_lut, const char shared_data_buf[],
-               const char cells_buf[], const char items_buf[], const char depth_tex[],
-               const char normal_tex[], const char spec_tex[], const char depth_down_2x[],
-               const char output_tex_name[]);
+    void Setup(RpBuilder &builder, const ViewState *view_state, int orphan_index, const ProbeStorage *probe_storage,
+               Ren::TexHandle down_buf_4x_tex, Ren::Tex2DRef brdf_lut, const char shared_data_buf[],
+               const char cells_buf[], const char items_buf[], const char depth_tex[], const char normal_tex[],
+               const char spec_tex[], const char depth_down_2x[], const char output_tex_name[]);
     void Execute(RpBuilder &builder) override;
 
     const char *name() const override { return "REFLECTIONS PASS"; }

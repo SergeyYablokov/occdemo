@@ -9,39 +9,23 @@
 namespace Ren {
 class ILog;
 
-struct Descr {
-    String name;
-    int loc = -1;
-};
-typedef Descr Attribute;
-typedef Descr Uniform;
-typedef Descr UniformBlock;
-
-enum class eShaderType { None, Vert, Frag, Tesc, Tese, Comp, _Count };
-
-enum class eShaderLoadStatus { Found, SetToDefault, CreatedFromData };
-
 class Shader : public RefCounter {
     uint32_t id_ = 0;
     eShaderType type_ = eShaderType::None;
     String name_;
 
-    void InitFromGLSL(const char *shader_src, eShaderType type, eShaderLoadStatus *status,
-                      ILog *log);
+    void InitFromGLSL(const char *shader_src, eShaderType type, eShaderLoadStatus *status, ILog *log);
 #ifndef __ANDROID__
-    void InitFromSPIRV(const uint8_t *shader_data, int data_size, eShaderType type,
-                       eShaderLoadStatus *status, ILog *log);
+    void InitFromSPIRV(const uint8_t *shader_data, int data_size, eShaderType type, eShaderLoadStatus *status,
+                       ILog *log);
 #endif
   public:
     SmallVector<Descr, 16> attr_bindings, unif_bindings, blck_bindings;
 
-
-    Shader() = default;
-    Shader(const char *name, const char *shader_src, eShaderType type,
-           eShaderLoadStatus *status, ILog *log);
+    Shader(const char *name, const char *shader_src, eShaderType type, eShaderLoadStatus *status, ILog *log);
 #ifndef __ANDROID__
-    Shader(const char *name, const uint8_t *shader_data, int data_size, eShaderType type,
-           eShaderLoadStatus *status, ILog *log);
+    Shader(const char *name, const uint8_t *shader_code, int code_size, eShaderType type, eShaderLoadStatus *status,
+           ILog *log);
 #endif
     Shader(const Shader &rhs) = delete;
     Shader(Shader &&rhs) noexcept { (*this) = std::move(rhs); }
@@ -55,11 +39,9 @@ class Shader : public RefCounter {
     eShaderType type() const { return type_; }
     const String &name() const { return name_; }
 
-    void Init(const char *shader_src, eShaderType type, eShaderLoadStatus *status,
-              ILog *log);
+    void Init(const char *shader_src, eShaderType type, eShaderLoadStatus *status, ILog *log);
 #ifndef __ANDROID__
-    void Init(const uint8_t *shader_data, int data_size, eShaderType type,
-              eShaderLoadStatus *status, ILog *log);
+    void Init(const uint8_t *shader_code, int code_size, eShaderType type, eShaderLoadStatus *status, ILog *log);
 #endif
 };
 

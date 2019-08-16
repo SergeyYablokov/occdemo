@@ -42,8 +42,8 @@ class RpOpaque : public RenderPassBase {
     RpResource spec_tex_;
     RpResource depth_tex_;
 
-    void LazyInit(Ren::Context &ctx, ShaderLoader &sh, RpAllocTex &color_tex,
-                  RpAllocTex &normal_tex, RpAllocTex &spec_tex, RpAllocTex &depth_tex);
+    void LazyInit(Ren::Context &ctx, ShaderLoader &sh, RpAllocTex &color_tex, RpAllocTex &normal_tex,
+                  RpAllocTex &spec_tex, RpAllocTex &depth_tex);
     void DrawOpaque(RpBuilder &builder);
 
 #if defined(USE_GL_RENDER)
@@ -52,14 +52,11 @@ class RpOpaque : public RenderPassBase {
     Ren::Framebuffer opaque_draw_fb_;
 #endif
   public:
-    void Setup(RpBuilder &builder, const DrawList &list, const ViewState *view_state,
-               const PersistentBuffers *bufs, int orphan_index, Ren::Tex2DRef brdf_lut,
-               Ren::Tex2DRef noise_tex, Ren::Tex2DRef cone_rt_lut,
-               const char instances_buf[], const char shared_data_buf[],
-               const char cells_buf[], const char items_buf[], const char lights_buf[],
-               const char decals_buf[], const char shadowmap_tex[], const char ssao_tex[],
-               const char out_color[], const char out_normals[], const char out_spec[],
-               const char out_depth[]);
+    void Setup(RpBuilder &builder, const DrawList &list, const ViewState *view_state, const PersistentBuffers *bufs,
+               int orphan_index, Ren::Tex2DRef brdf_lut, Ren::Tex2DRef noise_tex, Ren::Tex2DRef cone_rt_lut,
+               const char instances_buf[], const char shared_data_buf[], const char cells_buf[], const char items_buf[],
+               const char lights_buf[], const char decals_buf[], const char shadowmap_tex[], const char ssao_tex[],
+               const char out_color[], const char out_normals[], const char out_spec[], const char out_depth[]);
     void Execute(RpBuilder &builder) override;
 
     // TODO: remove this

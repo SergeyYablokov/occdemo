@@ -53,30 +53,24 @@ void RpShadowMaps::DrawShadowMaps(RpBuilder &builder) {
 
     Ren::Context &ctx = builder.ctx();
 
-    glBindBufferRange(GL_SHADER_STORAGE_BUFFER, REN_MATERIALS_SLOT,
-                      GLuint(bufs_->materials_buf.id),
-                      GLintptr(bufs_->materials_buf_range.first),
-                      GLsizeiptr(bufs_->materials_buf_range.second));
-    if (ctx.capabilities.bindless_texture) {
-        glBindBufferRange(GL_SHADER_STORAGE_BUFFER, REN_BINDLESS_TEX_SLOT,
-                          GLuint(bufs_->textures_buf.id),
-                          GLintptr(bufs_->textures_buf_range.first),
-                          GLsizeiptr(bufs_->textures_buf_range.second));
+    if (bufs_->materials_buf_range.second) {
+        glBindBufferRange(GL_SHADER_STORAGE_BUFFER, REN_MATERIALS_SLOT, GLuint(bufs_->materials_buf.id),
+                          GLintptr(bufs_->materials_buf_range.first), GLsizeiptr(bufs_->materials_buf_range.second));
+    }
+    if (ctx.capabilities.bindless_texture && bufs_->textures_buf_range.second) {
+        glBindBufferRange(GL_SHADER_STORAGE_BUFFER, REN_BINDLESS_TEX_SLOT, GLuint(bufs_->textures_buf.id),
+                          GLintptr(bufs_->textures_buf_range.first), GLsizeiptr(bufs_->textures_buf_range.second));
     }
 
     RpAllocBuf &instances_buf = builder.GetReadBuffer(instances_buf_);
     assert(instances_buf.tbos[orphan_index_]);
 
-    ren_glBindTextureUnit_Comp(GL_TEXTURE_BUFFER, REN_INST_BUF_SLOT,
-                               GLuint(instances_buf.tbos[orphan_index_]->id()));
+    ren_glBindTextureUnit_Comp(GL_TEXTURE_BUFFER, REN_INST_BUF_SLOT, GLuint(instances_buf.tbos[orphan_index_]->id()));
 
     RpAllocBuf &unif_shared_data_buf = builder.GetReadBuffer(shared_data_buf_);
-    glBindBufferRange(GL_UNIFORM_BUFFER, REN_UB_SHARED_DATA_LOC,
-                      GLuint(unif_shared_data_buf.ref->id()),
+    glBindBufferRange(GL_UNIFORM_BUFFER, REN_UB_SHARED_DATA_LOC, GLuint(unif_shared_data_buf.ref->id()),
                       orphan_index_ * SharedDataBlockSize, sizeof(SharedDataBlock));
-    assert(orphan_index_ * SharedDataBlockSize %
-               builder.ctx().capabilities.unif_buf_offset_alignment ==
-           0);
+    assert(orphan_index_ * SharedDataBlockSize % builder.ctx().capabilities.unif_buf_offset_alignment == 0);
 
     ren_glBindTextureUnit_Comp(GL_TEXTURE_2D, REN_NOISE_TEX_SLOT, noise_tex_.id);
 
@@ -103,25 +97,20 @@ void RpShadowMaps::DrawShadowMaps(RpBuilder &builder) {
             region_cleared[i] = true;
         }
 
-        glUniformMatrix4fv(REN_U_M_MATRIX_LOC, 1, GL_FALSE,
-                           Ren::ValuePtr(shadow_regions_.data[i].clip_from_world));
+        glUniformMatrix4fv(REN_U_M_MATRIX_LOC, 1, GL_FALSE, Ren::ValuePtr(shadow_regions_.data[i].clip_from_world));
 
-        for (uint32_t j = sh_list.shadow_batch_start;
-             j < sh_list.shadow_batch_start + sh_list.shadow_batch_count; j++) {
-            const DepthDrawBatch &batch =
-                shadow_batches_.data[shadow_batch_indices_.data[j]];
-            if (!batch.instance_count || batch.alpha_test_bit ||
-                batch.type_bits == DepthDrawBatch::TypeVege) {
+        for (uint32_t j = sh_list.shadow_batch_start; j < sh_list.shadow_batch_start + sh_list.shadow_batch_count;
+             j++) {
+            const DepthDrawBatch &batch = shadow_batches_.data[shadow_batch_indices_.data[j]];
+            if (!batch.instance_count || batch.alpha_test_bit || batch.type_bits == DepthDrawBatch::TypeVege) {
                 continue;
             }
 
-            glUniform4iv(REN_U_INSTANCES_LOC, (batch.instance_count + 3) / 4,
-                         &batch.instance_indices[0]);
+            glUniform2iv(REN_U_INSTANCES_LOC, batch.instance_count, &batch.instance_indices[0][0]);
 
-            glDrawElementsInstancedBaseVertex(
-                GL_TRIANGLES, batch.indices_count, GL_UNSIGNED_INT,
-                (const GLvoid *)uintptr_t(batch.indices_offset * sizeof(uint32_t)),
-                (GLsizei)batch.instance_count, (GLint)batch.base_vertex);
+            glDrawElementsInstancedBaseVertex(GL_TRIANGLES, batch.indices_count, GL_UNSIGNED_INT,
+                                              (const GLvoid *)uintptr_t(batch.indices_offset * sizeof(uint32_t)),
+                                              (GLsizei)batch.instance_count, (GLint)batch.base_vertex);
             ++draw_calls_count;
         }
     }
@@ -143,25 +132,20 @@ void RpShadowMaps::DrawShadowMaps(RpBuilder &builder) {
             region_cleared[i] = true;
         }
 
-        glUniformMatrix4fv(REN_U_M_MATRIX_LOC, 1, GL_FALSE,
-                           Ren::ValuePtr(shadow_regions_.data[i].clip_from_world));
+        glUniformMatrix4fv(REN_U_M_MATRIX_LOC, 1, GL_FALSE, Ren::ValuePtr(shadow_regions_.data[i].clip_from_world));
 
-        for (uint32_t j = sh_list.shadow_batch_start;
-             j < sh_list.shadow_batch_start + sh_list.shadow_batch_count; j++) {
-            const DepthDrawBatch &batch =
-                shadow_batches_.data[shadow_batch_indices_.data[j]];
-            if (!batch.instance_count || batch.alpha_test_bit ||
-                batch.type_bits != DepthDrawBatch::TypeVege) {
+        for (uint32_t j = sh_list.shadow_batch_start; j < sh_list.shadow_batch_start + sh_list.shadow_batch_count;
+             j++) {
+            const DepthDrawBatch &batch = shadow_batches_.data[shadow_batch_indices_.data[j]];
+            if (!batch.instance_count || batch.alpha_test_bit || batch.type_bits != DepthDrawBatch::TypeVege) {
                 continue;
             }
 
-            glUniform4iv(REN_U_INSTANCES_LOC, (batch.instance_count + 3) / 4,
-                         &batch.instance_indices[0]);
+            glUniform2iv(REN_U_INSTANCES_LOC, batch.instance_count, &batch.instance_indices[0][0]);
 
-            glDrawElementsInstancedBaseVertex(
-                GL_TRIANGLES, batch.indices_count, GL_UNSIGNED_INT,
-                (const GLvoid *)uintptr_t(batch.indices_offset * sizeof(uint32_t)),
-                (GLsizei)batch.instance_count, (GLint)batch.base_vertex);
+            glDrawElementsInstancedBaseVertex(GL_TRIANGLES, batch.indices_count, GL_UNSIGNED_INT,
+                                              (const GLvoid *)uintptr_t(batch.indices_offset * sizeof(uint32_t)),
+                                              (GLsizei)batch.instance_count, (GLint)batch.base_vertex);
             ++draw_calls_count;
         }
     }
@@ -183,38 +167,28 @@ void RpShadowMaps::DrawShadowMaps(RpBuilder &builder) {
             region_cleared[i] = true;
         }
 
-        glUniformMatrix4fv(REN_U_M_MATRIX_LOC, 1, GL_FALSE,
-                           Ren::ValuePtr(shadow_regions_.data[i].clip_from_world));
+        glUniformMatrix4fv(REN_U_M_MATRIX_LOC, 1, GL_FALSE, Ren::ValuePtr(shadow_regions_.data[i].clip_from_world));
 
         uint32_t cur_mat_id = 0xffffffff;
 
-        for (uint32_t j = sh_list.shadow_batch_start;
-             j < sh_list.shadow_batch_start + sh_list.shadow_batch_count; j++) {
-            const DepthDrawBatch &batch =
-                shadow_batches_.data[shadow_batch_indices_.data[j]];
-            if (!batch.instance_count || !batch.alpha_test_bit ||
-                batch.type_bits == DepthDrawBatch::TypeVege) {
+        for (uint32_t j = sh_list.shadow_batch_start; j < sh_list.shadow_batch_start + sh_list.shadow_batch_count;
+             j++) {
+            const DepthDrawBatch &batch = shadow_batches_.data[shadow_batch_indices_.data[j]];
+            if (!batch.instance_count || !batch.alpha_test_bit || batch.type_bits == DepthDrawBatch::TypeVege) {
                 continue;
             }
 
-            if (batch.mat_id != cur_mat_id) {
-                const Ren::Material &mat = materials_->at(batch.mat_id);
-                if (ctx.capabilities.bindless_texture) {
-                    glUniform1ui(REN_U_MAT_INDEX_LOC, batch.mat_id);
-                } else {
-                    _bind_texture0_and_sampler0(builder.ctx(), mat,
-                                                builder.temp_samplers);
-                }
-                cur_mat_id = batch.mat_id;
+            if (!ctx.capabilities.bindless_texture && batch.instance_indices[0][1] != cur_mat_id) {
+                const Ren::Material &mat = materials_->at(batch.instance_indices[0][1]);
+                _bind_texture0_and_sampler0(builder.ctx(), mat, builder.temp_samplers);
+                cur_mat_id = batch.instance_indices[0][1];
             }
 
-            glUniform4iv(REN_U_INSTANCES_LOC, (batch.instance_count + 3) / 4,
-                         &batch.instance_indices[0]);
+            glUniform2iv(REN_U_INSTANCES_LOC, batch.instance_count, &batch.instance_indices[0][0]);
 
-            glDrawElementsInstancedBaseVertex(
-                GL_TRIANGLES, batch.indices_count, GL_UNSIGNED_INT,
-                (const GLvoid *)uintptr_t(batch.indices_offset * sizeof(uint32_t)),
-                (GLsizei)batch.instance_count, (GLint)batch.base_vertex);
+            glDrawElementsInstancedBaseVertex(GL_TRIANGLES, batch.indices_count, GL_UNSIGNED_INT,
+                                              (const GLvoid *)uintptr_t(batch.indices_offset * sizeof(uint32_t)),
+                                              GLsizei(batch.instance_count), GLint(batch.base_vertex));
             ++draw_calls_count;
         }
     }
@@ -236,38 +210,28 @@ void RpShadowMaps::DrawShadowMaps(RpBuilder &builder) {
             region_cleared[i] = true;
         }
 
-        glUniformMatrix4fv(REN_U_M_MATRIX_LOC, 1, GL_FALSE,
-                           Ren::ValuePtr(shadow_regions_.data[i].clip_from_world));
+        glUniformMatrix4fv(REN_U_M_MATRIX_LOC, 1, GL_FALSE, Ren::ValuePtr(shadow_regions_.data[i].clip_from_world));
 
         uint32_t cur_mat_id = 0xffffffff;
 
-        for (uint32_t j = sh_list.shadow_batch_start;
-             j < sh_list.shadow_batch_start + sh_list.shadow_batch_count; j++) {
-            const DepthDrawBatch &batch =
-                shadow_batches_.data[shadow_batch_indices_.data[j]];
-            if (!batch.instance_count || !batch.alpha_test_bit ||
-                batch.type_bits != DepthDrawBatch::TypeVege) {
+        for (uint32_t j = sh_list.shadow_batch_start; j < sh_list.shadow_batch_start + sh_list.shadow_batch_count;
+             j++) {
+            const DepthDrawBatch &batch = shadow_batches_.data[shadow_batch_indices_.data[j]];
+            if (!batch.instance_count || !batch.alpha_test_bit || batch.type_bits != DepthDrawBatch::TypeVege) {
                 continue;
             }
 
-            if (batch.mat_id != cur_mat_id) {
-                const Ren::Material &mat = materials_->at(batch.mat_id);
-                if (ctx.capabilities.bindless_texture) {
-                    glUniform1ui(REN_U_MAT_INDEX_LOC, batch.mat_id);
-                } else {
-                    _bind_texture0_and_sampler0(builder.ctx(), mat,
-                                                builder.temp_samplers);
-                }
-                cur_mat_id = batch.mat_id;
+            if (!ctx.capabilities.bindless_texture && batch.instance_indices[0][1] != cur_mat_id) {
+                const Ren::Material &mat = materials_->at(batch.instance_indices[0][1]);
+                _bind_texture0_and_sampler0(builder.ctx(), mat, builder.temp_samplers);
+                cur_mat_id = batch.instance_indices[0][1];
             }
 
-            glUniform4iv(REN_U_INSTANCES_LOC, (batch.instance_count + 3) / 4,
-                         &batch.instance_indices[0]);
+            glUniform2iv(REN_U_INSTANCES_LOC, batch.instance_count, &batch.instance_indices[0][0]);
 
-            glDrawElementsInstancedBaseVertex(
-                GL_TRIANGLES, batch.indices_count, GL_UNSIGNED_INT,
-                (const GLvoid *)uintptr_t(batch.indices_offset * sizeof(uint32_t)),
-                (GLsizei)batch.instance_count, (GLint)batch.base_vertex);
+            glDrawElementsInstancedBaseVertex(GL_TRIANGLES, batch.indices_count, GL_UNSIGNED_INT,
+                                              (const GLvoid *)uintptr_t(batch.indices_offset * sizeof(uint32_t)),
+                                              GLsizei(batch.instance_count), GLint(batch.base_vertex));
             ++draw_calls_count;
         }
     }

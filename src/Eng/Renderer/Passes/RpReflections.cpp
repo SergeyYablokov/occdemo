@@ -4,18 +4,16 @@
 #include <Ren/Program.h>
 #include <Ren/RastState.h>
 
-#include "../PrimDraw.h"
-#include "../Renderer_Structs.h"
 #include "../../Scene/ProbeStorage.h"
 #include "../../Utils/ShaderLoader.h"
+#include "../PrimDraw.h"
+#include "../Renderer_Structs.h"
 
-void RpReflections::Setup(RpBuilder &builder, const ViewState *view_state,
-                          int orphan_index, const ProbeStorage *probe_storage,
-                          Ren::TexHandle down_buf_4x_tex, Ren::Tex2DRef brdf_lut,
-                          const char shared_data_buf[], const char cells_buf[],
-                          const char items_buf[], const char depth_tex[], const char normal_tex[],
-                          const char spec_tex[], const char depth_down_2x[],
-                          const char output_tex_name[]) {
+void RpReflections::Setup(RpBuilder &builder, const ViewState *view_state, int orphan_index,
+                          const ProbeStorage *probe_storage, Ren::TexHandle down_buf_4x_tex, Ren::Tex2DRef brdf_lut,
+                          const char shared_data_buf[], const char cells_buf[], const char items_buf[],
+                          const char depth_tex[], const char normal_tex[], const char spec_tex[],
+                          const char depth_down_2x[], const char output_tex_name[]) {
     view_state_ = view_state;
     orphan_index_ = orphan_index;
 
@@ -72,9 +70,8 @@ void RpReflections::Execute(RpBuilder &builder) {
     rast_state.Apply();
     Ren::RastState applied_state = rast_state;
 
-    const Ren::eBindTarget clean_buf_bind_target = view_state_->is_multisampled
-                                                       ? Ren::eBindTarget::Tex2DMs
-                                                       : Ren::eBindTarget::Tex2D;
+    const Ren::eBindTarget clean_buf_bind_target =
+        view_state_->is_multisampled ? Ren::eBindTarget::Tex2DMs : Ren::eBindTarget::Tex2D;
 
     { // screen space tracing
         Ren::Program *ssr_program = nullptr;
@@ -85,34 +82,27 @@ void RpReflections::Execute(RpBuilder &builder) {
         }
 
         const PrimDraw::Binding bindings[] = {
-            {Ren::eBindTarget::Tex2D, REN_REFL_DEPTH_TEX_SLOT,
-             depth_down_2x_tex.ref->handle()},
+            {Ren::eBindTarget::Tex2D, REN_REFL_DEPTH_TEX_SLOT, depth_down_2x_tex.ref->handle()},
             {clean_buf_bind_target, REN_REFL_NORM_TEX_SLOT, normal_tex.ref->handle()},
             {clean_buf_bind_target, REN_REFL_SPEC_TEX_SLOT, spec_tex.ref->handle()},
-            {Ren::eBindTarget::UBuf, REN_UB_SHARED_DATA_LOC,
-             orphan_index_ * SharedDataBlockSize, sizeof(SharedDataBlock),
-             unif_sh_data_buf.ref->handle()}};
+            {Ren::eBindTarget::UBuf, REN_UB_SHARED_DATA_LOC, orphan_index_ * SharedDataBlockSize,
+             sizeof(SharedDataBlock), unif_sh_data_buf.ref->handle()}};
 
         const PrimDraw::Uniform uniforms[] = {
-            {0, Ren::Vec4f{0.0f, 0.0f, float(view_state_->act_res[0]),
-                           float(view_state_->act_res[1])}}};
+            {0, Ren::Vec4f{0.0f, 0.0f, float(view_state_->act_res[0]), float(view_state_->act_res[1])}}};
 
-        prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, {ssr_buf1_fb_.id(), 0}, ssr_program,
-                            bindings, 4, uniforms, 1);
+        prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, {ssr_buf1_fb_.id(), 0}, ssr_program, bindings, 4, uniforms, 1);
     }
 
     { // dilate ssr buffer
         Ren::Program *dilate_prog = blit_ssr_dilate_prog_.get();
 
-        const PrimDraw::Binding bindings[] = {
-            {Ren::eBindTarget::Tex2D, REN_BASE0_TEX_SLOT, ssr1_tex.ref->handle()}};
+        const PrimDraw::Binding bindings[] = {{Ren::eBindTarget::Tex2D, REN_BASE0_TEX_SLOT, ssr1_tex.ref->handle()}};
 
         const PrimDraw::Uniform uniforms[] = {
-            {0, Ren::Vec4f{0.0f, 0.0f, float(view_state_->scr_res[0]) / 2.0f,
-                           float(view_state_->scr_res[1]) / 2.0f}}};
+            {0, Ren::Vec4f{0.0f, 0.0f, float(view_state_->scr_res[0]) / 2.0f, float(view_state_->scr_res[1]) / 2.0f}}};
 
-        prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, {ssr_buf2_fb_.id(), 0}, dilate_prog,
-                            bindings, 1, uniforms, 1);
+        prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, {ssr_buf2_fb_.id(), 0}, dilate_prog, bindings, 1, uniforms, 1);
     }
 
     rast_state.viewport[2] = view_state_->scr_res[0];
@@ -122,9 +112,8 @@ void RpReflections::Execute(RpBuilder &builder) {
     applied_state = rast_state;
 
     { // compose reflections on top of clean buffer
-        Ren::Program *blit_ssr_compose_prog = view_state_->is_multisampled
-                                                  ? blit_ssr_compose_ms_prog_.get()
-                                                  : blit_ssr_compose_prog_.get();
+        Ren::Program *blit_ssr_compose_prog =
+            view_state_->is_multisampled ? blit_ssr_compose_ms_prog_.get() : blit_ssr_compose_prog_.get();
 
         rast_state.blend.enabled = true;
         rast_state.blend.src = Ren::eBlendFactor::One;
@@ -137,51 +126,42 @@ void RpReflections::Execute(RpBuilder &builder) {
             {clean_buf_bind_target, REN_REFL_DEPTH_TEX_SLOT, depth_tex.ref->handle()},
             {clean_buf_bind_target, REN_REFL_NORM_TEX_SLOT, normal_tex.ref->handle()},
             //
-            {Ren::eBindTarget::Tex2D, REN_REFL_DEPTH_LOW_TEX_SLOT,
-             depth_down_2x_tex.ref->handle()},
+            {Ren::eBindTarget::Tex2D, REN_REFL_DEPTH_LOW_TEX_SLOT, depth_down_2x_tex.ref->handle()},
             {Ren::eBindTarget::Tex2D, REN_REFL_SSR_TEX_SLOT, ssr2_tex.ref->handle()},
             //
             {Ren::eBindTarget::Tex2D, REN_REFL_PREV_TEX_SLOT, down_buf_4x_tex_},
             {Ren::eBindTarget::Tex2D, REN_REFL_BRDF_TEX_SLOT, brdf_lut_->handle()},
             //
-            {Ren::eBindTarget::TexBuf, REN_CELLS_BUF_SLOT,
-             cells_buf.tbos[orphan_index_]->handle()},
-            {Ren::eBindTarget::TexBuf, REN_ITEMS_BUF_SLOT,
-             items_buf.tbos[orphan_index_]->handle()},
+            {Ren::eBindTarget::TexBuf, REN_CELLS_BUF_SLOT, cells_buf.tbos[orphan_index_]->handle()},
+            {Ren::eBindTarget::TexBuf, REN_ITEMS_BUF_SLOT, items_buf.tbos[orphan_index_]->handle()},
             {Ren::eBindTarget::TexCubeArray, REN_ENV_TEX_SLOT,
              probe_storage_ ? probe_storage_->handle() : Ren::TexHandle{}},
-            {Ren::eBindTarget::UBuf, REN_UB_SHARED_DATA_LOC,
-             orphan_index_ * SharedDataBlockSize, sizeof(SharedDataBlock),
-             unif_sh_data_buf.ref->handle()}};
+            {Ren::eBindTarget::UBuf, REN_UB_SHARED_DATA_LOC, orphan_index_ * SharedDataBlockSize,
+             sizeof(SharedDataBlock), unif_sh_data_buf.ref->handle()}};
 
         const PrimDraw::Uniform uniforms[] = {{0, Ren::Vec4f{0.0f, 0.0f, 1.0f, 1.0f}}};
 
-        prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, {output_fb_.id(), 0},
-                            blit_ssr_compose_prog, bindings,
+        prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, {output_fb_.id(), 0}, blit_ssr_compose_prog, bindings,
                             sizeof(bindings) / sizeof(bindings[0]), uniforms, 1);
     }
 }
 
-void RpReflections::LazyInit(Ren::Context &ctx, ShaderLoader &sh, RpAllocTex &ssr1_tex,
-                             RpAllocTex &ssr2_tex, RpAllocTex &output_tex) {
+void RpReflections::LazyInit(Ren::Context &ctx, ShaderLoader &sh, RpAllocTex &ssr1_tex, RpAllocTex &ssr2_tex,
+                             RpAllocTex &output_tex) {
     if (!initialized) {
-        blit_ssr_prog_ = sh.LoadProgram(ctx, "blit_ssr", "internal/blit.vert.glsl",
-                                        "internal/blit_ssr.frag.glsl");
+        blit_ssr_prog_ = sh.LoadProgram(ctx, "blit_ssr", "internal/blit.vert.glsl", "internal/blit_ssr.frag.glsl");
         assert(blit_ssr_prog_->ready());
-        blit_ssr_ms_prog_ = sh.LoadProgram(ctx, "blit_ssr_ms", "internal/blit.vert.glsl",
-                                           "internal/blit_ssr.frag.glsl@MSAA_4");
+        blit_ssr_ms_prog_ =
+            sh.LoadProgram(ctx, "blit_ssr_ms", "internal/blit.vert.glsl", "internal/blit_ssr.frag.glsl@MSAA_4");
         assert(blit_ssr_ms_prog_->ready());
         blit_ssr_compose_prog_ =
-            sh.LoadProgram(ctx, "blit_ssr_compose", "internal/blit.vert.glsl",
-                           "internal/blit_ssr_compose.frag.glsl");
+            sh.LoadProgram(ctx, "blit_ssr_compose", "internal/blit.vert.glsl", "internal/blit_ssr_compose.frag.glsl");
         assert(blit_ssr_compose_prog_->ready());
-        blit_ssr_compose_ms_prog_ =
-            sh.LoadProgram(ctx, "blit_ssr_compose_ms", "internal/blit.vert.glsl",
-                           "internal/blit_ssr_compose.frag.glsl@MSAA_4");
+        blit_ssr_compose_ms_prog_ = sh.LoadProgram(ctx, "blit_ssr_compose_ms", "internal/blit.vert.glsl",
+                                                   "internal/blit_ssr_compose.frag.glsl@MSAA_4");
         assert(blit_ssr_compose_ms_prog_->ready());
         blit_ssr_dilate_prog_ =
-            sh.LoadProgram(ctx, "blit_ssr_dilate", "internal/blit.vert.glsl",
-                           "internal/blit_ssr_dilate.frag.glsl");
+            sh.LoadProgram(ctx, "blit_ssr_dilate", "internal/blit.vert.glsl", "internal/blit_ssr_dilate.frag.glsl");
         assert(blit_ssr_dilate_prog_->ready());
 
         initialized = true;

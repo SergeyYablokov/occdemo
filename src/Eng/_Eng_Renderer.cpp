@@ -9,6 +9,7 @@
 #include "Renderer/Renderer_Gen.cpp"
 
 #include "Renderer/Graph/GraphBuilder.cpp"
+#if defined(USE_GL_RENDER) // temporarily gl-only
 #include "Renderer/Passes/RpBlur.cpp"
 #include "Renderer/Passes/RpCombine.cpp"
 #include "Renderer/Passes/RpDebugEllipsoids.cpp"
@@ -31,11 +32,12 @@
 #include "Renderer/Passes/RpTAA.cpp"
 #include "Renderer/Passes/RpTransparent.cpp"
 #include "Renderer/Passes/RpUpdateBuffers.cpp"
+#endif
 
 #if defined(USE_GL_RENDER)
 #include "Renderer/FrameBufGL.cpp"
 #include "Renderer/PrimDrawGL.cpp"
-#include "Renderer/Renderer_Backend_GLES3.cpp"
+#include "Renderer/RendererGL.cpp"
 #include "Renderer/Passes/RpDebugTexturesGL.cpp"
 #include "Renderer/Passes/RpDepthFillGL.cpp"
 #include "Renderer/Passes/RpInsertFenceGL.cpp"
@@ -46,4 +48,8 @@
 #include "Renderer/Passes/RpSkydomeGL.cpp"
 #include "Renderer/Passes/RpTransparentGL.cpp"
 #include "Renderer/Passes/RpUpdateBuffersGL.cpp"
+#elif defined(USE_VK_RENDER)
+#include "Renderer/FrameBufVK.cpp"
+#include "Renderer/PrimDrawVK.cpp"
+#include "Renderer/RendererVK.cpp"
 #endif

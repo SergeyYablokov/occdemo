@@ -34,10 +34,13 @@ class RpSampleBrightness : public RenderPassBase {
   public:
     RpSampleBrightness(PrimDraw &prim_draw, Ren::Vec2i res, int frame_sync_window)
         : prim_draw_(prim_draw), res_(res), frame_sync_window_(frame_sync_window) {}
-    ~RpSampleBrightness() { DestroyPBO(); }
+    ~RpSampleBrightness() {
+#if defined(USE_GL_RENDER)
+        DestroyPBO();
+#endif
+    }
 
-    void Setup(RpBuilder &builder, Ren::TexHandle tex_to_sample,
-               const char reduced_tex[]);
+    void Setup(RpBuilder &builder, Ren::TexHandle tex_to_sample, const char reduced_tex[]);
     void Execute(RpBuilder &builder) override;
 
     const char *name() const override { return "SAMPLE BRIGHTNESS"; }

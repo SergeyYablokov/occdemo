@@ -5,9 +5,8 @@
 #include "../../Utils/ShaderLoader.h"
 #include "../Renderer_Structs.h"
 
-void RpShadowMaps::Setup(RpBuilder &builder, const DrawList &list,
-                         const PersistentBuffers *bufs, const int orphan_index,
-                         const char instances_buf[], const char shared_data_buf[],
+void RpShadowMaps::Setup(RpBuilder &builder, const DrawList &list, const PersistentBuffers *bufs,
+                         const int orphan_index, const char instances_buf[], const char shared_data_buf[],
                          const char shadowmap_tex[], Ren::TexHandle noise_tex) {
     orphan_index_ = orphan_index;
 
@@ -42,24 +41,20 @@ void RpShadowMaps::Execute(RpBuilder &builder) {
     DrawShadowMaps(builder);
 }
 
-void RpShadowMaps::LazyInit(Ren::Context &ctx, ShaderLoader &sh,
-                            Ren::TexHandle shadow_tex) {
+void RpShadowMaps::LazyInit(Ren::Context &ctx, ShaderLoader &sh, Ren::TexHandle shadow_tex) {
     if (!initialized) {
         shadow_solid_prog_ =
-            sh.LoadProgram(ctx, "shadow_solid", "internal/shadow.vert.glsl",
-                           "internal/shadow.frag.glsl");
+            sh.LoadProgram(ctx, "shadow_solid", "internal/shadow.vert.glsl", "internal/shadow.frag.glsl");
         assert(shadow_solid_prog_->ready());
         shadow_vege_solid_prog_ =
-            sh.LoadProgram(ctx, "shadow_vege_solid", "internal/shadow_vege.vert.glsl",
-                           "internal/shadow.frag.glsl");
+            sh.LoadProgram(ctx, "shadow_vege_solid", "internal/shadow_vege.vert.glsl", "internal/shadow.frag.glsl");
         assert(shadow_vege_solid_prog_->ready());
-        shadow_transp_prog_ = sh.LoadProgram(
-            ctx, "shadow_transp", "internal/shadow.vert.glsl@TRANSPARENT_PERM",
-            "internal/shadow.frag.glsl@TRANSPARENT_PERM");
+        shadow_transp_prog_ = sh.LoadProgram(ctx, "shadow_transp", "internal/shadow.vert.glsl@TRANSPARENT_PERM",
+                                             "internal/shadow.frag.glsl@TRANSPARENT_PERM");
         assert(shadow_transp_prog_->ready());
-        shadow_vege_transp_prog_ = sh.LoadProgram(
-            ctx, "shadow_vege_transp", "internal/shadow_vege.vert.glsl@TRANSPARENT_PERM",
-            "internal/shadow.frag.glsl@TRANSPARENT_PERM");
+        shadow_vege_transp_prog_ =
+            sh.LoadProgram(ctx, "shadow_vege_transp", "internal/shadow_vege.vert.glsl@TRANSPARENT_PERM",
+                           "internal/shadow.frag.glsl@TRANSPARENT_PERM");
         assert(shadow_vege_transp_prog_->ready());
         initialized = true;
     }
@@ -71,35 +66,29 @@ void RpShadowMaps::LazyInit(Ren::Context &ctx, ShaderLoader &sh,
     const int buf1_stride = 16, buf2_stride = 16;
 
     { // VAO for solid shadow pass (uses position attribute only)
-        const Ren::VtxAttribDesc attribs[] = {{ctx.default_vertex_buf1()->handle(),
-                                               REN_VTX_POS_LOC, 3, Ren::eType::Float32,
-                                               buf1_stride, 0}};
-        if (!depth_pass_solid_vao_.Setup(attribs, 1,
-                                         ctx.default_indices_buf()->handle())) {
+        const Ren::VtxAttribDesc attribs[] = {
+            {ctx.default_vertex_buf1()->handle(), REN_VTX_POS_LOC, 3, Ren::eType::Float32, buf1_stride, 0}};
+        if (!depth_pass_solid_vao_.Setup(attribs, 1, ctx.default_indices_buf()->handle())) {
             ctx.log()->Error("RpShadowMaps: depth_pass_solid_vao_ init failed!");
         }
     }
 
     { // VAO for solid shadow pass of vegetation (uses position and color attributes)
         const Ren::VtxAttribDesc attribs[] = {
-            {ctx.default_vertex_buf1()->handle(), REN_VTX_POS_LOC, 3, Ren::eType::Float32,
-             buf1_stride, 0},
-            {ctx.default_vertex_buf2()->handle(), REN_VTX_AUX_LOC, 1, Ren::eType::Uint32,
-             buf2_stride, uintptr_t(6 * sizeof(uint16_t))}};
-        if (!depth_pass_vege_solid_vao_.Setup(attribs, 2,
-                                              ctx.default_indices_buf()->handle())) {
+            {ctx.default_vertex_buf1()->handle(), REN_VTX_POS_LOC, 3, Ren::eType::Float32, buf1_stride, 0},
+            {ctx.default_vertex_buf2()->handle(), REN_VTX_AUX_LOC, 1, Ren::eType::Uint32, buf2_stride,
+             uintptr_t(6 * sizeof(uint16_t))}};
+        if (!depth_pass_vege_solid_vao_.Setup(attribs, 2, ctx.default_indices_buf()->handle())) {
             ctx.log()->Error("RpShadowMaps: depth_pass_solid_vao_ init failed!");
         }
     }
 
     { // VAO for alpha-tested shadow pass (uses position and uv attributes)
         const Ren::VtxAttribDesc attribs[] = {
-            {ctx.default_vertex_buf1()->handle(), REN_VTX_POS_LOC, 3, Ren::eType::Float32,
-             buf1_stride, 0},
-            {ctx.default_vertex_buf1()->handle(), REN_VTX_UV1_LOC, 2, Ren::eType::Float16,
-             buf1_stride, uintptr_t(3 * sizeof(float))}};
-        if (!depth_pass_transp_vao_.Setup(attribs, 2,
-                                          ctx.default_indices_buf()->handle())) {
+            {ctx.default_vertex_buf1()->handle(), REN_VTX_POS_LOC, 3, Ren::eType::Float32, buf1_stride, 0},
+            {ctx.default_vertex_buf1()->handle(), REN_VTX_UV1_LOC, 2, Ren::eType::Float16, buf1_stride,
+             uintptr_t(3 * sizeof(float))}};
+        if (!depth_pass_transp_vao_.Setup(attribs, 2, ctx.default_indices_buf()->handle())) {
             ctx.log()->Error("RpShadowMaps: depth_pass_transp_vao_ init failed!");
         }
     }
@@ -107,12 +96,10 @@ void RpShadowMaps::LazyInit(Ren::Context &ctx, ShaderLoader &sh,
     { // VAO for solid shadow pass of vegetation (uses position and
       // color attributes)
         const Ren::VtxAttribDesc attribs[] = {
-            {ctx.default_vertex_buf1()->handle(), REN_VTX_POS_LOC, 3, Ren::eType::Float32,
-             buf1_stride, 0},
-            {ctx.default_vertex_buf2()->handle(), REN_VTX_AUX_LOC, 1, Ren::eType::Uint32,
-             buf2_stride, uintptr_t(6 * sizeof(uint16_t))}};
-        if (!depth_pass_vege_solid_vao_.Setup(attribs, 2,
-                                              ctx.default_indices_buf()->handle())) {
+            {ctx.default_vertex_buf1()->handle(), REN_VTX_POS_LOC, 3, Ren::eType::Float32, buf1_stride, 0},
+            {ctx.default_vertex_buf2()->handle(), REN_VTX_AUX_LOC, 1, Ren::eType::Uint32, buf2_stride,
+             uintptr_t(6 * sizeof(uint16_t))}};
+        if (!depth_pass_vege_solid_vao_.Setup(attribs, 2, ctx.default_indices_buf()->handle())) {
             ctx.log()->Error("RpShadowMaps: depth_pass_vege_solid_vao_ init failed!");
         }
     }
@@ -120,14 +107,12 @@ void RpShadowMaps::LazyInit(Ren::Context &ctx, ShaderLoader &sh,
     { // VAO for transparent shadow pass of vegetation (uses position, color and
       // uv attributes)
         const Ren::VtxAttribDesc attribs[] = {
-            {ctx.default_vertex_buf1()->handle(), REN_VTX_POS_LOC, 3, Ren::eType::Float32,
-             buf1_stride, 0},
-            {ctx.default_vertex_buf1()->handle(), REN_VTX_UV1_LOC, 2, Ren::eType::Float16,
-             buf1_stride, uintptr_t(3 * sizeof(float))},
-            {ctx.default_vertex_buf2()->handle(), REN_VTX_AUX_LOC, 1, Ren::eType::Uint32,
-             buf2_stride, uintptr_t(6 * sizeof(uint16_t))}};
-        if (!depth_pass_vege_transp_vao_.Setup(attribs, 3,
-                                               ctx.default_indices_buf()->handle())) {
+            {ctx.default_vertex_buf1()->handle(), REN_VTX_POS_LOC, 3, Ren::eType::Float32, buf1_stride, 0},
+            {ctx.default_vertex_buf1()->handle(), REN_VTX_UV1_LOC, 2, Ren::eType::Float16, buf1_stride,
+             uintptr_t(3 * sizeof(float))},
+            {ctx.default_vertex_buf2()->handle(), REN_VTX_AUX_LOC, 1, Ren::eType::Uint32, buf2_stride,
+             uintptr_t(6 * sizeof(uint16_t))}};
+        if (!depth_pass_vege_transp_vao_.Setup(attribs, 3, ctx.default_indices_buf()->handle())) {
             ctx.log()->Error("RpShadowMaps: depth_pass_vege_transp_vao_ init failed!");
         }
     }

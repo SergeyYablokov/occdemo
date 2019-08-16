@@ -9,8 +9,8 @@ ProbeStorage::ProbeStorage()
       reserved_temp_layer_(-1) {}
 
 ProbeStorage::~ProbeStorage() {
-    if (tex_id_) {
-        auto tex_id = GLuint(tex_id_);
+    if (handle_.id) {
+        auto tex_id = GLuint(handle_.id);
         glDeleteTextures(1, &tex_id);
     }
 }
@@ -43,8 +43,8 @@ void ProbeStorage::Clear() {
 }
 
 void ProbeStorage::Resize(Ren::eTexFormat format, int res, int capacity, Ren::ILog *log) {
-    if (tex_id_) {
-        auto tex_id = GLuint(tex_id_);
+    if (handle_.id) {
+        auto tex_id = GLuint(handle_.id);
         glDeleteTextures(1, &tex_id);
     }
 
@@ -138,7 +138,7 @@ void ProbeStorage::Resize(Ren::eTexFormat format, int res, int capacity, Ren::IL
     ren_glTextureParameteri_Comp(GL_TEXTURE_CUBE_MAP_ARRAY, tex_id, GL_TEXTURE_WRAP_T,
                                  GL_CLAMP_TO_EDGE);
 
-    tex_id_ = tex_id;
+    handle_.id = tex_id;
     format_ = format;
     res_ = res;
     capacity_ = capacity;
@@ -163,7 +163,7 @@ bool ProbeStorage::SetPixelData(const int level, const int layer, const int face
     const int _res = int(unsigned(res_) >> unsigned(level));
 
     if (Ren::IsCompressedFormat(format)) {
-        ren_glCompressedTextureSubImage3D_Comp(GL_TEXTURE_CUBE_MAP_ARRAY, (GLuint)tex_id_,
+        ren_glCompressedTextureSubImage3D_Comp(GL_TEXTURE_CUBE_MAP_ARRAY, GLuint(handle_.id),
                                                level, 0, 0, (layer * 6 + face), _res,
                                                _res, 1, tex_format, data_len, data);
 
@@ -192,7 +192,7 @@ bool ProbeStorage::GetPixelData(const int level, const int layer, const int face
         return false;
     }
 
-    glGetTextureSubImage(GLuint(tex_id_), level, 0, 0, (layer * 6 + face), mip_res,
+    glGetTextureSubImage(GLuint(handle_.id), level, 0, 0, (layer * 6 + face), mip_res,
                          mip_res, 1, GL_RGBA, GL_UNSIGNED_BYTE, buf_size, out_pixels);
     Ren::CheckError("glGetTextureSubImage", log);
 

@@ -65,7 +65,7 @@ elseif(${RENDERER} STREQUAL "SW")
                             )
 elseif(${RENDERER} STREQUAL "VK")
     set(GUI_SOURCE_FILES    ${GUI_SOURCE_FILES}
-                            )
+                            Gui/RendererVK.cpp)
 endif()
 
 set(INPUT_SOURCE_FILES Input/InputManager.h
@@ -75,7 +75,6 @@ set(INPUT_SOURCE_FILES Input/InputManager.h
 set(RENDERER_SOURCES    Renderer/DebugMarker.h
                         Renderer/FrameBuf.h
                         Renderer/PrimDraw.h
-                        Renderer/PrimDrawGL.cpp
                         Renderer/Renderer.h
                         Renderer/Renderer.cpp
                         Renderer/Renderer_DrawList.h
@@ -158,7 +157,8 @@ set(PASS_SOURCES   Renderer/Passes/RpBlur.h
 if(${RENDERER} STREQUAL "GL")
     set(RENDERER_SOURCES ${RENDERER_SOURCES}
                         Renderer/FrameBufGL.cpp
-                        Renderer/Renderer_Backend_GLES3.cpp
+                        Renderer/PrimDrawGL.cpp
+                        Renderer/RendererGL.cpp
                         Renderer/Renderer_GL_Defines.inl)
     set(SCENE_SOURCES ${SCENE_SOURCES}
                         Scene/ProbeStorageGL.cpp
@@ -174,6 +174,14 @@ if(${RENDERER} STREQUAL "GL")
                         Renderer/Passes/RpSkydomeGL.cpp
                         Renderer/Passes/RpTransparentGL.cpp
                         Renderer/Passes/RpUpdateBuffersGL.cpp)
+elseif(${RENDERER} STREQUAL "VK")
+    set(RENDERER_SOURCES ${RENDERER_SOURCES}
+                        Renderer/FrameBufVK.cpp
+                        Renderer/PrimDrawVK.cpp
+                        Renderer/RendererVK.cpp)
+    set(SCENE_SOURCES ${SCENE_SOURCES}
+                        Scene/ProbeStorageVK.cpp
+                        Scene/SceneManagerVK.cpp)
 elseif(${RENDERER} STREQUAL "SW")
     set(RENDERER_SOURCES ${RENDERER_SOURCES}
                         Renderer/RendererSW.cpp)
@@ -221,7 +229,9 @@ set(UTILS_SOURCES Utils/BVHSplit.h
 				  Utils/ScriptedSequence.h
 				  Utils/ScriptedSequence.cpp
                   Utils/ShaderLoader.h
+                  Utils/ShaderLoader.cpp
                   Utils/ShaderLoaderGLSL.cpp
+                  Utils/ShaderLoaderSPIRV.cpp
                   Utils/VideoPlayer.h
                   Utils/VideoPlayer.cpp)
 

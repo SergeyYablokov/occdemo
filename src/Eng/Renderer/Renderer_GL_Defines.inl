@@ -63,7 +63,6 @@
 #define REN_U_M_MATRIX_LOC  0
 #define REN_U_INSTANCES_LOC 1
 #define REN_U_MAT_PARAM_LOC 3
-#define REN_U_MAT_INDEX_LOC 4
 
 #define REN_UB_SHARED_DATA_LOC  0
 

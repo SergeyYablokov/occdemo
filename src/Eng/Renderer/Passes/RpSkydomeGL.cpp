@@ -32,12 +32,9 @@ void RpSkydome::DrawSkydome(RpBuilder &builder) {
     rast_state.Apply();
 
     RpAllocBuf &unif_shared_data_buf = builder.GetReadBuffer(shared_data_buf_);
-    glBindBufferRange(GL_UNIFORM_BUFFER, REN_UB_SHARED_DATA_LOC,
-                      GLuint(unif_shared_data_buf.ref->id()),
+    glBindBufferRange(GL_UNIFORM_BUFFER, REN_UB_SHARED_DATA_LOC, GLuint(unif_shared_data_buf.ref->id()),
                       orphan_index_ * SharedDataBlockSize, sizeof(SharedDataBlock));
-    assert(orphan_index_ * SharedDataBlockSize %
-               builder.ctx().capabilities.unif_buf_offset_alignment ==
-           0);
+    assert(orphan_index_ * SharedDataBlockSize % builder.ctx().capabilities.unif_buf_offset_alignment == 0);
 
 #if defined(REN_DIRECT_DRAWING)
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -57,12 +54,10 @@ void RpSkydome::DrawSkydome(RpBuilder &builder) {
     const Ren::Mat4f world_from_object = translate_matrix * scale_matrix;
     glUniformMatrix4fv(REN_U_M_MATRIX_LOC, 1, GL_FALSE, Ren::ValuePtr(world_from_object));
 
-    ren_glBindTextureUnit_Comp(GL_TEXTURE_CUBE_MAP, REN_BASE0_TEX_SLOT,
-                               env_->env_map->id());
+    ren_glBindTextureUnit_Comp(GL_TEXTURE_CUBE_MAP, REN_BASE0_TEX_SLOT, env_->env_map->id());
 
-    glDrawElements(
-        GL_TRIANGLES, GLsizei(skydome_mesh_->indices_buf().size / sizeof(uint32_t)),
-        GL_UNSIGNED_INT, (void *)uintptr_t(skydome_mesh_->indices_buf().offset));
+    glDrawElements(GL_TRIANGLES, GLsizei(skydome_mesh_->indices_buf().size / sizeof(uint32_t)), GL_UNSIGNED_INT,
+                   (void *)uintptr_t(skydome_mesh_->indices_buf().offset));
 
     glDepthFunc(GL_LESS);
 

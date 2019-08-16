@@ -1,5 +1,6 @@
 #pragma once
 
+#include "SamplingParams.h"
 #include "Storage.h"
 
 namespace Ren {

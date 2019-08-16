@@ -1,8 +1,9 @@
 #version 310 es
 #extension GL_EXT_texture_buffer : enable
 
-#ifdef GL_ES
-    precision mediump float;
+#if defined(GL_ES) || defined(VULKAN)
+	precision highp int;
+	precision highp float;
 #endif
 
 /*

@@ -1,8 +1,9 @@
 #version 310 es
 #extension GL_ARB_texture_multisample : enable
 
-#ifdef GL_ES
-    precision mediump float;
+#if defined(GL_ES) || defined(VULKAN)
+	precision highp int;
+	precision mediump float;
 #endif
 
 #include "_fs_common.glsl"
@@ -22,7 +23,13 @@ uniform SharedDataBlock {
     SharedData shrd_data;
 };
 
+#if defined(VULKAN)
+layout(push_constant) uniform PushConstants {
+    layout(offset = 16) float uLinearize;
+};
+#else
 layout(location = 1) uniform float uLinearize;
+#endif
 
 #if defined(MSAA_4)
 layout(binding = REN_BASE0_TEX_SLOT) uniform highp sampler2DMS depth_texture;

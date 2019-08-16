@@ -29,9 +29,8 @@ class RpDownDepth : public RenderPassBase {
   public:
     RpDownDepth(PrimDraw &prim_draw) : prim_draw_(prim_draw) {}
 
-    void Setup(RpBuilder &builder, const ViewState *view_state, int orphan_index,
-               const char shared_data_buf[], const char depth_tex[],
-               const char output_tex[]);
+    void Setup(RpBuilder &builder, const ViewState *view_state, int orphan_index, const char shared_data_buf[],
+               const char depth_tex[], const char output_tex[]);
     void Execute(RpBuilder &builder) override;
 
     const char *name() const override { return "DOWNSAMPLE DEPTH"; }

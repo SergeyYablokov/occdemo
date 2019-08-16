@@ -35,7 +35,7 @@ inline unsigned long long _xgetbv(unsigned int index) {
 inline void cpuid(int info[4], int InfoType) {
     __cpuid_count(InfoType, 0, info[0], info[1], info[2], info[3]);
 }
-#if defined(__GNUC__) && (__GNUC__ < 9)
+#if defined(__GNUC__) && (__GNUC__ < 9) && !defined(__APPLE__)
 inline unsigned long long _xgetbv(unsigned int index) {
     unsigned int eax, edx;
     __asm__ __volatile__(
@@ -118,12 +118,16 @@ void swCPUInfoInit(SWcpu_info *info) {
     memcpy(vendor + 8, &CPUInfo[3], 4); // copy EDX
     vendor[12] = '\0';
 #elif !defined(__ANDROID__)
+#if !defined(__APPLE__)
     struct sysinfo mem_info;
     sysinfo(&mem_info);
     long long total_virtual_mem = (long long)mem_info.totalram;
     total_virtual_mem *= mem_info.mem_unit;
 
     info->physical_memory = (SWfloat)(((total_virtual_mem / 1024.0) / 1024) / 1024);
+#else // __APPLE__
+    info->physical_memory = 0.0f;
+#endif
 
     FILE *cpuinfo = fopen("/proc/cpuinfo", "rb");
     char *arg = 0;

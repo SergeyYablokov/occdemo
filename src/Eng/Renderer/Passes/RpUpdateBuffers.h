@@ -37,11 +37,10 @@ class RpUpdateBuffers : public RenderPassBase {
     std::vector<uint64_t> texture_handles_;
 
   public:
-    void Setup(RpBuilder &builder, const DrawList &list, const ViewState *view_state,
-               int orphan_index, void **fences, const char skin_transforms_buf[],
-               const char shape_keys_buf[], const char instances_buf[],
-               const char cells_buf[], const char lights_buf[], const char decals_buf[],
-               const char items_buf[], const char shared_data_buf[]);
+    void Setup(RpBuilder &builder, const DrawList &list, const ViewState *view_state, int orphan_index, void **fences,
+               const char skin_transforms_buf[], const char shape_keys_buf[], const char instances_buf[],
+               const char cells_buf[], const char lights_buf[], const char decals_buf[], const char items_buf[],
+               const char shared_data_buf[]);
     void Execute(RpBuilder &builder) override;
 
     const char *name() const override { return "UPDATE BUFFERS"; }

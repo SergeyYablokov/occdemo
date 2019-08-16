@@ -18,7 +18,13 @@ uniform SharedDataBlock {
 
 layout(location = REN_VTX_POS_LOC) in vec3 aVertexPosition;
 
+#if defined(VULKAN)
+layout(push_constant) uniform PushConstants {
+    mat4 uMMatrix;
+};
+#else
 layout(location = REN_U_M_MATRIX_LOC) uniform mat4 uMMatrix;
+#endif
 
 #if defined(VULKAN) || defined(GL_SPIRV)
 layout(location = 0) out vec3 aVertexPos_;

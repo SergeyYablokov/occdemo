@@ -18,8 +18,7 @@
 #endif
 
 namespace Sys {
-template <typename T, typename FallBackAllocator>
-class MultiPoolAllocator;
+template <typename T, typename FallBackAllocator> class MultiPoolAllocator;
 }
 template <typename Alloc> struct JsObjectT;
 using JsObject = JsObjectT<std::allocator<char>>;
@@ -79,22 +78,18 @@ class Renderer {
 
     // Returns pointers to mapped vertex buffer. Do NOT read from it, it is write-combined
     // memory and will result in terrible latency!
-    int AcquireVertexData(vertex_t **vertex_data, int *vertex_avail,
-                          uint16_t **index_data, int *index_avail);
+    int AcquireVertexData(vertex_t **vertex_data, int *vertex_avail, uint16_t **index_data, int *index_avail);
     void SubmitVertexData(int vertex_count, int index_count);
 
     // Simple drawing functions
-    void PushImageQuad(eDrawMode draw_mode, int tex_layer, const Vec2f pos[2],
-                       const Vec2f uvs_px[2]);
-    void PushLine(eDrawMode draw_mode, int tex_layer, const uint8_t color[4],
-                  const Vec4f &p0, const Vec4f &p1, const Vec2f &d0, const Vec2f &d1,
-                  const Vec4f &thickness);
-    void PushCurve(eDrawMode draw_mode, int tex_layer, const uint8_t color[4],
-                   const Vec4f &p0, const Vec4f &p1, const Vec4f &p2, const Vec4f &p3,
-                   const Vec4f &thickness);
+    void PushImageQuad(eDrawMode draw_mode, int tex_layer, const Vec2f pos[2], const Vec2f uvs_px[2]);
+    void PushLine(eDrawMode draw_mode, int tex_layer, const uint8_t color[4], const Vec4f &p0, const Vec4f &p1,
+                  const Vec2f &d0, const Vec2f &d1, const Vec4f &thickness);
+    void PushCurve(eDrawMode draw_mode, int tex_layer, const uint8_t color[4], const Vec4f &p0, const Vec4f &p1,
+                   const Vec4f &p2, const Vec4f &p3, const Vec4f &thickness);
 
   private:
-    static const int FrameSyncWindow = 2;
+    static const int FrameSyncWindow = 3;
     static const int MaxClipStackSize = 8;
 
     static_assert(FrameSyncWindow > 1, "!");

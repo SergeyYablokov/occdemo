@@ -16,8 +16,8 @@ class RpDebugTextures : public RenderPassBase {
     bool initialized = false;
 
     // lazily initialized data
-    Ren::ProgramRef blit_prog_, blit_debug_prog_, blit_debug_ms_prog_,
-        blit_debug_bvh_prog_, blit_debug_bvh_ms_prog_, blit_depth_prog_;
+    Ren::ProgramRef blit_prog_, blit_debug_prog_, blit_debug_ms_prog_, blit_debug_bvh_prog_, blit_debug_bvh_ms_prog_,
+        blit_depth_prog_;
     Ren::Tex2DRef temp_tex_;
     Ren::BufferRef nodes_buf_;
     Ren::Tex1DRef nodes_tbo_;
@@ -58,22 +58,19 @@ class RpDebugTextures : public RenderPassBase {
     Ren::Framebuffer output_fb_;
 #endif
 
-    int BlitTex(Ren::RastState &applied_state, int x, int y, int w, int h,
-                Ren::WeakTex2DRef tex, float mul);
+    int BlitTex(Ren::RastState &applied_state, int x, int y, int w, int h, Ren::WeakTex2DRef tex, float mul);
 
     void DrawShadowMaps(Ren::Context &ctx, RpAllocTex &shadowmap_tex);
 
   public:
     RpDebugTextures(PrimDraw &prim_draw) : prim_draw_(prim_draw) {}
 
-    void Setup(RpBuilder &builder, const ViewState *view_state, const DrawList &list,
-               int orphan_index, const Ren::Tex2DRef &down_tex_4x,
-               const char shared_data_buf_name[], const char cells_buf_name[],
-               const char items_buf_name[], const char shadow_map_name[],
-               const char main_color_tex_name[], const char main_normal_tex_name[],
-               const char main_spec_tex_name[], const char main_depth_tex_name[],
-               const char ssao_tex_name[], const char blur_res_name[],
-               const char reduced_tex_name[], Ren::TexHandle output_tex);
+    void Setup(RpBuilder &builder, const ViewState *view_state, const DrawList &list, int orphan_index,
+               const Ren::Tex2DRef &down_tex_4x, const char shared_data_buf_name[], const char cells_buf_name[],
+               const char items_buf_name[], const char shadow_map_name[], const char main_color_tex_name[],
+               const char main_normal_tex_name[], const char main_spec_tex_name[], const char main_depth_tex_name[],
+               const char ssao_tex_name[], const char blur_res_name[], const char reduced_tex_name[],
+               Ren::TexHandle output_tex);
     void Execute(RpBuilder &builder) override;
 
     const char *name() const override { return "DEBUG TEXTURES"; }

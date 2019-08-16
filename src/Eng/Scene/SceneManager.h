@@ -104,6 +104,7 @@ class SceneManager : public std::enable_shared_from_this<SceneManager> {
         }
         changed_objects_.insert(changed_objects_.end(), indices, indices + count);
     }
+    void InvalidateTexture(const Ren::Tex2DRef &ref);
 
     void LoadScene(const JsObjectP &js_scene);
     void SaveScene(JsObjectP &js_scene);

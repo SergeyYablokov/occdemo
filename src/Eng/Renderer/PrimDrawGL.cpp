@@ -6,8 +6,7 @@
 #include "Renderer_GL_Defines.inl"
 
 namespace PrimDrawInternal {
-extern const float fs_quad_positions[] = {-1.0f, -1.0f, 1.0f,  -1.0f,
-                                          1.0f,  1.0f,  -1.0f, 1.0f};
+extern const float fs_quad_positions[] = {-1.0f, -1.0f, 1.0f, -1.0f, 1.0f, 1.0f, -1.0f, 1.0f};
 extern const float fs_quad_norm_uvs[] = {0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f};
 extern const uint16_t fs_quad_indices[] = {0, 1, 2, 0, 2, 3};
 const int TempBufSize = 256;
@@ -17,53 +16,99 @@ const int TempBufSize = 256;
 bool PrimDraw::LazyInit(Ren::Context &ctx) {
     using namespace PrimDrawInternal;
 
-    Ren::BufferRef vtx_buf1 = ctx.default_vertex_buf1(),
-                   vtx_buf2 = ctx.default_vertex_buf2(),
+    Ren::BufferRef vtx_buf1 = ctx.default_vertex_buf1(), vtx_buf2 = ctx.default_vertex_buf2(),
                    ndx_buf = ctx.default_indices_buf();
 
     if (!initialized_) {
-        // Allocate quad vertices
-        uint32_t mem_required = sizeof(fs_quad_positions) + sizeof(fs_quad_norm_uvs);
-        mem_required += (16 - mem_required % 16); // align to vertex stride
-        quad_vtx1_offset_ = vtx_buf1->AllocRegion(mem_required, "quad", nullptr);
-        quad_vtx2_offset_ = vtx_buf2->AllocRegion(mem_required, "quad", nullptr);
-        assert(quad_vtx1_offset_ == quad_vtx2_offset_ && "Offsets do not match!");
-        quad_ndx_offset_ =
-            ndx_buf->AllocRegion(6 * sizeof(uint16_t), "quad", fs_quad_indices);
+        { // Allocate quad vertices
+            uint32_t mem_required = sizeof(fs_quad_positions) + sizeof(fs_quad_norm_uvs);
+            mem_required += (16 - mem_required % 16); // align to vertex stride
 
-        // Allocate sphere vertices
-        sphere_vtx1_offset_ = vtx_buf1->AllocRegion(
-            sizeof(__sphere_positions) + (16 - sizeof(__sphere_positions) % 16), "sphere",
-            __sphere_positions);
-        sphere_vtx2_offset_ = vtx_buf2->AllocRegion(
-            sizeof(__sphere_positions) + (16 - sizeof(__sphere_positions) % 16), "sphere",
-            nullptr);
-        assert(sphere_vtx1_offset_ == sphere_vtx2_offset_ && "Offsets do not match!");
-        sphere_ndx_offset_ =
-            ndx_buf->AllocRegion(sizeof(__sphere_indices), "sphere", __sphere_indices);
+            Ren::BufferRef temp_stage_buf =
+                ctx.CreateBuffer("Temp prim buf", Ren::eBufType::Stage, Ren::eBufAccessType::Copy,
+                                 Ren::eBufAccessFreq::Stream, sizeof(__sphere_indices));
+            { // copy quad vertices
+                uint8_t *mapped_ptr = temp_stage_buf->Map(Ren::BufMapWrite);
+                memcpy(mapped_ptr, fs_quad_positions, sizeof(fs_quad_positions));
+                memcpy(mapped_ptr + sizeof(fs_quad_positions), fs_quad_norm_uvs, sizeof(fs_quad_norm_uvs));
+                temp_stage_buf->FlushRange(0, sizeof(fs_quad_positions) + sizeof(fs_quad_norm_uvs));
+                temp_stage_buf->Unmap();
+            }
 
-        // Allocate temporary buffer
-        temp_buf1_vtx_offset_ = vtx_buf1->AllocRegion(TempBufSize, "temp");
-        temp_buf2_vtx_offset_ = vtx_buf2->AllocRegion(TempBufSize, "temp");
-        assert(temp_buf1_vtx_offset_ == temp_buf2_vtx_offset_ && "Offsets do not match!");
-        temp_buf_ndx_offset_ = ndx_buf->AllocRegion(TempBufSize, "temp");
+            quad_vtx1_offset_ = vtx_buf1->AllocRegion(mem_required, "quad", temp_stage_buf.get());
+            quad_vtx2_offset_ = vtx_buf2->AllocRegion(mem_required, "quad", nullptr);
+            assert(quad_vtx1_offset_ == quad_vtx2_offset_ && "Offsets do not match!");
+        }
+
+        { // Allocate quad indices
+            Ren::BufferRef temp_stage_buf =
+                ctx.CreateBuffer("Temp prim buf", Ren::eBufType::Stage, Ren::eBufAccessType::Copy,
+                                 Ren::eBufAccessFreq::Stream, 6 * sizeof(uint16_t));
+
+            { // copy quad indices
+                uint8_t *mapped_ptr = temp_stage_buf->Map(Ren::BufMapWrite);
+                memcpy(mapped_ptr, fs_quad_indices, 6 * sizeof(uint16_t));
+                temp_stage_buf->FlushRange(0, 6 * sizeof(uint16_t));
+                temp_stage_buf->Unmap();
+            }
+
+            quad_ndx_offset_ = ndx_buf->AllocRegion(6 * sizeof(uint16_t), "quad", temp_stage_buf.get());
+        }
+
+        { // Allocate sphere positions
+            // aligned to vertex stride
+            const size_t sphere_vertices_size = sizeof(__sphere_positions) + (16 - sizeof(__sphere_positions) % 16);
+
+            Ren::BufferRef temp_stage_buf =
+                ctx.CreateBuffer("Temp prim buf", Ren::eBufType::Stage, Ren::eBufAccessType::Copy,
+                                 Ren::eBufAccessFreq::Stream, sphere_vertices_size);
+
+            { // copy sphere positions
+                uint8_t *mapped_ptr = temp_stage_buf->Map(Ren::BufMapWrite);
+                memcpy(mapped_ptr, __sphere_positions, sphere_vertices_size);
+                temp_stage_buf->FlushRange(0, sphere_vertices_size);
+                temp_stage_buf->Unmap();
+            }
+
+            // Allocate sphere vertices
+            sphere_vtx1_offset_ = vtx_buf1->AllocRegion(sphere_vertices_size, "sphere", temp_stage_buf.get());
+            sphere_vtx2_offset_ = vtx_buf2->AllocRegion(sphere_vertices_size, "sphere", nullptr);
+            assert(sphere_vtx1_offset_ == sphere_vtx2_offset_ && "Offsets do not match!");
+        }
+
+        { // Allocate sphere indices
+            Ren::BufferRef temp_stage_buf =
+                ctx.CreateBuffer("Temp prim buf", Ren::eBufType::Stage, Ren::eBufAccessType::Copy,
+                                 Ren::eBufAccessFreq::Stream, sizeof(__sphere_indices));
+
+            { // copy sphere indices
+                uint8_t *mapped_ptr = temp_stage_buf->Map(Ren::BufMapWrite);
+                memcpy(mapped_ptr, __sphere_indices, sizeof(__sphere_indices));
+                temp_stage_buf->FlushRange(0, sizeof(__sphere_indices));
+                temp_stage_buf->Unmap();
+            }
+            sphere_ndx_offset_ = ndx_buf->AllocRegion(sizeof(__sphere_indices), "sphere", temp_stage_buf.get());
+
+            // Allocate temporary buffer
+            temp_buf1_vtx_offset_ = vtx_buf1->AllocRegion(TempBufSize, "temp");
+            temp_buf2_vtx_offset_ = vtx_buf2->AllocRegion(TempBufSize, "temp");
+            assert(temp_buf1_vtx_offset_ == temp_buf2_vtx_offset_ && "Offsets do not match!");
+            temp_buf_ndx_offset_ = ndx_buf->AllocRegion(TempBufSize, "temp");
+        }
 
         // TODO: make this non-gl specific!
-        glBindVertexArray(0);
+        /*glBindVertexArray(0);
         glBindBuffer(GL_ARRAY_BUFFER, vtx_buf1->id());
-        glBufferSubData(GL_ARRAY_BUFFER, (GLintptr)quad_vtx1_offset_,
-                        sizeof(fs_quad_positions), fs_quad_positions);
-        glBufferSubData(GL_ARRAY_BUFFER,
-                        (GLintptr)(quad_vtx1_offset_ + sizeof(fs_quad_positions)),
-                        sizeof(fs_quad_norm_uvs), fs_quad_norm_uvs);
+        glBufferSubData(GL_ARRAY_BUFFER, (GLintptr)quad_vtx1_offset_, sizeof(fs_quad_positions), fs_quad_positions);
+        glBufferSubData(GL_ARRAY_BUFFER, (GLintptr)(quad_vtx1_offset_ + sizeof(fs_quad_positions)),
+                        sizeof(fs_quad_norm_uvs), fs_quad_norm_uvs);*/
 
         initialized_ = true;
     }
 
     { // setup quad vao
         const Ren::VtxAttribDesc attribs[] = {
-            {vtx_buf1->handle(), REN_VTX_POS_LOC, 2, Ren::eType::Float32, 0,
-             uintptr_t(quad_vtx1_offset_)},
+            {vtx_buf1->handle(), REN_VTX_POS_LOC, 2, Ren::eType::Float32, 0, uintptr_t(quad_vtx1_offset_)},
             {vtx_buf1->handle(), REN_VTX_UV1_LOC, 2, Ren::eType::Float32, 0,
              uintptr_t(quad_vtx1_offset_ + 8 * sizeof(float))}};
 
@@ -71,9 +116,8 @@ bool PrimDraw::LazyInit(Ren::Context &ctx) {
     }
 
     { // setup sphere vao
-        const Ren::VtxAttribDesc attribs[] = {{vtx_buf1->handle(), REN_VTX_POS_LOC, 3,
-                                               Ren::eType::Float32, 0,
-                                               uintptr_t(sphere_vtx1_offset_)}};
+        const Ren::VtxAttribDesc attribs[] = {
+            {vtx_buf1->handle(), REN_VTX_POS_LOC, 3, Ren::eType::Float32, 0, uintptr_t(sphere_vtx1_offset_)}};
         sphere_vao_.Setup(attribs, 1, ndx_buf->handle());
     }
 
@@ -81,8 +125,7 @@ bool PrimDraw::LazyInit(Ren::Context &ctx) {
 }
 
 void PrimDraw::CleanUp(Ren::Context &ctx) {
-    Ren::BufferRef vtx_buf1 = ctx.default_vertex_buf1(),
-                   vtx_buf2 = ctx.default_vertex_buf2(),
+    Ren::BufferRef vtx_buf1 = ctx.default_vertex_buf1(), vtx_buf2 = ctx.default_vertex_buf2(),
                    ndx_buf = ctx.default_indices_buf();
 
     if (quad_vtx1_offset_ != 0xffffffff) {
@@ -110,9 +153,8 @@ void PrimDraw::CleanUp(Ren::Context &ctx) {
     }
 }
 
-void PrimDraw::DrawPrim(const ePrim prim, const RenderTarget &rt, Ren::Program *p,
-                        const Binding bindings[], int bindings_count,
-                        const Uniform uniforms[], int uniforms_count) {
+void PrimDraw::DrawPrim(const ePrim prim, const RenderTarget &rt, Ren::Program *p, const Binding bindings[],
+                        int bindings_count, const Uniform uniforms[], int uniforms_count) {
     using namespace PrimDrawInternal;
 
     glBindFramebuffer(GL_FRAMEBUFFER, rt.fb);
@@ -123,14 +165,12 @@ void PrimDraw::DrawPrim(const ePrim prim, const RenderTarget &rt, Ren::Program *
         if (b.trg == Ren::eBindTarget::UBuf) {
             if (b.offset) {
                 assert(b.size != 0);
-                glBindBufferRange(GL_UNIFORM_BUFFER, b.loc, b.handle.id, b.offset,
-                                  b.size);
+                glBindBufferRange(GL_UNIFORM_BUFFER, b.loc, b.handle.id, b.offset, b.size);
             } else {
                 glBindBufferBase(GL_UNIFORM_BUFFER, b.loc, b.handle.id);
             }
         } else {
-            ren_glBindTextureUnit_Comp(Ren::GLBindTarget(b.trg), GLuint(b.loc),
-                                       GLuint(b.handle.id));
+            ren_glBindTextureUnit_Comp(Ren::GLBindTarget(b.trg), GLuint(b.loc), GLuint(b.handle.id));
         }
     }
 
@@ -169,8 +209,7 @@ void PrimDraw::DrawPrim(const ePrim prim, const RenderTarget &rt, Ren::Program *
 
     if (prim == ePrim::Quad) {
         glBindVertexArray(fs_quad_vao_.id());
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT,
-                       (const GLvoid *)uintptr_t(quad_ndx_offset_));
+        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, (const GLvoid *)uintptr_t(quad_ndx_offset_));
     } else if (prim == ePrim::Sphere) {
         glBindVertexArray(sphere_vao_.id());
         glDrawElements(GL_TRIANGLES, GLsizei(__sphere_indices_count), GL_UNSIGNED_SHORT,

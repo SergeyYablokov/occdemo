@@ -33,16 +33,15 @@ class RpSkydome : public RenderPassBase {
     RpResource spec_tex_;
     RpResource depth_tex_;
 
-    void LazyInit(Ren::Context &ctx, ShaderLoader &sh, RpAllocTex &color_tex,
-                  RpAllocTex &spec_tex, RpAllocTex &depth_tex);
+    void LazyInit(Ren::Context &ctx, ShaderLoader &sh, RpAllocTex &color_tex, RpAllocTex &spec_tex,
+                  RpAllocTex &depth_tex);
     void DrawSkydome(RpBuilder &builder);
 
   public:
     ~RpSkydome();
 
-    void Setup(RpBuilder &builder, const DrawList &list, const ViewState *view_state,
-               int orphan_index, const char shared_data_buf[], const char color_tex[],
-               const char spec_tex[], const char depth_tex[]);
+    void Setup(RpBuilder &builder, const DrawList &list, const ViewState *view_state, int orphan_index,
+               const char shared_data_buf[], const char color_tex[], const char spec_tex[], const char depth_tex[]);
     void Execute(RpBuilder &builder) override;
 
     const char *name() const override { return "SKYDOME"; }

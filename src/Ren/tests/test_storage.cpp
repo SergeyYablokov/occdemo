@@ -6,13 +6,11 @@ void test_storage() {
     class MyObj : public Ren::RefCounter {
         Ren::String name_;
 
-    public:
+      public:
         int *ref;
 
         MyObj() : ref(nullptr) {}
-        MyObj(const char *name, int *r) : name_(name), ref(r) {
-            (*ref)++;
-        }
+        MyObj(const char *name, int *r) : name_(name), ref(r) { (*ref)++; }
         MyObj(const MyObj &rhs) = delete;
         MyObj(MyObj &&rhs) {
             name_ = std::move(rhs.name_);

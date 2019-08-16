@@ -14,7 +14,7 @@ void test_async_file() {
 
     uint8_t test_data[1000];
     for (uint8_t &j : test_data) {
-        j = uint8_t(rand() % 255);
+        j = uint8_t(rand() % 256);
     }
 
     { // create test file

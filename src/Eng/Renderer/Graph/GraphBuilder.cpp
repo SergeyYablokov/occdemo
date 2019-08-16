@@ -16,8 +16,7 @@ RpResource RpBuilder::ReadBuffer(RpResource handle, RenderPassBase &pass) {
 
 #ifndef NDEBUG
     for (int i = 0; i < pass.input_count_; i++) {
-        assert(pass.input_[i].type != eRpResType::Buffer ||
-               pass.input_[i].index != ret.index);
+        assert(pass.input_[i].type != eRpResType::Buffer || pass.input_[i].index != ret.index);
     }
 #endif
     pass.input_[pass.input_count_++] = ret;
@@ -36,8 +35,7 @@ RpResource RpBuilder::ReadBuffer(const char *name, RenderPassBase &pass) {
 
 #ifndef NDEBUG
     for (int i = 0; i < pass.input_count_; i++) {
-        assert(pass.input_[i].type != eRpResType::Buffer ||
-               pass.input_[i].index != ret.index);
+        assert(pass.input_[i].type != eRpResType::Buffer || pass.input_[i].index != ret.index);
     }
 #endif
     pass.input_[pass.input_count_++] = ret;
@@ -55,8 +53,7 @@ RpResource RpBuilder::ReadTexture(RpResource handle, RenderPassBase &pass) {
 
 #ifndef NDEBUG
     for (int i = 0; i < pass.input_count_; i++) {
-        assert(pass.input_[i].type != eRpResType::Texture ||
-               pass.input_[i].index != ret.index);
+        assert(pass.input_[i].type != eRpResType::Texture || pass.input_[i].index != ret.index);
     }
 #endif
     pass.input_[pass.input_count_++] = ret;
@@ -75,8 +72,7 @@ RpResource RpBuilder::ReadTexture(const char *name, RenderPassBase &pass) {
 
 #ifndef NDEBUG
     for (int i = 0; i < pass.input_count_; i++) {
-        assert(pass.input_[i].type != eRpResType::Texture ||
-               pass.input_[i].index != ret.index);
+        assert(pass.input_[i].type != eRpResType::Texture || pass.input_[i].index != ret.index);
     }
 #endif
     pass.input_[pass.input_count_++] = ret;
@@ -95,8 +91,7 @@ RpResource RpBuilder::WriteBuffer(RpResource handle, RenderPassBase &pass) {
 
 #ifndef NDEBUG
     for (int i = 0; i < pass.output_count_; i++) {
-        assert(pass.output_[i].type != eRpResType::Buffer ||
-               pass.output_[i].index != ret.index);
+        assert(pass.output_[i].type != eRpResType::Buffer || pass.output_[i].index != ret.index);
     }
 #endif
     pass.output_[pass.output_count_++] = ret;
@@ -116,8 +111,7 @@ RpResource RpBuilder::WriteBuffer(const char *name, RenderPassBase &pass) {
 
 #ifndef NDEBUG
     for (int i = 0; i < pass.output_count_; i++) {
-        assert(pass.output_[i].type != eRpResType::Buffer ||
-               pass.output_[i].index != ret.index);
+        assert(pass.output_[i].type != eRpResType::Buffer || pass.output_[i].index != ret.index);
     }
 #endif
     pass.output_[pass.output_count_++] = ret;
@@ -125,8 +119,7 @@ RpResource RpBuilder::WriteBuffer(const char *name, RenderPassBase &pass) {
     return ret;
 }
 
-RpResource RpBuilder::WriteBuffer(const char *name, const RpBufDesc &desc,
-                                  RenderPassBase &pass) {
+RpResource RpBuilder::WriteBuffer(const char *name, const RpBufDesc &desc, RenderPassBase &pass) {
     RpResource ret;
     ret.type = eRpResType::Buffer;
 
@@ -153,8 +146,7 @@ RpResource RpBuilder::WriteBuffer(const char *name, const RpBufDesc &desc,
 
 #ifndef NDEBUG
     for (int i = 0; i < pass.output_count_; i++) {
-        assert(pass.output_[i].type != eRpResType::Buffer ||
-               pass.output_[i].index != ret.index);
+        assert(pass.output_[i].type != eRpResType::Buffer || pass.output_[i].index != ret.index);
     }
 #endif
     pass.output_[pass.output_count_++] = ret;
@@ -176,7 +168,7 @@ RpResource RpBuilder::WriteTexture(RpResource handle, RenderPassBase &pass) {
 
 RpResource RpBuilder::WriteTexture(const char *name, RenderPassBase &pass) {
     const uint32_t *tex_index = name_to_texture_.Find(name);
-    assert(tex_index && "Buffer does not exist!");
+    assert(tex_index && "Texture does not exist!");
 
     RpAllocTex &tex = textures_[*tex_index];
     const uint16_t gen = tex._generation;
@@ -187,8 +179,7 @@ RpResource RpBuilder::WriteTexture(const char *name, RenderPassBase &pass) {
     return RpResource{eRpResType::Texture, gen, *tex_index};
 }
 
-RpResource RpBuilder::WriteTexture(const char *name, const Ren::Tex2DParams &p,
-                                   RenderPassBase &pass) {
+RpResource RpBuilder::WriteTexture(const char *name, const Ren::Tex2DParams &p, RenderPassBase &pass) {
     RpResource ret;
     ret.type = eRpResType::Texture;
 
@@ -215,8 +206,7 @@ RpResource RpBuilder::WriteTexture(const char *name, const Ren::Tex2DParams &p,
 
 #ifndef NDEBUG
     for (int i = 0; i < pass.output_count_; i++) {
-        assert(pass.output_[i].type != eRpResType::Texture ||
-               pass.output_[i].index != ret.index);
+        assert(pass.output_[i].type != eRpResType::Texture || pass.output_[i].index != ret.index);
     }
 #endif
 
@@ -247,8 +237,7 @@ RpAllocBuf &RpBuilder::GetWriteBuffer(RpResource handle) {
     assert(buf._generation == handle._generation);
 
     if (!buf.ref) {
-        buf.ref = ctx_.CreateBuffer(buf.name.c_str(), buf.desc.type, buf.desc.access,
-                                    buf.desc.freq, buf.desc.size);
+        buf.ref = ctx_.CreateBuffer(buf.name.c_str(), buf.desc.type, buf.desc.access, buf.desc.freq, buf.desc.size);
     }
 
     ++buf.write_count;
@@ -263,8 +252,7 @@ RpAllocTex &RpBuilder::GetWriteTexture(RpResource handle) {
     if (!tex.ref || tex.desc != tex.ref->params()) {
         Ren::eTexLoadStatus status;
         tex.ref = ctx_.LoadTexture2D(tex.name.c_str(), tex.desc, &status);
-        assert(status == Ren::eTexLoadStatus::CreatedDefault ||
-               status == Ren::eTexLoadStatus::Found ||
+        assert(status == Ren::eTexLoadStatus::CreatedDefault || status == Ren::eTexLoadStatus::Found ||
                status == Ren::eTexLoadStatus::Reinitialized);
     }
 
@@ -323,7 +311,7 @@ void RpBuilder::Execute(RenderPassBase *first_pass) {
 
     RenderPassBase *cur_pass = first_pass;
     while (cur_pass) {
-#ifndef NDEBUG
+#if !defined(NDEBUG) && defined(USE_GL_RENDER)
         Ren::ResetGLState();
 #endif
 

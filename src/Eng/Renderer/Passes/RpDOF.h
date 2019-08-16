@@ -10,9 +10,9 @@ class RpDOF : public RenderPassBase {
     bool initialized = false;
 
     // lazily initialized data
-    Ren::ProgramRef blit_dof_init_coc_prog_, blit_dof_bilateral_prog_,
-        blit_dof_calc_near_prog_, blit_dof_small_blur_prog_, blit_dof_combine_prog_,
-        blit_dof_combine_ms_prog_, blit_gauss_prog_, blit_down_depth_prog_;
+    Ren::ProgramRef blit_dof_init_coc_prog_, blit_dof_bilateral_prog_, blit_dof_calc_near_prog_,
+        blit_dof_small_blur_prog_, blit_dof_combine_prog_, blit_dof_combine_ms_prog_, blit_gauss_prog_,
+        blit_down_depth_prog_;
 
     // temp data (valid only between Setup and Execute calls)
     const Ren::Camera *draw_cam_ = nullptr;
@@ -28,9 +28,8 @@ class RpDOF : public RenderPassBase {
     RpResource blur_temp_4x_[2], down_tex_coc_[2];
     RpResource output_tex_;
 
-    void LazyInit(Ren::Context &ctx, ShaderLoader &sh, RpAllocTex &down_depth_4x_tex,
-                  RpAllocTex &blur1_temp_4x, RpAllocTex &blur2_temp_4x,
-                  RpAllocTex &coc1_tex, RpAllocTex &coc2_tex, RpAllocTex &output_tex);
+    void LazyInit(Ren::Context &ctx, ShaderLoader &sh, RpAllocTex &down_depth_4x_tex, RpAllocTex &blur1_temp_4x,
+                  RpAllocTex &blur2_temp_4x, RpAllocTex &coc1_tex, RpAllocTex &coc2_tex, RpAllocTex &output_tex);
 
 #if defined(USE_GL_RENDER)
     Ren::Framebuffer coc_fb_[2], blur_fb_[2], depth_4x_fb_, dof_fb_;
@@ -38,11 +37,9 @@ class RpDOF : public RenderPassBase {
   public:
     RpDOF(PrimDraw &prim_draw) : prim_draw_(prim_draw) {}
 
-    void Setup(RpBuilder &builder, const Ren::Camera *draw_cam,
-               const ViewState *view_state, int orphan_index,
-               const char shared_data_buf[], const char color_tex_name[],
-               const char depth_tex_name[], const char depth_down_2x_name[],
-               const char depth_down_4x_name[], Ren::TexHandle down_buf_4x,
+    void Setup(RpBuilder &builder, const Ren::Camera *draw_cam, const ViewState *view_state, int orphan_index,
+               const char shared_data_buf[], const char color_tex_name[], const char depth_tex_name[],
+               const char depth_down_2x_name[], const char depth_down_4x_name[], Ren::TexHandle down_buf_4x,
                const char output_tex_name[]);
     void Execute(RpBuilder &builder) override;
 

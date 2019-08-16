@@ -36,8 +36,7 @@ template <typename T> class SparseArray {
         delete[] ctrl_;
     }
 
-    SparseArray(const SparseArray &rhs)
-        : ctrl_(nullptr), data_(nullptr), capacity_(0), size_(0), first_free_(0) {
+    SparseArray(const SparseArray &rhs) : ctrl_(nullptr), data_(nullptr), capacity_(0), size_(0), first_free_(0) {
         reserve(rhs.capacity_);
 
         memcpy(ctrl_, rhs.ctrl_, (capacity_ + 7) / 8);
@@ -55,8 +54,7 @@ template <typename T> class SparseArray {
         size_ = rhs.size_;
     }
 
-    SparseArray(SparseArray &&rhs)
-        : ctrl_(nullptr), data_(nullptr), capacity_(0), size_(0), first_free_(0) {
+    SparseArray(SparseArray &&rhs) : ctrl_(nullptr), data_(nullptr), capacity_(0), size_(0), first_free_(0) {
 
         ctrl_ = exchange(rhs.ctrl_, nullptr);
         data_ = exchange(rhs.data_, nullptr);
@@ -269,8 +267,7 @@ template <typename T> class SparseArray {
         SparseArray<T> *container_;
         uint32_t index_;
 
-        SparseArrayIterator(SparseArray<T> *container, uint32_t index)
-            : container_(container), index_(index) {}
+        SparseArrayIterator(SparseArray<T> *container, uint32_t index) : container_(container), index_(index) {}
 
       public:
         T &operator*() { return container_->at(index_); }
@@ -287,24 +284,12 @@ template <typename T> class SparseArray {
 
         uint32_t index() const { return index_; }
 
-        bool operator<(const SparseArrayIterator &rhs) const {
-            return index_ < rhs.index_;
-        }
-        bool operator<=(const SparseArrayIterator &rhs) const {
-            return index_ <= rhs.index_;
-        }
-        bool operator>(const SparseArrayIterator &rhs) const {
-            return index_ > rhs.index_;
-        }
-        bool operator>=(const SparseArrayIterator &rhs) const {
-            return index_ >= rhs.index_;
-        }
-        bool operator==(const SparseArrayIterator &rhs) const {
-            return index_ == rhs.index_;
-        }
-        bool operator!=(const SparseArrayIterator &rhs) const {
-            return index_ != rhs.index_;
-        }
+        bool operator<(const SparseArrayIterator &rhs) const { return index_ < rhs.index_; }
+        bool operator<=(const SparseArrayIterator &rhs) const { return index_ <= rhs.index_; }
+        bool operator>(const SparseArrayIterator &rhs) const { return index_ > rhs.index_; }
+        bool operator>=(const SparseArrayIterator &rhs) const { return index_ >= rhs.index_; }
+        bool operator==(const SparseArrayIterator &rhs) const { return index_ == rhs.index_; }
+        bool operator!=(const SparseArrayIterator &rhs) const { return index_ != rhs.index_; }
     };
 
     class SparseArrayConstIterator : public std::iterator<std::forward_iterator_tag, T> {
@@ -332,24 +317,12 @@ template <typename T> class SparseArray {
 
         uint32_t index() const { return index_; }
 
-        bool operator<(const SparseArrayConstIterator &rhs) const {
-            return index_ < rhs.index_;
-        }
-        bool operator<=(const SparseArrayConstIterator &rhs) const {
-            return index_ <= rhs.index_;
-        }
-        bool operator>(const SparseArrayConstIterator &rhs) const {
-            return index_ > rhs.index_;
-        }
-        bool operator>=(const SparseArrayConstIterator &rhs) const {
-            return index_ >= rhs.index_;
-        }
-        bool operator==(const SparseArrayConstIterator &rhs) const {
-            return index_ == rhs.index_;
-        }
-        bool operator!=(const SparseArrayConstIterator &rhs) const {
-            return index_ != rhs.index_;
-        }
+        bool operator<(const SparseArrayConstIterator &rhs) const { return index_ < rhs.index_; }
+        bool operator<=(const SparseArrayConstIterator &rhs) const { return index_ <= rhs.index_; }
+        bool operator>(const SparseArrayConstIterator &rhs) const { return index_ > rhs.index_; }
+        bool operator>=(const SparseArrayConstIterator &rhs) const { return index_ >= rhs.index_; }
+        bool operator==(const SparseArrayConstIterator &rhs) const { return index_ == rhs.index_; }
+        bool operator!=(const SparseArrayConstIterator &rhs) const { return index_ != rhs.index_; }
     };
 
     using iterator = SparseArrayIterator;

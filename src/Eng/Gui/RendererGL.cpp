@@ -107,20 +107,14 @@ Gui::Renderer::Renderer(Ren::Context &ctx, const JsObject &config) : ctx_(ctx) {
         using namespace Ren;
 
         eShaderLoadStatus sh_status;
-        ShaderRef ui_vs_ref =
-            ctx_.LoadShaderGLSL("__ui_vs__", vs_source, eShaderType::Vert, &sh_status);
-        assert(sh_status == eShaderLoadStatus::CreatedFromData ||
-               sh_status == eShaderLoadStatus::Found);
-        ShaderRef ui_fs_ref =
-            ctx_.LoadShaderGLSL("__ui_fs__", fs_source, eShaderType::Frag, &sh_status);
-        assert(sh_status == eShaderLoadStatus::CreatedFromData ||
-               sh_status == eShaderLoadStatus::Found);
+        ShaderRef ui_vs_ref = ctx_.LoadShaderGLSL("__ui_vs__", vs_source, eShaderType::Vert, &sh_status);
+        assert(sh_status == eShaderLoadStatus::CreatedFromData || sh_status == eShaderLoadStatus::Found);
+        ShaderRef ui_fs_ref = ctx_.LoadShaderGLSL("__ui_fs__", fs_source, eShaderType::Frag, &sh_status);
+        assert(sh_status == eShaderLoadStatus::CreatedFromData || sh_status == eShaderLoadStatus::Found);
 
         eProgLoadStatus status;
-        ui_program_ =
-            ctx_.LoadProgram("__ui_program__", ui_vs_ref, ui_fs_ref, {}, {}, &status);
-        assert(status == eProgLoadStatus::CreatedFromData ||
-               status == eProgLoadStatus::Found);
+        ui_program_ = ctx_.LoadProgram("__ui_program__", ui_vs_ref, ui_fs_ref, {}, {}, &status);
+        assert(status == eProgLoadStatus::CreatedFromData || status == eProgLoadStatus::Found);
     }
 
     vtx_data_.reset(new vertex_t[MaxVerticesPerRange * FrameSyncWindow]);
@@ -138,24 +132,21 @@ Gui::Renderer::Renderer(Ren::Context &ctx, const JsObject &config) : ctx_(ctx) {
     sprintf(name_buf, "UI_VertexBuffer [%i]", instance_index);
 
     vertex_buf_ =
-        ctx_.CreateBuffer(name_buf, Ren::eBufferType::VertexAttribs,
-                          Ren::eBufferAccessType::Draw, Ren::eBufferAccessFreq::Dynamic,
-                          FrameSyncWindow * MaxVerticesPerRange * sizeof(vertex_t));
+        ctx_.CreateBuffer(name_buf, Ren::eBufType::VertexAttribs, Ren::eBufAccessType::Draw,
+                          Ren::eBufAccessFreq::Dynamic, FrameSyncWindow * MaxVerticesPerRange * sizeof(vertex_t));
 
     sprintf(name_buf, "UI_IndexBuffer [%i]", instance_index);
 
     index_buf_ =
-        ctx_.CreateBuffer(name_buf, Ren::eBufferType::VertexIndices,
-                          Ren::eBufferAccessType::Draw, Ren::eBufferAccessFreq::Dynamic,
-                          FrameSyncWindow * MaxIndicesPerRange * sizeof(uint16_t));
+        ctx_.CreateBuffer(name_buf, Ren::eBufType::VertexIndices, Ren::eBufAccessType::Draw,
+                          Ren::eBufAccessFreq::Dynamic, FrameSyncWindow * MaxIndicesPerRange * sizeof(uint16_t));
 
-    const Ren::VtxAttribDesc attribs[] = {
-        {vertex_buf_->handle(), VTX_POS_LOC, 3, Ren::eType::Float32, sizeof(vertex_t),
-         uintptr_t(offsetof(vertex_t, pos))},
-        {vertex_buf_->handle(), VTX_COL_LOC, 4, Ren::eType::Uint8UNorm, sizeof(vertex_t),
-         uintptr_t(offsetof(vertex_t, col))},
-        {vertex_buf_->handle(), VTX_UVS_LOC, 4, Ren::eType::Uint16UNorm, sizeof(vertex_t),
-         uintptr_t(offsetof(vertex_t, uvs))}};
+    const Ren::VtxAttribDesc attribs[] = {{vertex_buf_->handle(), VTX_POS_LOC, 3, Ren::eType::Float32, sizeof(vertex_t),
+                                           uintptr_t(offsetof(vertex_t, pos))},
+                                          {vertex_buf_->handle(), VTX_COL_LOC, 4, Ren::eType::Uint8UNorm,
+                                           sizeof(vertex_t), uintptr_t(offsetof(vertex_t, col))},
+                                          {vertex_buf_->handle(), VTX_UVS_LOC, 4, Ren::eType::Uint16UNorm,
+                                           sizeof(vertex_t), uintptr_t(offsetof(vertex_t, uvs))}};
 
     vao_.Setup(attribs, 3, index_buf_->handle());
 
@@ -182,11 +173,9 @@ void Gui::Renderer::PushClipArea(const Vec2f dims[2]) {
     clip_area_stack_[clip_area_stack_size_][1] = dims[0] + dims[1];
     if (clip_area_stack_size_) {
         clip_area_stack_[clip_area_stack_size_][0] =
-            Max(clip_area_stack_[clip_area_stack_size_ - 1][0],
-                clip_area_stack_[clip_area_stack_size_][0]);
+            Max(clip_area_stack_[clip_area_stack_size_ - 1][0], clip_area_stack_[clip_area_stack_size_][0]);
         clip_area_stack_[clip_area_stack_size_][1] =
-            Min(clip_area_stack_[clip_area_stack_size_ - 1][1],
-                clip_area_stack_[clip_area_stack_size_][1]);
+            Min(clip_area_stack_[clip_area_stack_size_ - 1][1], clip_area_stack_[clip_area_stack_size_][1]);
     }
     ++clip_area_stack_size_;
 }
@@ -200,16 +189,14 @@ const Gui::Vec2f *Gui::Renderer::GetClipArea() const {
     return nullptr;
 }
 
-int Gui::Renderer::AcquireVertexData(vertex_t **vertex_data, int *vertex_avail,
-                                     uint16_t **index_data, int *index_avail) {
+int Gui::Renderer::AcquireVertexData(vertex_t **vertex_data, int *vertex_avail, uint16_t **index_data,
+                                     int *index_avail) {
     using namespace UIRendererConstants;
 
-    (*vertex_data) = vtx_data_.get() + fill_range_index_ * MaxVerticesPerRange +
-                     vertex_count_[fill_range_index_];
+    (*vertex_data) = vtx_data_.get() + fill_range_index_ * MaxVerticesPerRange + vertex_count_[fill_range_index_];
     (*vertex_avail) = MaxVerticesPerRange - vertex_count_[fill_range_index_];
 
-    (*index_data) = ndx_data_.get() + fill_range_index_ * MaxIndicesPerRange +
-                    index_count_[fill_range_index_];
+    (*index_data) = ndx_data_.get() + fill_range_index_ * MaxIndicesPerRange + index_count_[fill_range_index_];
     (*index_avail) = MaxIndicesPerRange - index_count_[fill_range_index_];
 
     return vertex_count_[fill_range_index_];
@@ -251,45 +238,37 @@ void Gui::Renderer::Draw(int w, int h) {
     //
     // Update buffers
     //
-    const GLbitfield BufferRangeBindFlags =
-        GLbitfield(GL_MAP_WRITE_BIT) | GLbitfield(GL_MAP_INVALIDATE_RANGE_BIT) |
-        GLbitfield(GL_MAP_UNSYNCHRONIZED_BIT) | GLbitfield(GL_MAP_FLUSH_EXPLICIT_BIT);
+    const GLbitfield BufferRangeBindFlags = GLbitfield(GL_MAP_WRITE_BIT) | GLbitfield(GL_MAP_INVALIDATE_RANGE_BIT) |
+                                            GLbitfield(GL_MAP_UNSYNCHRONIZED_BIT) |
+                                            GLbitfield(GL_MAP_FLUSH_EXPLICIT_BIT);
 
     if (vertex_count_[draw_range_index_]) {
         glBindBuffer(GL_ARRAY_BUFFER, vertex_buf_->id());
 
-        void *pinned_mem = glMapBufferRange(
-            GL_ARRAY_BUFFER, draw_range_index_ * MaxVerticesPerRange * sizeof(vertex_t),
-            MaxVerticesPerRange * sizeof(vertex_t), BufferRangeBindFlags);
+        void *pinned_mem = glMapBufferRange(GL_ARRAY_BUFFER, draw_range_index_ * MaxVerticesPerRange * sizeof(vertex_t),
+                                            MaxVerticesPerRange * sizeof(vertex_t), BufferRangeBindFlags);
         if (pinned_mem) {
-            const size_t vertex_buf_mem_size =
-                vertex_count_[draw_range_index_] * sizeof(vertex_t);
-            memcpy(pinned_mem, vtx_data_.get() + draw_range_index_ * MaxVerticesPerRange,
-                   vertex_buf_mem_size);
+            const size_t vertex_buf_mem_size = vertex_count_[draw_range_index_] * sizeof(vertex_t);
+            memcpy(pinned_mem, vtx_data_.get() + draw_range_index_ * MaxVerticesPerRange, vertex_buf_mem_size);
             glFlushMappedBufferRange(GL_ARRAY_BUFFER, 0, vertex_buf_mem_size);
             glUnmapBuffer(GL_ARRAY_BUFFER);
         } else {
-            ctx_.log()->Error(
-                "[Gui::Renderer::SwapBuffers]: Failed to map vertex buffer!");
+            ctx_.log()->Error("[Gui::Renderer::SwapBuffers]: Failed to map vertex buffer!");
         }
     }
 
     if (index_count_[draw_range_index_]) {
         glBindBuffer(GL_ARRAY_BUFFER, index_buf_->id());
 
-        void *pinned_mem = glMapBufferRange(
-            GL_ARRAY_BUFFER, draw_range_index_ * MaxIndicesPerRange * sizeof(uint16_t),
-            MaxIndicesPerRange * sizeof(uint16_t), BufferRangeBindFlags);
+        void *pinned_mem = glMapBufferRange(GL_ARRAY_BUFFER, draw_range_index_ * MaxIndicesPerRange * sizeof(uint16_t),
+                                            MaxIndicesPerRange * sizeof(uint16_t), BufferRangeBindFlags);
         if (pinned_mem) {
-            const size_t index_buf_mem_size =
-                index_count_[draw_range_index_] * sizeof(uint16_t);
-            memcpy(pinned_mem, ndx_data_.get() + draw_range_index_ * MaxIndicesPerRange,
-                   index_buf_mem_size);
+            const size_t index_buf_mem_size = index_count_[draw_range_index_] * sizeof(uint16_t);
+            memcpy(pinned_mem, ndx_data_.get() + draw_range_index_ * MaxIndicesPerRange, index_buf_mem_size);
             glFlushMappedBufferRange(GL_ARRAY_BUFFER, 0, index_buf_mem_size);
             glUnmapBuffer(GL_ARRAY_BUFFER);
         } else {
-            ctx_.log()->Error(
-                "[Gui::Renderer::SwapBuffers]: Failed to map index buffer!");
+            ctx_.log()->Error("[Gui::Renderer::SwapBuffers]: Failed to map index buffer!");
         }
     }
 
@@ -309,13 +288,11 @@ void Gui::Renderer::Draw(int w, int h) {
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D_ARRAY, (GLuint)ctx_.texture_atlas().tex_id());
 
-    const size_t index_buf_mem_offset =
-        draw_range_index_ * MaxIndicesPerRange * sizeof(uint16_t);
+    const size_t index_buf_mem_offset = draw_range_index_ * MaxIndicesPerRange * sizeof(uint16_t);
 
-    glDrawElementsBaseVertex(
-        GL_TRIANGLES, index_count_[draw_range_index_], GL_UNSIGNED_SHORT,
-        reinterpret_cast<const GLvoid *>(uintptr_t(index_buf_mem_offset)),
-        (draw_range_index_ * MaxVerticesPerRange));
+    glDrawElementsBaseVertex(GL_TRIANGLES, index_count_[draw_range_index_], GL_UNSIGNED_SHORT,
+                             reinterpret_cast<const GLvoid *>(uintptr_t(index_buf_mem_offset)),
+                             (draw_range_index_ * MaxVerticesPerRange));
 
     glBindVertexArray(0);
     glUseProgram(0);
@@ -327,14 +304,11 @@ void Gui::Renderer::Draw(int w, int h) {
     buf_range_fences_[draw_range_index_] = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
 }
 
-void Gui::Renderer::PushImageQuad(const eDrawMode draw_mode, const int tex_layer,
-                                  const Vec2f pos[2], const Vec2f uvs_px[2]) {
-    const Vec2f uvs_scale =
-        1.0f / Vec2f{(float)Ren::TextureAtlasWidth, (float)Ren::TextureAtlasHeight};
-    Vec4f pos_uvs[2] = {Vec4f{pos[0][0], pos[0][1], uvs_px[0][0] * uvs_scale[0],
-                              uvs_px[0][1] * uvs_scale[1]},
-                        Vec4f{pos[1][0], pos[1][1], uvs_px[1][0] * uvs_scale[0],
-                              uvs_px[1][1] * uvs_scale[1]}};
+void Gui::Renderer::PushImageQuad(const eDrawMode draw_mode, const int tex_layer, const Vec2f pos[2],
+                                  const Vec2f uvs_px[2]) {
+    const Vec2f uvs_scale = 1.0f / Vec2f{(float)Ren::TextureAtlasWidth, (float)Ren::TextureAtlasHeight};
+    Vec4f pos_uvs[2] = {Vec4f{pos[0][0], pos[0][1], uvs_px[0][0] * uvs_scale[0], uvs_px[0][1] * uvs_scale[1]},
+                        Vec4f{pos[1][0], pos[1][1], uvs_px[1][0] * uvs_scale[0], uvs_px[1][1] * uvs_scale[1]}};
 
     vertex_t *vtx_data;
     int vtx_avail;
@@ -350,8 +324,7 @@ void Gui::Renderer::PushImageQuad(const eDrawMode draw_mode, const int tex_layer
 
     static const uint16_t u16_draw_mode[] = {0, 32767, 65535};
 
-    if (clip_area_stack_size_ &&
-        !ClipQuadToArea(pos_uvs, clip_area_stack_[clip_area_stack_size_ - 1])) {
+    if (clip_area_stack_size_ && !ClipQuadToArea(pos_uvs, clip_area_stack_[clip_area_stack_size_ - 1])) {
         return;
     }
 
@@ -406,11 +379,9 @@ void Gui::Renderer::PushImageQuad(const eDrawMode draw_mode, const int tex_layer
     SubmitVertexData(int(cur_vtx - vtx_data), int(cur_ndx - ndx_data));
 }
 
-void Gui::Renderer::PushLine(eDrawMode draw_mode, int tex_layer, const uint8_t color[4],
-                             const Vec4f &p0, const Vec4f &p1, const Vec2f &d0,
-                             const Vec2f &d1, const Vec4f &thickness) {
-    const Vec2f uvs_scale =
-        1.0f / Vec2f{(float)Ren::TextureAtlasWidth, (float)Ren::TextureAtlasHeight};
+void Gui::Renderer::PushLine(eDrawMode draw_mode, int tex_layer, const uint8_t color[4], const Vec4f &p0,
+                             const Vec4f &p1, const Vec2f &d0, const Vec2f &d1, const Vec4f &thickness) {
+    const Vec2f uvs_scale = 1.0f / Vec2f{(float)Ren::TextureAtlasWidth, (float)Ren::TextureAtlasHeight};
 
     const uint16_t u16_tex_layer = f32_to_u16((1.0f / 16.0f) * float(tex_layer));
 
@@ -428,8 +399,7 @@ void Gui::Renderer::PushLine(eDrawMode draw_mode, int tex_layer, const uint8_t c
     }
 
     if (clip_area_stack_size_ &&
-        !(vertex_count = ClipPolyToArea(pos_uvs, vertex_count,
-                                        clip_area_stack_[clip_area_stack_size_ - 1]))) {
+        !(vertex_count = ClipPolyToArea(pos_uvs, vertex_count, clip_area_stack_[clip_area_stack_size_ - 1]))) {
         return;
     }
     assert(vertex_count < 8);
@@ -465,22 +435,19 @@ void Gui::Renderer::PushLine(eDrawMode draw_mode, int tex_layer, const uint8_t c
     SubmitVertexData(int(cur_vtx - vtx_data), int(cur_ndx - ndx_data));
 }
 
-void Gui::Renderer::PushCurve(eDrawMode draw_mode, int tex_layer, const uint8_t color[4],
-                              const Vec4f &p0, const Vec4f &p1, const Vec4f &p2,
-                              const Vec4f &p3, const Vec4f &thickness) {
+void Gui::Renderer::PushCurve(eDrawMode draw_mode, int tex_layer, const uint8_t color[4], const Vec4f &p0,
+                              const Vec4f &p1, const Vec4f &p2, const Vec4f &p3, const Vec4f &thickness) {
     const float tolerance = 0.000001f;
 
-    const Vec4f p01 = 0.5f * (p0 + p1), p12 = 0.5f * (p1 + p2), p23 = 0.5f * (p2 + p3),
-                p012 = 0.5f * (p01 + p12), p123 = 0.5f * (p12 + p23),
-                p0123 = 0.5f * (p012 + p123);
+    const Vec4f p01 = 0.5f * (p0 + p1), p12 = 0.5f * (p1 + p2), p23 = 0.5f * (p2 + p3), p012 = 0.5f * (p01 + p12),
+                p123 = 0.5f * (p12 + p23), p0123 = 0.5f * (p012 + p123);
 
     const Vec2f d = Vec2f{p3} - Vec2f{p0};
     const float d2 = std::abs((p1[0] - p3[0]) * d[1] - (p1[1] - p3[1]) * d[0]),
                 d3 = std::abs((p2[0] - p3[0]) * d[1] - (p2[1] - p3[1]) * d[0]);
 
     if ((d2 + d3) * (d2 + d3) < tolerance * (d[0] * d[0] + d[1] * d[1])) {
-        PushLine(draw_mode, tex_layer, color, p0, p3, Normalize(Vec2f{p1 - p0}),
-                 Normalize(Vec2f{p3 - p2}), thickness);
+        PushLine(draw_mode, tex_layer, color, p0, p3, Normalize(Vec2f{p1 - p0}), Normalize(Vec2f{p3 - p2}), thickness);
     } else {
         PushCurve(draw_mode, tex_layer, color, p0, p01, p012, p0123, thickness);
         PushCurve(draw_mode, tex_layer, color, p0123, p123, p23, p3, thickness);

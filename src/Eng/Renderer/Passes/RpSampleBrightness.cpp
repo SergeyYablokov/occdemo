@@ -4,8 +4,7 @@
 
 #include "../../Utils/ShaderLoader.h"
 
-void RpSampleBrightness::Setup(RpBuilder &builder, Ren::TexHandle tex_to_sample,
-                               const char reduced_tex[]) {
+void RpSampleBrightness::Setup(RpBuilder &builder, Ren::TexHandle tex_to_sample, const char reduced_tex[]) {
     tex_to_sample_ = tex_to_sample;
 
     { // aux buffer which gathers frame luminance
@@ -20,11 +19,9 @@ void RpSampleBrightness::Setup(RpBuilder &builder, Ren::TexHandle tex_to_sample,
     }
 }
 
-void RpSampleBrightness::LazyInit(Ren::Context &ctx, ShaderLoader &sh,
-                                  RpAllocTex &reduced_tex) {
+void RpSampleBrightness::LazyInit(Ren::Context &ctx, ShaderLoader &sh, RpAllocTex &reduced_tex) {
     if (!initialized_) {
-        blit_red_prog_ = sh.LoadProgram(ctx, "blit_red", "internal/blit.vert.glsl",
-                                        "internal/blit_reduced.frag.glsl");
+        blit_red_prog_ = sh.LoadProgram(ctx, "blit_red", "internal/blit.vert.glsl", "internal/blit_reduced.frag.glsl");
         assert(blit_red_prog_->ready());
 
 #if defined(USE_GL_RENDER)

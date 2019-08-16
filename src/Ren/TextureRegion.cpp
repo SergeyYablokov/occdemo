@@ -2,15 +2,15 @@
 
 #include "TextureAtlas.h"
 
-Ren::TextureRegion::TextureRegion(const char *name, TextureAtlasArray *atlas,
-                                  const int texture_pos[3])
+#include "stb/stb_image.h"
+
+Ren::TextureRegion::TextureRegion(const char *name, TextureAtlasArray *atlas, const int texture_pos[3])
     : name_(name), atlas_(atlas) {
     std::memcpy(texture_pos_, texture_pos, 3 * sizeof(int));
 }
 
-Ren::TextureRegion::TextureRegion(const char *name, const void *data, int size,
-                                  const Tex2DParams &p, TextureAtlasArray *atlas,
-                                  eTexLoadStatus *load_status)
+Ren::TextureRegion::TextureRegion(const char *name, const void *data, int size, const Tex2DParams &p,
+                                  TextureAtlasArray *atlas, eTexLoadStatus *load_status)
     : name_(name) {
     Init(data, size, p, atlas, load_status);
 }
@@ -37,8 +37,8 @@ Ren::TextureRegion &Ren::TextureRegion::operator=(TextureRegion &&rhs) noexcept 
     return (*this);
 }
 
-void Ren::TextureRegion::Init(const void *data, const int size, const Tex2DParams &p,
-                              TextureAtlasArray *atlas, eTexLoadStatus *load_status) {
+void Ren::TextureRegion::Init(const void *data, const int size, const Tex2DParams &p, TextureAtlasArray *atlas,
+                              eTexLoadStatus *load_status) {
     if (!data) {
         const unsigned char cyan[40] = {0, 255, 255, 255};
         Tex2DParams _p;
@@ -69,8 +69,8 @@ void Ren::TextureRegion::Init(const void *data, const int size, const Tex2DParam
     }
 }
 
-void Ren::TextureRegion::InitFromRAWData(const void *data, const int /*size*/,
-                                         const Tex2DParams &p, TextureAtlasArray *atlas) {
+void Ren::TextureRegion::InitFromRAWData(const void *data, const int /*size*/, const Tex2DParams &p,
+                                         TextureAtlasArray *atlas) {
     const int res[2] = {p.w, p.h};
     const int node = atlas->Allocate(data, p.format, res, texture_pos_, 1);
     if (node != -1) {
@@ -79,8 +79,8 @@ void Ren::TextureRegion::InitFromRAWData(const void *data, const int /*size*/,
     }
 }
 
-void Ren::TextureRegion::InitFromTGAFile(const void *data, const int /*size*/,
-                                         const Tex2DParams &p, TextureAtlasArray *atlas) {
+void Ren::TextureRegion::InitFromTGAFile(const void *data, const int /*size*/, const Tex2DParams &p,
+                                         TextureAtlasArray *atlas) {
     int w = 0, h = 0;
     eTexFormat format = eTexFormat::Undefined;
     std::unique_ptr<uint8_t[]> image_data = ReadTGAFile(data, w, h, format);
@@ -93,11 +93,10 @@ void Ren::TextureRegion::InitFromTGAFile(const void *data, const int /*size*/,
     InitFromRAWData(image_data.get(), 0, _p, atlas);
 }
 
-void Ren::TextureRegion::InitFromPNGFile(const void *data, const int size,
-                                         const Tex2DParams &p, TextureAtlasArray *atlas) {
+void Ren::TextureRegion::InitFromPNGFile(const void *data, const int size, const Tex2DParams &p,
+                                         TextureAtlasArray *atlas) {
     int w, h, channels;
-    unsigned char *image_data = SOIL_load_image_from_memory((const unsigned char *)data,
-                                                            size, &w, &h, &channels, 4);
+    unsigned char *const image_data = stbi_load_from_memory((const uint8_t *)data, size, &w, &h, &channels, 0);
     if (image_data) {
         Tex2DParams _p = p;
         _p.w = w;
@@ -106,6 +105,6 @@ void Ren::TextureRegion::InitFromPNGFile(const void *data, const int size,
 
         InitFromRAWData(image_data, 0, _p, atlas);
 
-        SOIL_free_image_data(image_data);
+        free(image_data);
     }
 }

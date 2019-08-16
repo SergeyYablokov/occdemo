@@ -1,6 +1,7 @@
 #include "SceneManager.h"
 
 #include <Ren/Context.h>
+#include <Ren/GL.h>
 #include <Ren/Utils.h>
 
 #include "../Renderer/Renderer_Structs.h"
@@ -37,25 +38,25 @@ void SceneManager::InsertPersistentBuffersFence() {
 
 void SceneManager::UpdateMaterialsBuffer() {
     const uint32_t max_mat_count = scene_data_.materials.capacity();
-    const uint32_t req_mat_buf_size = max_mat_count * sizeof(MaterialData);
+    const uint32_t req_mat_buf_size = std::max(1u, max_mat_count) * sizeof(MaterialData);
 
     if (!scene_data_.materials_buf) {
         scene_data_.materials_buf = ren_ctx_.CreateBuffer(
-            "Materials Buffer", Ren::eBufferType::Storage, Ren::eBufferAccessType::Draw,
-            Ren::eBufferAccessFreq::Dynamic, FrameSyncWindow * req_mat_buf_size);
+            "Materials Buffer", Ren::eBufType::Storage, Ren::eBufAccessType::Draw,
+            Ren::eBufAccessFreq::Dynamic, FrameSyncWindow * req_mat_buf_size);
     }
 
     if (scene_data_.materials_buf->size() < FrameSyncWindow * req_mat_buf_size) {
         scene_data_.materials_buf->Resize(FrameSyncWindow * req_mat_buf_size);
     }
 
-    const uint32_t max_tex_count = REN_MAX_TEX_PER_MATERIAL * max_mat_count;
+    const uint32_t max_tex_count = std::max(1u, REN_MAX_TEX_PER_MATERIAL * max_mat_count);
     const uint32_t req_tex_buf_size = max_tex_count * sizeof(GLuint64);
 
     if (!scene_data_.textures_buf) {
         scene_data_.textures_buf = ren_ctx_.CreateBuffer(
-            "Textures Buffer", Ren::eBufferType::Storage, Ren::eBufferAccessType::Draw,
-            Ren::eBufferAccessFreq::Dynamic, FrameSyncWindow * req_tex_buf_size);
+            "Textures Buffer", Ren::eBufType::Storage, Ren::eBufAccessType::Draw,
+            Ren::eBufAccessFreq::Dynamic, FrameSyncWindow * req_tex_buf_size);
     }
 
     if (scene_data_.textures_buf->size() < FrameSyncWindow * req_tex_buf_size) {
@@ -68,7 +69,7 @@ void SceneManager::UpdateMaterialsBuffer() {
             scene_data_.mat_update_ranges[j].first =
                 std::min(scene_data_.mat_update_ranges[j].first, i);
             scene_data_.mat_update_ranges[j].second =
-                std::max(scene_data_.mat_update_ranges[j].second, i);
+                std::max(scene_data_.mat_update_ranges[j].second, i + 1);
         }
     }
     scene_data_.material_changes.clear();
@@ -76,7 +77,7 @@ void SceneManager::UpdateMaterialsBuffer() {
     const uint32_t next_buf_index = (scene_data_.mat_buf_index + 1) % FrameSyncWindow;
     auto &cur_update_range = scene_data_.mat_update_ranges[next_buf_index];
 
-    if (cur_update_range.second < cur_update_range.first) {
+    if (cur_update_range.second <= cur_update_range.first) {
         return;
     }
 
@@ -97,19 +98,21 @@ void SceneManager::UpdateMaterialsBuffer() {
 
     MaterialData *material_data =
         reinterpret_cast<MaterialData *>(scene_data_.materials_buf->MapRange(
+            Ren::BufMapWrite,
             mat_buf_offset + cur_update_range.first * sizeof(MaterialData),
-            (cur_update_range.second - cur_update_range.first + 1) *
+            (cur_update_range.second - cur_update_range.first) *
                 sizeof(MaterialData)));
     GLuint64 *texture_data = nullptr;
     if (ren_ctx_.capabilities.bindless_texture) {
         texture_data = reinterpret_cast<GLuint64 *>(scene_data_.textures_buf->MapRange(
+            Ren::BufMapWrite,
             tex_buf_offset +
                 cur_update_range.first * REN_MAX_TEX_PER_MATERIAL * sizeof(GLuint64),
-            (cur_update_range.second - cur_update_range.first + 1) *
+            (cur_update_range.second - cur_update_range.first) *
                 REN_MAX_TEX_PER_MATERIAL * sizeof(GLuint64)));
     }
 
-    for (uint32_t i = cur_update_range.first; i <= cur_update_range.second; ++i) {
+    for (uint32_t i = cur_update_range.first; i < cur_update_range.second; ++i) {
         const uint32_t rel_i = i - cur_update_range.first;
         const Ren::Material *mat = scene_data_.materials.GetOrNull(i);
         if (mat) {
@@ -133,12 +136,12 @@ void SceneManager::UpdateMaterialsBuffer() {
 
     if (texture_data) {
         scene_data_.textures_buf->FlushRange(
-            0, (cur_update_range.second - cur_update_range.first + 1) *
+            0, (cur_update_range.second - cur_update_range.first) *
                    REN_MAX_TEX_PER_MATERIAL * sizeof(GLuint64));
         scene_data_.textures_buf->Unmap();
     }
     scene_data_.materials_buf->FlushRange(
-        0, (cur_update_range.second - cur_update_range.first + 1) * sizeof(MaterialData));
+        0, (cur_update_range.second - cur_update_range.first) * sizeof(MaterialData));
     scene_data_.materials_buf->Unmap();
 
     // reset just updated range

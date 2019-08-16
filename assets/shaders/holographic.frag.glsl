@@ -1,12 +1,15 @@
 #version 310 es
 #extension GL_EXT_texture_buffer : enable
 #extension GL_EXT_texture_cube_map_array : enable
+#if !defined(VULKAN) && !defined(GL_SPIRV)
 #extension GL_ARB_bindless_texture: enable
+#endif
 //#extension GL_EXT_control_flow_attributes : enable
 
 $ModifyWarning
 
-#ifdef GL_ES
+#if defined(GL_ES) || defined(VULKAN)
+	precision highp int;
     precision mediump float;
     precision mediump sampler2DShadow;
 #endif
@@ -32,7 +35,7 @@ layout(binding = REN_MOMENTS1_MS_TEX_SLOT) uniform mediump sampler2DMS moments1_
 layout(binding = REN_MOMENTS2_MS_TEX_SLOT) uniform mediump sampler2DMS moments2_texture_ms;
 
 #if defined(VULKAN) || defined(GL_SPIRV)
-layout (binding = 0, std140)
+layout (binding = REN_UB_SHARED_DATA_LOC, std140)
 #else
 layout (std140)
 #endif

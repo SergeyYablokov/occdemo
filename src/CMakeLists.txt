@@ -44,8 +44,8 @@ if(NOT CMAKE_SYSTEM_NAME MATCHES "Android")
         #set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -finline-limit=10")
 
         if(APPLE)
-            set(SDL2_INCLUDE_DIRS /usr/local/include)
-            set(SDL2_LIBRARIES /usr/local/lib)
+            set(ITT_LIBRARIES ${CMAKE_CURRENT_SOURCE_DIR}/libs/vtune/osx/x64)
+            set(VPX_LIBRARIES ${CMAKE_CURRENT_SOURCE_DIR}/libs/vpx/osx/x64)
         else(APPLE)
             set(ITT_LIBRARIES ${CMAKE_CURRENT_SOURCE_DIR}/libs/vtune/linux/x64)
             set(VPX_LIBRARIES ${CMAKE_CURRENT_SOURCE_DIR}/libs/vpx/linux/x64)
@@ -63,14 +63,17 @@ else()
     set(VPX_LIBRARIES ${CMAKE_CURRENT_SOURCE_DIR}/libs/vpx/arm64-v8a)
 endif()
 
-set(RENDERER GL)
+set(RENDERER "GL" CACHE STRING "Render backend")
 
 if(${RENDERER} STREQUAL "GL")
   add_definitions(-DUSE_GL_RENDER)
-elseif(${RENDERER} STREQUAL "SW")
-  add_definitions(-DUSE_SW_RENDER)
+  set(BIN_NAME "DummyAppGL")
 elseif(${RENDERER} STREQUAL "VK")
   add_definitions(-DUSE_VK_RENDER)
+  set(BIN_NAME "DummyAppVK")
+elseif(${RENDERER} STREQUAL "SW")
+  add_definitions(-DUSE_SW_RENDER)
+  set(BIN_NAME "DummyAppSW")
 endif()
 
 set(SOUND AL)
@@ -135,7 +138,7 @@ set_target_properties(test_DummyLib
                       test_Sys PROPERTIES FOLDER Tests)
                       
 set_target_properties(astc
-                      SOIL2
+                      stb
                       SPIRV-Reflect PROPERTIES FOLDER _)
 
 add_test(DummyLibTest   DummyLib/tests/test_DummyLib)
@@ -150,7 +153,8 @@ add_test(SysTest        Sys/tests/test_Sys)
 
 add_custom_target(Check COMMAND ${CMAKE_CTEST_COMMAND} DEPENDS test_DummyLib
                                                                test_Eng
-															   #test_Phy
+                                                               test_Net
+                                                               test_Phy
                                                                test_Ray
                                                                test_Ren
                                                                test_SW

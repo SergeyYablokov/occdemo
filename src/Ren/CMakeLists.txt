@@ -13,8 +13,12 @@ else(WIN32)
 if(${RENDERER} STREQUAL "GL")
     set(LIBS GL)
 elseif(${RENDERER} STREQUAL "VK")
-    set(LIBS GL)
-    add_definitions(-DVK_PROTOTYPES -DVK_USE_PLATFORM_XCB_KHR)
+    set(LIBS )
+    if(APPLE)
+        add_definitions(-DVK_PROTOTYPES -DVK_USE_PLATFORM_MACOS_MVK)
+    else(APPLE)
+        add_definitions(-DVK_PROTOTYPES -DVK_USE_PLATFORM_XLIB_KHR)
+    endif(APPLE)
 endif()
 ENDIF(WIN32)
 
@@ -31,6 +35,7 @@ set(SOURCE_FILES Anim.h
                  Context.cpp
                  CPUFeatures.h
                  CPUFeatures.cpp
+                 Fence.h
                  Fixed.h
                  Fwd.h
                  HashMap32.h
@@ -46,6 +51,7 @@ set(SOURCE_FILES Anim.h
                  RastState.h
                  RingBuffer.h
                  Sampler.h
+                 SamplingParams.h
                  Shader.h
                  SmallVector.h
                  SparseArray.h
@@ -56,6 +62,7 @@ set(SOURCE_FILES Anim.h
                  Texture.h
                  Texture.cpp
                  TextureAtlas.h
+                 TextureParams.h
                  TextureRegion.h
                  TextureRegion.cpp
                  TextureSplitter.h
@@ -74,6 +81,7 @@ if(${RENDERER} STREQUAL "GL")
                      GLExt.cpp
                      GLExtDSAEmu.h
                      GLExtDSAEmu.cpp
+                     FenceGL.cpp
                      SamplerGL.h
                      SamplerGL.cpp
                      ShaderGL.h
@@ -88,9 +96,9 @@ if(${RENDERER} STREQUAL "GL")
                      VaoGL.cpp)
 
     if(WIN32)
-        set(LIBS ${LIBS} opengl32 SOIL2 SPIRV-Reflect)
+        set(LIBS ${LIBS} opengl32 stb SPIRV-Reflect)
     else(WIN32)
-        set(LIBS ${LIBS} SOIL2 SPIRV-Reflect)
+        set(LIBS ${LIBS} stb SPIRV-Reflect)
     ENDIF(WIN32)
 elseif(${RENDERER} STREQUAL "SW")
     add_definitions(-DUSE_SW_RENDER)
@@ -102,13 +110,39 @@ elseif(${RENDERER} STREQUAL "SW")
                      TextureSW.h
                      TextureSW.cpp)
 elseif(${RENDERER} STREQUAL "VK")
-    set(SOURCE_FILES    ${SOURCE_FILES}
-                        RenderStateVK.cpp
-                        RenderStateVK.h)
+    set(SOURCE_FILES ${SOURCE_FILES}
+                     BufferVK.cpp
+                     ContextVK.cpp
+                     FenceVK.cpp
+                     VK.h
+                     VKCtx.h
+                     VKCtx.cpp
+                     VKExt.cpp
+                     ProgramVK.h
+                     ProgramVK.cpp
+                     RastStateVK.cpp
+                     SamplerVK.h
+                     SamplerVK.cpp
+                     ShaderVK.h
+                     ShaderVK.cpp
+                     TextureVK.h
+                     TextureVK.cpp
+                     TextureAtlasVK.cpp)
+
+    set(VULKAN_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/vk_layer.h
+                       ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/vk_platform.h
+                       ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/vk_sdk_platform.h
+                       ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/vulkan.h
+                       ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/vulkan_core.h)
+
+    list(APPEND ALL_SOURCE_FILES ${VULKAN_HEADERS})
+    source_group("src/vulkan" FILES ${VULKAN_HEADERS})
+
+    set(LIBS ${LIBS} stb SPIRV-Reflect)
 endif()
 
 add_subdirectory(SW)
-add_subdirectory(SOIL2)
+add_subdirectory(stb)
 add_subdirectory(SPIRV-Reflect)
 
 list(APPEND ALL_SOURCE_FILES ${SOURCE_FILES})

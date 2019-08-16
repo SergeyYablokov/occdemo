@@ -7,8 +7,7 @@ const uint32_t gl_cull_face[] = {
     GL_FRONT, // Front
     GL_BACK,  // Back
 };
-static_assert(sizeof(gl_cull_face) / sizeof(gl_cull_face[0]) == size_t(eCullFace::_Count),
-              "!");
+static_assert(sizeof(gl_cull_face) / sizeof(gl_cull_face[0]) == size_t(eCullFace::_Count), "!");
 
 const uint32_t gl_blend_factor[] = {
     GL_ZERO,                // Zero
@@ -22,9 +21,7 @@ const uint32_t gl_blend_factor[] = {
     GL_DST_ALPHA,           // DstAlpha
     GL_ONE_MINUS_DST_ALPHA  // OneMinusDstAlpha
 };
-static_assert(sizeof(gl_blend_factor) / sizeof(gl_blend_factor[0]) ==
-                  size_t(eBlendFactor::_Count),
-              "!");
+static_assert(sizeof(gl_blend_factor) / sizeof(gl_blend_factor[0]) == size_t(eBlendFactor::_Count), "!");
 
 const uint32_t gl_test_func[] = {
     GL_ALWAYS,   // Always
@@ -36,8 +33,7 @@ const uint32_t gl_test_func[] = {
     GL_NOTEQUAL, // NotEqual
     GL_GEQUAL    // GEqual
 };
-static_assert(sizeof(gl_test_func) / sizeof(gl_test_func[0]) == size_t(eTestFunc::_Count),
-              "!");
+static_assert(sizeof(gl_test_func) / sizeof(gl_test_func[0]) == size_t(eTestFunc::_Count), "!");
 
 const uint32_t gl_stencil_op[] = {
     GL_KEEP,    // Keep
@@ -47,18 +43,14 @@ const uint32_t gl_stencil_op[] = {
     GL_DECR,    // Decr
     GL_INVERT   // Invert
 };
-static_assert(sizeof(gl_stencil_op) / sizeof(gl_stencil_op[0]) ==
-                  size_t(eStencilOp::_Count),
-              "!");
+static_assert(sizeof(gl_stencil_op) / sizeof(gl_stencil_op[0]) == size_t(eStencilOp::_Count), "!");
 
 #ifndef __ANDROID__
 const uint32_t gl_polygon_mode[] = {
     GL_FILL, // Fill
     GL_LINE, // Line
 };
-static_assert(sizeof(gl_polygon_mode) / sizeof(gl_polygon_mode[0]) ==
-                  size_t(ePolygonMode::_Count),
-              "!");
+static_assert(sizeof(gl_polygon_mode) / sizeof(gl_polygon_mode[0]) == size_t(ePolygonMode::_Count), "!");
 #endif
 
 eCullFace cull_face_from_gl_enum(GLenum face) {
@@ -158,11 +150,9 @@ void Ren::RastState::Apply(const RastState *ref) {
             glDisable(GL_STENCIL_TEST);
         }
         glStencilMask(stencil.mask);
-        glStencilOp(gl_stencil_op[int(stencil.stencil_fail)],
-                    gl_stencil_op[int(stencil.depth_fail)],
+        glStencilOp(gl_stencil_op[int(stencil.stencil_fail)], gl_stencil_op[int(stencil.depth_fail)],
                     gl_stencil_op[int(stencil.pass)]);
-        glStencilFunc(gl_test_func[int(stencil.test_func)], stencil.test_ref,
-                      stencil.test_mask);
+        glStencilFunc(gl_test_func[int(stencil.test_func)], stencil.test_ref, stencil.test_mask);
     }
 
 #if !defined(__ANDROID__)
@@ -171,8 +161,7 @@ void Ren::RastState::Apply(const RastState *ref) {
     }
 #endif
 
-    if (!ref ||
-        std::memcmp(&ref->polygon_offset, &polygon_offset, sizeof(polygon_offset)) != 0) {
+    if (!ref || std::memcmp(&ref->polygon_offset, &polygon_offset, sizeof(polygon_offset)) != 0) {
         if (polygon_offset.enabled) {
             glEnable(GL_POLYGON_OFFSET_FILL);
         } else {

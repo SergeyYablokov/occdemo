@@ -34,7 +34,7 @@ if(NOT CMAKE_SYSTEM_NAME MATCHES "Android")
     if(WIN32)
         set(LIBS winmm imm32 version)
     elseif(APPLE)
-        set(LIBS -Wl,-Bstatic SDL2 -Wl,-Bdynamic X11 Xext Xcursor Xinerama Xi Xrandr Xss Xxf86vm asound wayland-client wayland-cursor wayland-server wayland-egl pulse sndio xkbcommon dl pthread GL glut c)
+        set(LIBS )
     else()
         set(LIBS X11 ittnotify)
     endif()
@@ -45,11 +45,23 @@ endif()
 set(SOURCE_FILES    DummyApp.h)
 
 if(WIN32)
-    list(APPEND SOURCE_FILES DummyApp_win32.cpp)
+    if(${RENDERER} STREQUAL "GL")
+        list(APPEND SOURCE_FILES DummyApp_wgl.cpp)
+    elseif(${RENDERER} STREQUAL "VK")
+        list(APPEND SOURCE_FILES DummyApp_vk_win32.cpp)
+    elseif(${RENDERER} STREQUAL "SW")
+
+    endif()
 elseif(APPLE)
-    list(APPEND SOURCE_FILES DummyApp_sdl.cpp)
+    list(APPEND SOURCE_FILES DummyApp_vk_osx.cpp)
 else()
-    list(APPEND SOURCE_FILES DummyApp_glx.cpp)
+    if(${RENDERER} STREQUAL "GL")
+        list(APPEND SOURCE_FILES DummyApp_glx.cpp)
+    elseif(${RENDERER} STREQUAL "VK")
+        list(APPEND SOURCE_FILES DummyApp_vk_xlib.cpp)
+    elseif(${RENDERER} STREQUAL "SW")
+
+    endif()
 endif()
 
 if(NOT CMAKE_SYSTEM_NAME MATCHES "Android")
@@ -70,8 +82,8 @@ endif()
 
 target_link_libraries(DummyApp DummyLib ${LIBS})
 
-add_custom_command(TARGET DummyApp 
+add_custom_command(TARGET DummyApp
                    POST_BUILD
                    COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:DummyApp> ${WORKING_DIRECTORY})
                    
-set_target_properties(DummyApp PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${WORKING_DIRECTORY}")
+set_target_properties(DummyApp PROPERTIES OUTPUT_NAME ${BIN_NAME} VS_DEBUGGER_WORKING_DIRECTORY "${WORKING_DIRECTORY}")

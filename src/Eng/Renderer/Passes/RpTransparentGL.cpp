@@ -14,24 +14,19 @@ void _bind_textures_and_samplers(Ren::Context &ctx, const Ren::Material &mat,
                                  Ren::SmallVectorImpl<Ren::SamplerRef> &temp_samplers);
 uint32_t _draw_list_range_full(RpBuilder &builder, const Ren::MaterialStorage *materials,
                                const DynArrayConstRef<MainDrawBatch> &main_batches,
-                               const DynArrayConstRef<uint32_t> &main_batch_indices,
-                               uint32_t i, uint64_t mask, uint64_t &cur_mat_id,
-                               uint64_t &cur_prog_id, BackendInfo &backend_info);
+                               const DynArrayConstRef<uint32_t> &main_batch_indices, uint32_t i, uint64_t mask,
+                               uint64_t &cur_mat_id, uint64_t &cur_prog_id, BackendInfo &backend_info);
 
-uint32_t _draw_list_range_full_rev(RpBuilder &builder,
-                                   const Ren::MaterialStorage *materials,
+uint32_t _draw_list_range_full_rev(RpBuilder &builder, const Ren::MaterialStorage *materials,
                                    const DynArrayConstRef<MainDrawBatch> &main_batches,
-                                   const DynArrayConstRef<uint32_t> &main_batch_indices,
-                                   uint32_t ndx, uint64_t mask, uint64_t &cur_mat_id,
-                                   uint64_t &cur_prog_id, BackendInfo &backend_info);
+                                   const DynArrayConstRef<uint32_t> &main_batch_indices, uint32_t ndx, uint64_t mask,
+                                   uint64_t &cur_mat_id, uint64_t &cur_prog_id, BackendInfo &backend_info);
 } // namespace RpSharedInternal
 
 void RpTransparent::DrawTransparent_Simple(RpBuilder &builder, RpAllocBuf &instances_buf,
-                                           RpAllocBuf &unif_shared_data_buf,
-                                           RpAllocBuf &cells_buf, RpAllocBuf &items_buf,
-                                           RpAllocBuf &lights_buf, RpAllocBuf &decals_buf,
-                                           RpAllocTex &shadowmap_tex,
-                                           RpAllocTex &color_tex, RpAllocTex &ssao_tex) {
+                                           RpAllocBuf &unif_shared_data_buf, RpAllocBuf &cells_buf,
+                                           RpAllocBuf &items_buf, RpAllocBuf &lights_buf, RpAllocBuf &decals_buf,
+                                           RpAllocTex &shadowmap_tex, RpAllocTex &color_tex, RpAllocTex &ssao_tex) {
     using namespace RpSharedInternal;
 
     Ren::RastState rast_state;
@@ -76,15 +71,13 @@ void RpTransparent::DrawTransparent_Simple(RpBuilder &builder, RpAllocBuf &insta
     // Bind resources (shadow atlas, lightmap, cells item data)
     //
 
-    glBindBufferRange(GL_UNIFORM_BUFFER, REN_UB_SHARED_DATA_LOC,
-                      unif_shared_data_buf.ref->id(), orphan_index_ * SharedDataBlockSize,
-                      sizeof(SharedDataBlock));
+    glBindBufferRange(GL_UNIFORM_BUFFER, REN_UB_SHARED_DATA_LOC, unif_shared_data_buf.ref->id(),
+                      orphan_index_ * SharedDataBlockSize, sizeof(SharedDataBlock));
 
     ren_glBindTextureUnit_Comp(GL_TEXTURE_2D, REN_SHAD_TEX_SLOT, shadowmap_tex.ref->id());
 
     if (decals_atlas_) {
-        ren_glBindTextureUnit_Comp(GL_TEXTURE_2D, REN_DECAL_TEX_SLOT,
-                                   decals_atlas_->tex_id(0));
+        ren_glBindTextureUnit_Comp(GL_TEXTURE_2D, REN_DECAL_TEX_SLOT, decals_atlas_->tex_id(0));
     }
 
     if ((render_flags_ & (EnableZFill | EnableSSAO)) == (EnableZFill | EnableSSAO)) {
@@ -97,51 +90,41 @@ void RpTransparent::DrawTransparent_Simple(RpBuilder &builder, RpAllocBuf &insta
 
     if ((render_flags_ & EnableLightmap) && env_->lm_direct) {
         for (int sh_l = 0; sh_l < 4; sh_l++) {
-            ren_glBindTextureUnit_Comp(GL_TEXTURE_2D, REN_LMAP_SH_SLOT + sh_l,
-                                       env_->lm_indir_sh[sh_l]->id());
+            ren_glBindTextureUnit_Comp(GL_TEXTURE_2D, REN_LMAP_SH_SLOT + sh_l, env_->lm_indir_sh[sh_l]->id());
         }
     } else {
         for (int sh_l = 0; sh_l < 4; sh_l++) {
-            ren_glBindTextureUnit_Comp(GL_TEXTURE_2D, REN_LMAP_SH_SLOT + sh_l,
-                                       dummy_black_->id());
+            ren_glBindTextureUnit_Comp(GL_TEXTURE_2D, REN_LMAP_SH_SLOT + sh_l, dummy_black_->id());
         }
     }
 
     ren_glBindTextureUnit_Comp(GL_TEXTURE_CUBE_MAP_ARRAY, REN_ENV_TEX_SLOT,
-                               probe_storage_ ? probe_storage_->tex_id() : 0);
+                               probe_storage_ ? probe_storage_->handle().id : 0);
 
-    ren_glBindTextureUnit_Comp(GL_TEXTURE_BUFFER, REN_LIGHT_BUF_SLOT,
-                               GLuint(lights_buf.tbos[orphan_index_]->id()));
-    ren_glBindTextureUnit_Comp(GL_TEXTURE_BUFFER, REN_DECAL_BUF_SLOT,
-                               GLuint(decals_buf.tbos[orphan_index_]->id()));
-    ren_glBindTextureUnit_Comp(GL_TEXTURE_BUFFER, REN_CELLS_BUF_SLOT,
-                               GLuint(cells_buf.tbos[orphan_index_]->id()));
-    ren_glBindTextureUnit_Comp(GL_TEXTURE_BUFFER, REN_ITEMS_BUF_SLOT,
-                               GLuint(items_buf.tbos[orphan_index_]->id()));
+    ren_glBindTextureUnit_Comp(GL_TEXTURE_BUFFER, REN_LIGHT_BUF_SLOT, GLuint(lights_buf.tbos[orphan_index_]->id()));
+    ren_glBindTextureUnit_Comp(GL_TEXTURE_BUFFER, REN_DECAL_BUF_SLOT, GLuint(decals_buf.tbos[orphan_index_]->id()));
+    ren_glBindTextureUnit_Comp(GL_TEXTURE_BUFFER, REN_CELLS_BUF_SLOT, GLuint(cells_buf.tbos[orphan_index_]->id()));
+    ren_glBindTextureUnit_Comp(GL_TEXTURE_BUFFER, REN_ITEMS_BUF_SLOT, GLuint(items_buf.tbos[orphan_index_]->id()));
 
     ren_glBindTextureUnit_Comp(GL_TEXTURE_2D, REN_NOISE_TEX_SLOT, noise_tex_->id());
     ren_glBindTextureUnit_Comp(GL_TEXTURE_2D, REN_CONE_RT_LUT_SLOT, cone_rt_lut_->id());
 
-    glBindBufferRange(GL_SHADER_STORAGE_BUFFER, REN_MATERIALS_SLOT,
-                      GLuint(bufs_->materials_buf.id),
-                      GLintptr(bufs_->materials_buf_range.first),
-                      GLsizeiptr(bufs_->materials_buf_range.second));
-    if (ctx.capabilities.bindless_texture) {
-        glBindBufferRange(GL_SHADER_STORAGE_BUFFER, REN_BINDLESS_TEX_SLOT,
-                          GLuint(bufs_->textures_buf.id),
-                          GLintptr(bufs_->textures_buf_range.first),
-                          GLsizeiptr(bufs_->textures_buf_range.second));
+    if (bufs_->materials_buf_range.second) {
+        glBindBufferRange(GL_SHADER_STORAGE_BUFFER, REN_MATERIALS_SLOT, GLuint(bufs_->materials_buf.id),
+                          GLintptr(bufs_->materials_buf_range.first), GLsizeiptr(bufs_->materials_buf_range.second));
     }
-    ren_glBindTextureUnit_Comp(GL_TEXTURE_BUFFER, REN_INST_BUF_SLOT,
-                               GLuint(instances_buf.tbos[orphan_index_]->id()));
+    if (ctx.capabilities.bindless_texture && bufs_->textures_buf_range.second) {
+        glBindBufferRange(GL_SHADER_STORAGE_BUFFER, REN_BINDLESS_TEX_SLOT, GLuint(bufs_->textures_buf.id),
+                          GLintptr(bufs_->textures_buf_range.first), GLsizeiptr(bufs_->textures_buf_range.second));
+    }
+    ren_glBindTextureUnit_Comp(GL_TEXTURE_BUFFER, REN_INST_BUF_SLOT, GLuint(instances_buf.tbos[orphan_index_]->id()));
 
     uint64_t cur_prog_id = 0xffffffffffffffff;
     uint64_t cur_mat_id = 0xffffffffffffffff;
 
     BackendInfo backend_info;
 
-    for (int j = int(main_batch_indices_.count) - 1; j >= *alpha_blend_start_index_;
-         j--) {
+    for (int j = int(main_batch_indices_.count) - 1; j >= *alpha_blend_start_index_; j--) {
         const MainDrawBatch &batch = main_batches_.data[main_batch_indices_.data[j]];
         if (!batch.alpha_blend_bit || !batch.two_sided_bit) {
             continue;
@@ -170,14 +153,11 @@ void RpTransparent::DrawTransparent_Simple(RpBuilder &builder, RpAllocBuf &insta
         cur_prog_id = batch.prog_id;
         cur_mat_id = batch.mat_id;
 
-        glUniform1ui(REN_U_MAT_INDEX_LOC, batch.mat_id);
-        glUniform4iv(REN_U_INSTANCES_LOC, (batch.instance_count + 3) / 4,
-                     &batch.instance_indices[0]);
+        glUniform2iv(REN_U_INSTANCES_LOC, batch.instance_count, &batch.instance_indices[0][0]);
 
-        glDrawElementsInstancedBaseVertex(
-            GL_TRIANGLES, batch.indices_count, GL_UNSIGNED_INT,
-            (const GLvoid *)uintptr_t(batch.indices_offset * sizeof(uint32_t)),
-            GLsizei(batch.instance_count), GLint(batch.base_vertex));
+        glDrawElementsInstancedBaseVertex(GL_TRIANGLES, batch.indices_count, GL_UNSIGNED_INT,
+                                          (const GLvoid *)uintptr_t(batch.indices_offset * sizeof(uint32_t)),
+                                          GLsizei(batch.instance_count), GLint(batch.base_vertex));
 
         backend_info.opaque_draw_calls_count += 2;
         backend_info.tris_rendered += (batch.indices_count / 3) * batch.instance_count;
@@ -188,8 +168,7 @@ void RpTransparent::DrawTransparent_Simple(RpBuilder &builder, RpAllocBuf &insta
     rast_state.ApplyChanged(applied_state);
     applied_state = rast_state;
 
-    for (int j = int(main_batch_indices_.count) - 1; j >= *alpha_blend_start_index_;
-         j--) {
+    for (int j = int(main_batch_indices_.count) - 1; j >= *alpha_blend_start_index_; j--) {
         const MainDrawBatch &batch = main_batches_.data[main_batch_indices_.data[j]];
         if (!batch.instance_count) {
             continue;
@@ -214,14 +193,11 @@ void RpTransparent::DrawTransparent_Simple(RpBuilder &builder, RpAllocBuf &insta
         cur_prog_id = batch.prog_id;
         cur_mat_id = batch.mat_id;
 
-        glUniform1ui(REN_U_MAT_INDEX_LOC, batch.mat_id);
-        glUniform4iv(REN_U_INSTANCES_LOC, (batch.instance_count + 3) / 4,
-                     &batch.instance_indices[0]);
+        glUniform2iv(REN_U_INSTANCES_LOC, batch.instance_count, &batch.instance_indices[0][0]);
 
-        glDrawElementsInstancedBaseVertex(
-            GL_TRIANGLES, batch.indices_count, GL_UNSIGNED_INT,
-            (const GLvoid *)uintptr_t(batch.indices_offset * sizeof(uint32_t)),
-            GLsizei(batch.instance_count), GLint(batch.base_vertex));
+        glDrawElementsInstancedBaseVertex(GL_TRIANGLES, batch.indices_count, GL_UNSIGNED_INT,
+                                          (const GLvoid *)uintptr_t(batch.indices_offset * sizeof(uint32_t)),
+                                          GLsizei(batch.instance_count), GLint(batch.base_vertex));
 
         backend_info.opaque_draw_calls_count += 2;
         backend_info.tris_rendered += (batch.indices_count / 3) * batch.instance_count;
@@ -240,15 +216,13 @@ void RpTransparent::DrawTransparent_Simple(RpBuilder &builder, RpAllocBuf &insta
         rast_state.Apply();
         Ren::RastState applied_state = rast_state;
 
-        const PrimDraw::Binding bindings[] = {
-            {Ren::eBindTarget::Tex2DMs, REN_BASE0_TEX_SLOT, color_tex.ref->handle()}};
+        const PrimDraw::Binding bindings[] = {{Ren::eBindTarget::Tex2DMs, REN_BASE0_TEX_SLOT, color_tex.ref->handle()}};
 
         const PrimDraw::Uniform uniforms[] = {
-            {0, Ren::Vec4f{0.0f, 0.0f, float(view_state_->act_res[0]),
-                           float(view_state_->act_res[1])}}};
+            {0, Ren::Vec4f{0.0f, 0.0f, float(view_state_->act_res[0]), float(view_state_->act_res[1])}}};
 
-        prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, {resolved_fb_.id(), 0},
-                            blit_ms_resolve_prog_.get(), bindings, 1, uniforms, 1);
+        prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, {resolved_fb_.id(), 0}, blit_ms_resolve_prog_.get(), bindings, 1,
+                            uniforms, 1);
     }
 #endif
 }
@@ -285,16 +259,14 @@ void RpTransparent::DrawTransparent_OIT_MomentBased(RpBuilder &builder) {
 
     RpAllocBuf &unif_shared_data_buf = builder.GetReadBuffer(shared_data_buf_);
 
-    glBindBufferRange(GL_UNIFORM_BUFFER, REN_UB_SHARED_DATA_LOC,
-                      unif_shared_data_buf.ref->id(), orphan_index_ * SharedDataBlockSize,
-                      sizeof(SharedDataBlock));
+    glBindBufferRange(GL_UNIFORM_BUFFER, REN_UB_SHARED_DATA_LOC, unif_shared_data_buf.ref->id(),
+                      orphan_index_ * SharedDataBlockSize, sizeof(SharedDataBlock));
 
     // ren_glBindTextureUnit_Comp(GL_TEXTURE_2D, REN_SHAD_TEX_SLOT,
     // shadowmap_tex.ref->id());
 
     if (decals_atlas_) {
-        ren_glBindTextureUnit_Comp(GL_TEXTURE_2D, REN_DECAL_TEX_SLOT,
-                                   decals_atlas_->tex_id(0));
+        ren_glBindTextureUnit_Comp(GL_TEXTURE_2D, REN_DECAL_TEX_SLOT, decals_atlas_->tex_id(0));
     }
 
     if ((render_flags_ & (EnableZFill | EnableSSAO)) == (EnableZFill | EnableSSAO)) {
@@ -307,13 +279,11 @@ void RpTransparent::DrawTransparent_OIT_MomentBased(RpBuilder &builder) {
 
     if ((render_flags_ & EnableLightmap) && env_->lm_direct) {
         for (int sh_l = 0; sh_l < 4; sh_l++) {
-            ren_glBindTextureUnit_Comp(GL_TEXTURE_2D, REN_LMAP_SH_SLOT + sh_l,
-                                       env_->lm_indir_sh[sh_l]->id());
+            ren_glBindTextureUnit_Comp(GL_TEXTURE_2D, REN_LMAP_SH_SLOT + sh_l, env_->lm_indir_sh[sh_l]->id());
         }
     } else {
         for (int sh_l = 0; sh_l < 4; sh_l++) {
-            ren_glBindTextureUnit_Comp(GL_TEXTURE_2D, REN_LMAP_SH_SLOT + sh_l,
-                                       dummy_black_->id());
+            ren_glBindTextureUnit_Comp(GL_TEXTURE_2D, REN_LMAP_SH_SLOT + sh_l, dummy_black_->id());
         }
     }
 
@@ -326,8 +296,7 @@ void RpTransparent::DrawTransparent_OIT_MomentBased(RpBuilder &builder) {
         const Ren::Program *cur_program = nullptr;
         const Ren::Material *cur_mat = nullptr;
 
-        for (int j = int(main_batch_indices_.count) - 1; j >= (*alpha_blend_start_index_);
-             j--) {
+        for (int j = int(main_batch_indices_.count) - 1; j >= (*alpha_blend_start_index_); j--) {
             const MainDrawBatch &batch = main_batches_.data[main_batch_indices_.data[j]];
             if (!batch.instance_count) {
                 continue;
@@ -344,41 +313,30 @@ void RpTransparent::DrawTransparent_OIT_MomentBased(RpBuilder &builder) {
                 cur_program = p;
             }
 
-            if (cur_mat != &mat) {
-                if (ctx.capabilities.bindless_texture) {
-                    glUniform1ui(REN_U_MAT_INDEX_LOC, batch.mat_id);
-                } else {
-                    _bind_texture0_and_sampler0(builder.ctx(), mat,
-                                                builder.temp_samplers);
-                }
+            if (!ctx.capabilities.bindless_texture && cur_mat != &mat) {
+                _bind_texture0_and_sampler0(builder.ctx(), mat, builder.temp_samplers);
                 cur_mat = &mat;
             }
 
-            glUniform4iv(REN_U_INSTANCES_LOC, (batch.instance_count + 3) / 4,
-                         &batch.instance_indices[0]);
+            glUniform2iv(REN_U_INSTANCES_LOC, batch.instance_count, &batch.instance_indices[0][0]);
 
-            glDrawElementsInstancedBaseVertex(
-                GL_TRIANGLES, batch.indices_count, GL_UNSIGNED_INT,
-                (const GLvoid *)uintptr_t(batch.indices_offset * sizeof(uint32_t)),
-                (GLsizei)batch.instance_count, (GLint)batch.base_vertex);
+            glDrawElementsInstancedBaseVertex(GL_TRIANGLES, batch.indices_count, GL_UNSIGNED_INT,
+                                              (const GLvoid *)uintptr_t(batch.indices_offset * sizeof(uint32_t)),
+                                              GLsizei(batch.instance_count), GLint(batch.base_vertex));
 
             backend_info.opaque_draw_calls_count += 2;
-            backend_info.tris_rendered +=
-                (batch.indices_count / 3) * batch.instance_count;
+            backend_info.tris_rendered += (batch.indices_count / 3) * batch.instance_count;
         }
     }
 
     { // Change transparency draw mode
         glBindBuffer(GL_UNIFORM_BUFFER, (GLuint)unif_shared_data_buf.ref->id());
         const float transp_mode = view_state_->is_multisampled ? 4.0f : 3.0f;
-        glBufferSubData(GL_UNIFORM_BUFFER,
-                        offsetof(SharedDataBlock, uTranspParamsAndTime) +
-                            2 * sizeof(float),
+        glBufferSubData(GL_UNIFORM_BUFFER, offsetof(SharedDataBlock, uTranspParamsAndTime) + 2 * sizeof(float),
                         sizeof(float), &transp_mode);
     }
 
-    const uint32_t target_framebuf =
-        view_state_->is_multisampled ? color_only_fb_.id() : resolved_fb_.id();
+    const uint32_t target_framebuf = view_state_->is_multisampled ? color_only_fb_.id() : resolved_fb_.id();
 
     glBindFramebuffer(GL_FRAMEBUFFER, (GLuint)target_framebuf);
 
@@ -423,27 +381,19 @@ void RpTransparent::DrawTransparent_OIT_MomentBased(RpBuilder &builder) {
                 cur_program = p;
             }
 
-            if (cur_mat != &mat) {
-                if (ctx.capabilities.bindless_texture) {
-                    glUniform1ui(REN_U_MAT_INDEX_LOC, batch.mat_id);
-                } else {
-                    _bind_texture0_and_sampler0(builder.ctx(), mat,
-                                                builder.temp_samplers);
-                }
+            if (!ctx.capabilities.bindless_texture && cur_mat != &mat) {
+                _bind_texture0_and_sampler0(builder.ctx(), mat, builder.temp_samplers);
                 cur_mat = &mat;
             }
 
-            glUniform4iv(REN_U_INSTANCES_LOC, (batch.instance_count + 3) / 4,
-                         &batch.instance_indices[0]);
+            glUniform2iv(REN_U_INSTANCES_LOC, batch.instance_count, &batch.instance_indices[0][0]);
 
-            glDrawElementsInstancedBaseVertex(
-                GL_TRIANGLES, batch.indices_count, GL_UNSIGNED_INT,
-                (const GLvoid *)uintptr_t(batch.indices_offset * sizeof(uint32_t)),
-                GLsizei(batch.instance_count), GLint(batch.base_vertex));
+            glDrawElementsInstancedBaseVertex(GL_TRIANGLES, batch.indices_count, GL_UNSIGNED_INT,
+                                              (const GLvoid *)uintptr_t(batch.indices_offset * sizeof(uint32_t)),
+                                              GLsizei(batch.instance_count), GLint(batch.base_vertex));
 
             backend_info.opaque_draw_calls_count += 2;
-            backend_info.tris_rendered +=
-                (batch.indices_count / 3) * batch.instance_count;
+            backend_info.tris_rendered += (batch.indices_count / 3) * batch.instance_count;
         }
     }
 
@@ -519,8 +469,7 @@ if (list.render_flags & EnableOIT) {
     DebugMarker _("COMPOSE TRANSPARENT");
 
     glEnable(GL_BLEND);
-#if (REN_OIT_MODE == REN_OIT_WEIGHTED_BLENDED) ||                                        \
-    (REN_OIT_MODE == REN_OIT_MOMENT_BASED && REN_OIT_MOMENT_RENORMALIZE)
+#if (REN_OIT_MODE == REN_OIT_WEIGHTED_BLENDED) || (REN_OIT_MODE == REN_OIT_MOMENT_BASED && REN_OIT_MOMENT_RENORMALIZE)
     glBlendFunc(GL_ONE_MINUS_SRC_ALPHA, GL_SRC_ALPHA);
 #else
     glBlendFunc(GL_ONE, GL_SRC_ALPHA);

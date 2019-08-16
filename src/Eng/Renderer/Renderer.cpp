@@ -385,6 +385,7 @@ void Renderer::ExecuteDrawList(const DrawList &list,
     { // Setup render passes
         rp_builder_.Reset();
 
+#if defined(USE_GL_RENDER) // gl-only for now
         //
         // Update buffers
         //
@@ -707,6 +708,7 @@ void Renderer::ExecuteDrawList(const DrawList &list,
 
         rp_builder_.Compile(rp_head);
         rp_builder_.Execute(rp_head);
+#endif
     }
 
     { // store matrix to use it in next frame

@@ -1,6 +1,7 @@
 #version 310 es
 
-#ifdef GL_ES
+#if defined(GL_ES) || defined(VULKAN)
+	precision highp int;
     precision mediump float;
 #endif
 

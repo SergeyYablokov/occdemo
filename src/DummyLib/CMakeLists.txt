@@ -55,6 +55,10 @@ if(${RENDERER} STREQUAL "GL")
     set(STATES_SOURCES ${STATES_SOURCES}
                         States/GSUITest3GL.cpp
                         States/GSVideoTestGL.cpp)
+elseif(${RENDERER} STREQUAL "VK")
+    set(STATES_SOURCES ${STATES_SOURCES}
+                        States/GSUITest3VK.cpp
+                        States/GSVideoTestVK.cpp)
 elseif(${RENDERER} STREQUAL "SW")
 
 endif()

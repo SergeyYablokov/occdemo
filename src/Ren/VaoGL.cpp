@@ -12,14 +12,11 @@ const uint32_t g_gl_attrib_types[] = {
     GL_UNSIGNED_BYTE,  // Uint8UNorm
     GL_INT,            // Int32
 };
-static_assert(sizeof(g_gl_attrib_types) / sizeof(g_gl_attrib_types[0]) ==
-                  size_t(eType::_Count),
-              "!");
+static_assert(sizeof(g_gl_attrib_types) / sizeof(g_gl_attrib_types[0]) == size_t(eType::_Count), "!");
 
 bool IsIntegerType(const eType type) { return type == eType::Uint32 || type == eType::Int32; }
 bool IsNormalizedType(const eType type) {
-    return type == eType::Uint16UNorm || type == eType::Int16SNorm ||
-           type == eType::Uint8UNorm;
+    return type == eType::Uint16UNorm || type == eType::Int16SNorm || type == eType::Uint8UNorm;
 }
 } // namespace Ren
 
@@ -34,10 +31,9 @@ Ren::Vao::~Vao() {
     glDeleteVertexArrays(1, &vao);
 }
 
-bool Ren::Vao::Setup(const VtxAttribDesc attribs[], const int attribs_count,
-                     BufHandle elem_buf) {
-    if (attribs_count == attribs_count_ &&
-        std::equal(attribs, attribs + attribs_count, attribs_) && elem_buf == elem_buf_) {
+bool Ren::Vao::Setup(const VtxAttribDesc attribs[], const int attribs_count, BufHandle elem_buf) {
+    if (attribs_count == attribs_count_ && std::equal(attribs, attribs + attribs_count, attribs_) &&
+        elem_buf == elem_buf_) {
         return true;
     }
 
@@ -50,14 +46,12 @@ bool Ren::Vao::Setup(const VtxAttribDesc attribs[], const int attribs_count,
 
         glEnableVertexAttribArray(GLuint(a.loc));
         if (IsIntegerType(a.type)) {
-            glVertexAttribIPointer(GLuint(a.loc), GLint(a.size),
-                                   g_gl_attrib_types[int(a.type)], GLsizei(a.stride),
+            glVertexAttribIPointer(GLuint(a.loc), GLint(a.size), g_gl_attrib_types[int(a.type)], GLsizei(a.stride),
                                    reinterpret_cast<void *>(a.pointer));
         } else {
-            glVertexAttribPointer(GLuint(a.loc), GLint(a.size),
-                                  g_gl_attrib_types[int(a.type)],
-                                  IsNormalizedType(a.type) ? GL_TRUE : GL_FALSE,
-                                  GLsizei(a.stride), reinterpret_cast<void *>(a.pointer));
+            glVertexAttribPointer(GLuint(a.loc), GLint(a.size), g_gl_attrib_types[int(a.type)],
+                                  IsNormalizedType(a.type) ? GL_TRUE : GL_FALSE, GLsizei(a.stride),
+                                  reinterpret_cast<void *>(a.pointer));
         }
 
         attribs_[i] = a;

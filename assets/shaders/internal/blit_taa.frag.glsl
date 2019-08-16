@@ -1,6 +1,7 @@
 #version 310 es
 
-#ifdef GL_ES
+#if defined(GL_ES) || defined(VULKAN)
+	precision highp int;
     precision mediump float;
 #endif
 
@@ -10,8 +11,15 @@ layout(binding = 1) uniform mediump sampler2D s_color_hist;
 layout(binding = 2) uniform mediump sampler2D s_depth;
 layout(binding = 3) uniform mediump sampler2D s_velocity;
 
+#if defined(VULKAN)
+layout(push_constant) uniform PushConstants {
+    layout(offset = 16) vec2 uTexSize;
+						float uExposure;
+};
+#else
 layout(location = 13) uniform vec2 uTexSize;
 layout(location = 14) uniform float uExposure;
+#endif
 
 #if defined(VULKAN) || defined(GL_SPIRV)
 layout(location = 0) in vec2 aVertexUVs_;
@@ -38,7 +46,8 @@ vec3 clip_aabb(vec3 aabb_min, vec3 aabb_max, vec3 p, vec3 q) {
 }
 
 // https://gpuopen.com/optimized-reversible-tonemapper-for-resolve/
-float max3(float x, float y, float z) { return max(x, max(y, z)); }
+//float max3(mediump float x, mediump float y, mediump float z) { return max(x, max(y, z)); }
+#define max3(x, y, z) max((x), max((y), (z)))
 float rcp(float x) { return 1.0 / x; }
 
 vec3 Tonemap(in vec3 c) {

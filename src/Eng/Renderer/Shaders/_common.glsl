@@ -162,4 +162,10 @@ struct MaterialData {
     vec4 params;
 };
 
+#if defined(GL_ARB_bindless_texture)
+#define SAMPLER2D(x) sampler2D(x)
+#else // GL_ARB_bindless_texture
+#define SAMPLER2D
+#endif // GL_ARB_bindless_texture
+
 )"
