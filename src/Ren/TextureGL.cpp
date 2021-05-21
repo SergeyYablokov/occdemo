@@ -152,7 +152,7 @@ const uint32_t g_gl_wrap_mode[] = {
     GL_CLAMP_TO_BORDER, // ClampToBorder
 };
 static_assert(sizeof(g_gl_wrap_mode) / sizeof(g_gl_wrap_mode[0]) ==
-                  (size_t)eTexRepeat::WrapModesCount,
+                  size_t(eTexRepeat::WrapModesCount),
               "!");
 
 const uint32_t g_gl_compare_func[] = {
@@ -167,7 +167,7 @@ const uint32_t g_gl_compare_func[] = {
     GL_NEVER,    // Never
 };
 static_assert(sizeof(g_gl_compare_func) / sizeof(g_gl_compare_func[0]) ==
-                  (size_t)eTexCompare::_Count,
+                  size_t(eTexCompare::_Count),
               "!");
 
 const uint32_t gl_binding_targets[] = {
@@ -178,7 +178,7 @@ const uint32_t gl_binding_targets[] = {
     GL_UNIFORM_BUFFER,         // UBuf
 };
 static_assert(sizeof(gl_binding_targets) / sizeof(gl_binding_targets[0]) ==
-                  int(eBindTarget::_Count),
+                  size_t(eBindTarget::_Count),
               "!");
 
 const float AnisotropyLevel = 4.0f;
@@ -247,8 +247,8 @@ static_assert(sizeof(GLsync) == sizeof(void *), "!");
 
 Ren::SyncFence::~SyncFence() {
     if (sync_) {
-        glDeleteSync(reinterpret_cast<GLsync>(sync_));
-        sync_ = nullptr;
+        auto sync = reinterpret_cast<GLsync>(exchange(sync_, nullptr));
+        glDeleteSync(sync);
     }
 }
 
@@ -256,7 +256,8 @@ Ren::SyncFence::SyncFence(SyncFence &&rhs) { sync_ = exchange(rhs.sync_, nullptr
 
 Ren::SyncFence &Ren::SyncFence::operator=(SyncFence &&rhs) {
     if (sync_) {
-        glDeleteSync(reinterpret_cast<GLsync>(sync_));
+        auto sync = reinterpret_cast<GLsync>(exchange(sync_, nullptr));
+        glDeleteSync(sync);
     }
     sync_ = exchange(rhs.sync_, nullptr);
     return (*this);

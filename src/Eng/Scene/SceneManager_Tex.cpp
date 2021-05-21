@@ -240,7 +240,11 @@ void SceneManager::ProcessPendingTextures(const int portion_size) {
                         if (req->ref->params().w != req->orig_w ||
                             req->ref->params().h != req->orig_h) {
                             // send texture to be processed further (for next mip levels)
+                            req->sort_key =
+                                req->ref->name().StartsWith("lightmap") ? 0 : 0xffffffff;
                             requested_textures_.push_back(std::move(*req));
+                        } else {
+                            finished_textures_.push_back(std::move(*req));
                         }
 
                         static_cast<TextureRequest &>(*req) = {};
@@ -351,6 +355,8 @@ void SceneManager::UpdateTexturePriorities(const TexEntry visible_textures[],
                                            const int visible_count,
                                            const TexEntry desired_textures[],
                                            const int desired_count) {
+    TexturesGCIteration(visible_textures, visible_count, desired_textures, desired_count);
+
     std::unique_lock<std::mutex> lock(tex_requests_lock_);
 
     bool kick_loader_thread = false;
@@ -370,7 +376,7 @@ void SceneManager::UpdateTexturePriorities(const TexEntry visible_textures[],
             }
         }
 
-        if (!found_entry) { // search among surrounding texture
+        if (!found_entry) { // search among surrounding textures
             const TexEntry *beg = desired_textures;
             const TexEntry *end = desired_textures + desired_count;
 
@@ -391,6 +397,55 @@ void SceneManager::UpdateTexturePriorities(const TexEntry visible_textures[],
 
     if (kick_loader_thread) {
         tex_loader_cnd_.notify_one();
+    }
+}
+
+void SceneManager::TexturesGCIteration(const TexEntry visible_textures[],
+                                       int visible_count,
+                                       const TexEntry desired_textures[],
+                                       int desired_count) {
+    for (auto it = finished_textures_.begin(); it != finished_textures_.end(); ++it) {
+        const TexEntry *found_entry = nullptr;
+
+        { // search among visible textures first
+            const TexEntry *beg = visible_textures;
+            const TexEntry *end = visible_textures + visible_count;
+
+            const TexEntry *entry = std::lower_bound(
+                beg, end, it->ref.index(),
+                [](const TexEntry &t1, const uint32_t t2) { return t1.index < t2; });
+
+            if (entry != end && entry->index == it->ref.index()) {
+                found_entry = entry;
+            }
+        }
+
+        if (!found_entry) { // search among surrounding textures
+            const TexEntry *beg = desired_textures;
+            const TexEntry *end = desired_textures + desired_count;
+
+            const TexEntry *entry = std::lower_bound(
+                beg, end, it->ref.index(),
+                [](const TexEntry &t1, const uint32_t t2) { return t1.index < t2; });
+
+            if (entry != end && entry->index == it->ref.index()) {
+                found_entry = entry;
+            }
+        }
+
+        if (found_entry) {
+            it->sort_key = found_entry->sort_key;
+            it->frame_dist = 0;
+        } else {
+            ++it->frame_dist;
+        }
+
+        if (it->frame_dist > 10000 && it->ref->params().w == it->orig_w &&
+            it->ref->params().h == it->orig_h) {
+            // Reduce texture's mips
+            it->frame_dist = 0;
+            it->sort_key = 0xffffffff;
+        }
     }
 }
 
@@ -415,6 +470,7 @@ void SceneManager::StopTextureLoader() {
         io_pending_tex_[i].ref = {};
     }
     requested_textures_.clear();
+    finished_textures_.clear();
     lod_transit_textures_.clear();
 }
 

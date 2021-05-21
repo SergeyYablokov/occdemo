@@ -131,6 +131,9 @@ class SceneManager : public std::enable_shared_from_this<SceneManager> {
 
     void UpdateTexturePriorities(const TexEntry visible_textures[], int visible_count,
                                  const TexEntry desired_textures[], int desired_count);
+    void TexturesGCIteration(const TexEntry visible_textures[], int visible_count,
+                             const TexEntry desired_textures[], int desired_count);
+
     void StartTextureLoader();
     void StopTextureLoader();
     void ForceTextureReload();
@@ -213,6 +216,8 @@ class SceneManager : public std::enable_shared_from_this<SceneManager> {
         Ren::Tex2DRef ref;
         uint32_t sort_key = 0xffffffff;
 
+        uint16_t frame_dist = 0;
+
         Ren::eTexFormat orig_format = Ren::eTexFormat::Undefined;
         Ren::eTexBlock orig_block;
         uint16_t orig_w, orig_h;
@@ -228,6 +233,7 @@ class SceneManager : public std::enable_shared_from_this<SceneManager> {
         eRequestState state = eRequestState::Idle;
     };
     Ren::RingBuffer<TextureRequest> requested_textures_;
+    Ren::RingBuffer<TextureRequest> finished_textures_;
 
     static const int MaxSimultaneousRequests = 4;
 

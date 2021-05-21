@@ -239,7 +239,8 @@ SceneManager::SceneManager(Ren::Context &ren_ctx, ShaderLoader &sh, Snd::Context
         &status);
     assert(status == Ren::eMeshLoadStatus::CreatedFromData);
 
-    requested_textures_.reserve(4000000);
+    requested_textures_.reserve(262144);
+    finished_textures_.reserve(262144);
 
     for (int i = 0; i < MaxSimultaneousRequests; i++) {
         // io_pending_tex_[i].buf.reset(new Sys::DefaultFileReadBuf);
@@ -253,8 +254,8 @@ SceneManager::SceneManager(Ren::Context &ren_ctx, ShaderLoader &sh, Snd::Context
 }
 
 SceneManager::~SceneManager() {
-    ClearScene();
     StopTextureLoader();
+    ClearScene();
 }
 
 void SceneManager::RegisterComponent(uint32_t index, CompStorage *storage,
@@ -684,7 +685,7 @@ void SceneManager::LoadProbeCache() {
                             p_data += len;
                             data_len -= len;
 
-                            _res = _res / 2;
+                            _res /= 2;
                             level++;
                         }
 #else
@@ -1189,7 +1190,7 @@ Ren::Tex2DRef SceneManager::OnLoadTexture(const char *name, const uint8_t color[
         new_req.ref = ret;
 
         if (ret->name().StartsWith("lightmaps/")) {
-            // set max priority for lightmaps
+            // set max initial priority for lightmaps
             new_req.sort_key = 0;
         }
 
