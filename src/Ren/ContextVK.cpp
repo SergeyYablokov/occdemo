@@ -78,6 +78,10 @@ bool Ren::Context::Init(const int w, const int h, ILog *log, const char *preferr
         return false;
     }
 
+    w_ = w;
+    h_ = h;
+    log_ = log;
+    
     ctx_.reset(new VkContext);
 
 #ifndef NDEBUG
@@ -141,10 +145,6 @@ bool Ren::Context::Init(const int w, const int h, ILog *log, const char *preferr
     }
 
     RegisterAsMainThread();
-
-    w_ = w;
-    h_ = h;
-    log_ = log;
 
     log_->Info("===========================================");
     log_->Info("Device info:");

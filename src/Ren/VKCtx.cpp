@@ -7,6 +7,8 @@ namespace Ren {
 #if defined(__linux__)
 Display *g_dpy = nullptr;
 Window g_win = {};
+#elif defined(__APPLE__)
+void *g_metal_layer = nullptr;
 #endif
 } // namespace Ren
 
@@ -45,6 +47,8 @@ bool Ren::InitVkInstance(VkInstance &instance, const char *enabled_layers[], con
         VK_KHR_WIN32_SURFACE_EXTENSION_NAME,
 #elif defined(VK_USE_PLATFORM_XLIB_KHR)
         VK_KHR_XLIB_SURFACE_EXTENSION_NAME,
+#elif defined(VK_USE_PLATFORM_MACOS_MVK)
+        VK_MVK_MACOS_SURFACE_EXTENSION_NAME,
 #endif
         VK_EXT_DEBUG_REPORT_EXTENSION_NAME
     };
@@ -130,7 +134,15 @@ bool Ren::InitVkSurface(VkSurfaceKHR &surface, VkInstance instance, ILog *log) {
         return false;
     }
 #elif defined(VK_USE_PLATFORM_MACOS_MVK)
-    return false;
+    VkMacOSSurfaceCreateInfoMVK surface_create_info = {};
+    surface_create_info.sType = VK_STRUCTURE_TYPE_MACOS_SURFACE_CREATE_INFO_MVK;
+    surface_create_info.pView = g_metal_layer;
+    
+    VkResult res = vkCreateMacOSSurfaceMVK(instance, &surface_create_info, nullptr, &surface);
+    if (res != VK_SUCCESS) {
+        log->Error("Could not create surface");
+        return false;
+    }
 #endif
 
     return true;

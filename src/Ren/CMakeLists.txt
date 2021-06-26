@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.1)
 project(Ren)
 
+find_library(METAL_LIB Metal)
+
 if(WIN32)
     add_definitions(-DVK_USE_PLATFORM_WIN32_KHR)
 else(WIN32)
@@ -13,8 +15,8 @@ else(WIN32)
 if(${RENDERER} STREQUAL "GL")
     set(LIBS GL)
 elseif(${RENDERER} STREQUAL "VK")
-    set(LIBS )
     if(APPLE)
+            set(LIBS ${METAL_LIB})
         add_definitions(-DVK_PROTOTYPES -DVK_USE_PLATFORM_MACOS_MVK)
     else(APPLE)
         add_definitions(-DVK_PROTOTYPES -DVK_USE_PLATFORM_XLIB_KHR)

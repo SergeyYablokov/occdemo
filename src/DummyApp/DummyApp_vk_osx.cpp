@@ -84,6 +84,7 @@ __itt_domain *__g_itt_domain = __itt_domain_create("Global"); // NOLINT
 namespace Ren {
 //extern Display  *g_dpy;
 //extern Window    g_win;
+extern void *g_metal_layer;
 }
 
 namespace {
@@ -133,7 +134,7 @@ int DummyApp::Init(const int w, const int h, const char *) {
     
     //g_context.app = app;
     //g_context.metal_layer = metal_layer;
-    
+    Ren::g_metal_layer = metal_layer;
 
     //Ren::g_dpy = dpy_;
     //Ren::g_win = win_;

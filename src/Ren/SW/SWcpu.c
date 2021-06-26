@@ -125,9 +125,6 @@ void swCPUInfoInit(SWcpu_info *info) {
     total_virtual_mem *= mem_info.mem_unit;
 
     info->physical_memory = (SWfloat)(((total_virtual_mem / 1024.0) / 1024) / 1024);
-#else // __APPLE__
-    info->physical_memory = 0.0f;
-#endif
 
     FILE *cpuinfo = fopen("/proc/cpuinfo", "rb");
     char *arg = 0;
@@ -156,6 +153,9 @@ void swCPUInfoInit(SWcpu_info *info) {
     }
     free(arg);
     fclose(cpuinfo);
+#else // __APPLE__
+    info->physical_memory = 0.0f;
+#endif
 #endif
 
 #if !defined(__ANDROID__)
