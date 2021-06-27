@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8.4)
+cmake_minimum_required(VERSION 3.1)
 project(stb)
 
 set(SOURCE_FILES stb_dxt.h

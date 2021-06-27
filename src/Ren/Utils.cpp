@@ -1799,17 +1799,23 @@ void Ren::CompressImage_DXT1(const uint8_t img_src[], const int w, const int h, 
 
     if (g_CpuFeatures.ssse3_supported && g_CpuFeatures.sse41_supported) {
         for (int j = 0; j < h_aligned; j += 4, img_src += 4 * w * Channels) {
-            for (int i = 0; i < w_aligned; i += 4) {
+            const int w_limited = (Channels == 3 && j == h_aligned - 4 && h_aligned == h) ? w_aligned - 4 : w_aligned;
+            for (int i = 0; i < w_limited; i += 4) {
                 Extract4x4Block_SSSE3<Channels>(&img_src[i * Channels], w * Channels, block);
                 EmitDXT1Block_SSE2(block, p_out);
             }
-            // process last column
+            if (w_limited != w) {
+                // process last block (avoid reading 4 bytes outside of range)
+                Extract4x4Block_Ref<Channels>(&img_src[(w_aligned - 4) * Channels], w * Channels, block);
+                EmitDXT1Block_SSE2(block, p_out);
+            }
+            // process last (incomplete) column
             if (w_aligned != w) {
                 ExtractIncomplete4x4Block_Ref<Channels>(&img_src[w_aligned * Channels], w * Channels, w % 4, 4, block);
                 EmitDXT1Block_SSE2(block, p_out);
             }
         }
-        // process last row
+        // process last (incomplete) row
         for (int i = 0; i < w && h_aligned != h; i += 4) {
             ExtractIncomplete4x4Block_Ref<Channels>(&img_src[i * Channels], w * Channels, _MIN(4, w - i), h % 4, block);
             EmitDXT1Block_SSE2(block, p_out);
@@ -1851,13 +1857,13 @@ void Ren::CompressImage_DXT5(const uint8_t img_src[], const int w, const int h, 
                 Extract4x4Block_SSSE3<4 /* Channels */>(&img_src[i * 4], w * 4, block);
                 EmitDXT5Block_SSE2<Is_YCoCg>(block, p_out);
             }
-            // process last column
+            // process last (incomplete) column
             if (w_aligned != w) {
                 ExtractIncomplete4x4Block_Ref<4 /* Channels */>(&img_src[w_aligned * 4], w * 4, w % 4, 4, block);
                 EmitDXT5Block_SSE2<Is_YCoCg>(block, p_out);
             }
         }
-        // process last row
+        // process last (incomplete) row
         for (int i = 0; i < w && h_aligned != h; i += 4) {
             ExtractIncomplete4x4Block_Ref<4 /* Channels */>(&img_src[i * 4], w * 4, _MIN(4, w - i), h % 4, block);
             EmitDXT5Block_SSE2<Is_YCoCg>(block, p_out);
@@ -1868,13 +1874,13 @@ void Ren::CompressImage_DXT5(const uint8_t img_src[], const int w, const int h, 
                 Extract4x4Block_Ref<4 /* Channels */>(&img_src[i * 4], w * 4, block);
                 EmitDXT5Block_Ref<Is_YCoCg>(block, p_out);
             }
-            // process last column
+            // process last (incomplete) column
             if (w_aligned != w) {
                 ExtractIncomplete4x4Block_Ref<4 /* Channels */>(&img_src[w_aligned * 4], w * 4, w % 4, 4, block);
                 EmitDXT5Block_Ref<Is_YCoCg>(block, p_out);
             }
         }
-        // process last row
+        // process last (incomplete) row
         for (int i = 0; i < w && h_aligned != h; i += 4) {
             ExtractIncomplete4x4Block_Ref<4 /* Channels */>(&img_src[i * 4], w * 4, _MIN(4, w - i), h % 4, block);
             EmitDXT5Block_Ref<Is_YCoCg>(block, p_out);

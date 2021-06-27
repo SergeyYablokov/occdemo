@@ -9,7 +9,7 @@ set(SDL_STATIC ON)
 
 if(NOT CMAKE_SYSTEM_NAME MATCHES "Android")
     if(WIN32)
-        if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+        if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
             # allow to inline some functions in debug mode
             set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -finline-small-functions ")
 
@@ -20,16 +20,16 @@ if(NOT CMAKE_SYSTEM_NAME MATCHES "Android")
                 set(SDL2_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/libs/SDL2/i686-w64-mingw32/include)
                 set(SDL2_LIBRARIES "${CMAKE_CURRENT_SOURCE_DIR}/libs/SDL2/i686-w64-mingw32/lib")
             endif()
-        elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
+        elseif (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
             # allow to inline some functions in debug mode
             set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /Ob1")
         
             if(CMAKE_SIZEOF_VOID_P EQUAL 8)
-                set(SDL2_LIBRARIES "${CMAKE_CURRENT_SOURCE_DIR}/libs/SDL2/lib/x64")
+                set(SDL2_LIBRARIES ${CMAKE_CURRENT_SOURCE_DIR}/libs/SDL2/lib/x64)
 				set(ITT_LIBRARIES ${CMAKE_CURRENT_SOURCE_DIR}/libs/vtune/win/x64)
                 set(VPX_LIBRARIES ${CMAKE_CURRENT_SOURCE_DIR}/libs/vpx/win/Release/x64)
             else(CMAKE_SIZEOF_VOID_P EQUAL 8)
-                set(SDL2_LIBRARIES "${CMAKE_CURRENT_SOURCE_DIR}/libs/SDL2/lib/x86")
+                set(SDL2_LIBRARIES ${CMAKE_CURRENT_SOURCE_DIR}/libs/SDL2/lib/x86)
 				set(ITT_LIBRARIES ${CMAKE_CURRENT_SOURCE_DIR}/libs/vtune/win/x86)
                 set(VPX_LIBRARIES ${CMAKE_CURRENT_SOURCE_DIR}/libs/vpx/win/Release/x86)
             endif()
@@ -84,7 +84,7 @@ endif()
 
 include_directories(.)
 
-if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
+if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
     include_directories(libs/dirent)
 endif()
 

@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.1)
 project(DummyLib)
 
 set(SOURCE_FILES    Viewer.h
