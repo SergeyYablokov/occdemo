@@ -169,8 +169,13 @@ bool SceneManager::HPreprocessShader(assets_context_t &ctx, const char *in_file,
                 }
 
                 std::remove(spv_file.c_str());
-
-                std::string compile_cmd = "src/libs/spirv/glslangValidator";
+#if defined(_WIN32)
+                std::string compile_cmd = "src/libs/spirv/win32/glslangValidator";
+#elif defined(__linux__)
+                std::string compile_cmd = "src/libs/spirv/linux/glslangValidator";
+#elif defined(__APPLE__)
+                std::string compile_cmd = "src/libs/spirv/macos/glslangValidator";
+#endif
 
                 if (!perm.empty()) {
                     const char *params = perm.c_str();
@@ -240,7 +245,13 @@ bool SceneManager::HPreprocessShader(assets_context_t &ctx, const char *in_file,
                     return false;
                 }
 
-                std::string optimize_cmd = "src/libs/spirv/spirv-opt "
+#if defined(_WIN32)
+                std::string optimize_cmd = "src/libs/spirv/win32/spirv-opt "
+#elif defined(__linux__)
+                std::string optimize_cmd = "src/libs/spirv/linux/spirv-opt "
+#elif defined(__APPLE__)
+                std::string optimize_cmd = "src/libs/spirv/macos/spirv-opt "
+#endif
                                            "--wrap-opkill "
                                            "--eliminate-dead-branches "
                                            "--merge-return "

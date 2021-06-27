@@ -44,6 +44,8 @@ class DummyApp {
     Display         *dpy_ = nullptr;
     Window          win_ = {};
     GLXContext      gl_ctx_main_ = {}, gl_ctx_aux_ = {};
+#elif defined(__APPLE__)
+    void            *app_ = nullptr;
 #else
 #if defined(USE_GL_RENDER)
     void            *gl_ctx_main_ = nullptr;

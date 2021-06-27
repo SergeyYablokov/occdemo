@@ -146,6 +146,31 @@ int DummyApp::Init(const int w, const int h, const char *) {
 
         auto input_manager = viewer_->GetComponent<InputManager>(INPUT_MANAGER_KEY);
         input_manager_ = input_manager;
+        
+        // [window makeKeyAndOrderFront:nil];
+        msg(window, sel("makeKeyAndOrderFront:"), nil);
+        
+        // [app activateIgnoringOtherApps:YES];
+        msg(app, sel("activateIgnoringOtherApps:"), true);
+        
+        // id delegate = [[AppDelegate alloc] init]
+        // [app setDelegate:delegate]
+        id delegate = msg(cls_msg(AppDelegate, sel("alloc")), sel("init"));
+        msg(app, sel("setDelegate:"), delegate);
+
+        // delegate.app_data = &appData;
+        //object_setIvar(delegate, AppDelegate_AppData, (id) &g_context);
+        
+        id view = msg(window, sel("contentView"));
+        printf("view: %lx\n", (uintptr_t)view);
+        msg(view, sel("setFrame:"), frameRect);
+        
+        msg(view, sel("setWantsLayer:"), YES); // otherwise there will be no layer!
+        id viewLayer = msg(view, sel("layer"));
+        
+        msg(viewLayer, sel("addSublayer:"), metal_layer);
+        
+        app_ = app;
     } catch (std::exception &e) {
         fprintf(stderr, "%s", e.what());
         return -1;
@@ -212,27 +237,14 @@ int DummyApp::Run(int argc, char *argv[]) {
     }
 
     __itt_thread_set_name("Main Thread");
-
+    
     while (!terminated()) {
         __itt_frame_begin_v3(__g_itt_domain, nullptr);
 
         this->PollEvents();
-
+            
         this->Frame();
-
-#if defined(USE_GL_RENDER)
-        uint64_t swap_start = Sys::GetTimeUs();
-        glXSwapBuffers(dpy_, win_);
-        uint64_t swap_end = Sys::GetTimeUs();
-
-        auto swap_interval = viewer_->GetComponent<TimeInterval>(SWAP_TIMER_KEY);
-        if (swap_interval) {
-            swap_interval->start_timepoint_us = swap_start;
-            swap_interval->end_timepoint_us = swap_end;
-        }
-#elif defined(USE_SW_RENDER)
-        // TODO
-#endif
+        
         __itt_frame_end_v3(__g_itt_domain, nullptr);
     }
 
@@ -244,11 +256,22 @@ int DummyApp::Run(int argc, char *argv[]) {
 #undef None
 
 void DummyApp::PollEvents() {
-#if 0
     std::shared_ptr<InputManager> input_manager = input_manager_.lock();
-    if (!input_manager)
+    if (!input_manager) {
         return;
+    }
 
+    // read events
+    id event = method(cls("NSApplication"), sel("nextEventMatchingMask:untilDate:inMode:dequeue:"))(reinterpret_cast<id>(app_), sel("nextEventMatchingMask:untilDate:inMode:dequeue:"), INT_MAX, 0, nsstring("kCFRunLoopDefaultMode"), 1);
+    if (event) {
+        //printf("event: %lx\n", (uintptr_t) event);
+        
+        id type = msg(event, sel("type"));
+        
+        msg(reinterpret_cast<id>(app_), sel("sendEvent:"), event);
+    }
+    
+#if 0
     static float last_p1_pos[2] = {0.0f, 0.0f};
     static int last_window_size[2] = {0, 0};
 
