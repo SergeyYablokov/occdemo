@@ -1,39 +1,33 @@
 #include "SamplerVK.h"
 
 namespace Ren {
-/*const uint32_t g_gl_min_filter[] = {
-    GL_NEAREST,               // NoFilter
-    GL_LINEAR_MIPMAP_NEAREST, // Bilinear
-    GL_LINEAR_MIPMAP_LINEAR,  // Trilinear
-    GL_LINEAR,                // BilinearNoMipmap
+const VkFilter g_vk_min_mag_filter[] = {
+    VK_FILTER_NEAREST, // NoFilter
+    VK_FILTER_LINEAR,  // Bilinear
+    VK_FILTER_LINEAR,  // Trilinear
+    VK_FILTER_LINEAR,  // BilinearNoMipmap
 };
-static_assert(sizeof(g_gl_min_filter) / sizeof(g_gl_min_filter[0]) ==
-                  size_t(eTexFilter::_Count),
-              "!");
+static_assert(sizeof(g_vk_min_mag_filter) / sizeof(g_vk_min_mag_filter[0]) == size_t(eTexFilter::_Count), "!");
 
-const uint32_t g_gl_mag_filter[] = {
-    GL_NEAREST, // NoFilter
-    GL_LINEAR,  // Bilinear
-    GL_LINEAR,  // Trilinear
-    GL_LINEAR,  // BilinearNoMipmap
+const VkSamplerAddressMode g_vk_wrap_mode[] = {
+    VK_SAMPLER_ADDRESS_MODE_REPEAT,          // Repeat
+    VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,   // ClampToEdge
+    VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER, // ClampToBorder
 };
-static_assert(sizeof(g_gl_mag_filter) / sizeof(g_gl_mag_filter[0]) ==
-                  size_t(eTexFilter::_Count),
-              "!");
+static_assert(sizeof(g_vk_wrap_mode) / sizeof(g_vk_wrap_mode[0]) == size_t(eTexRepeat::WrapModesCount), "!");
 
-const uint32_t g_gl_wrap_mode[] = {
-    GL_REPEAT,          // Repeat
-    GL_CLAMP_TO_EDGE,   // ClampToEdge
-    GL_CLAMP_TO_BORDER, // ClampToBorder
+const VkSamplerMipmapMode g_vk_mipmap_mode[] = {
+    VK_SAMPLER_MIPMAP_MODE_NEAREST, // NoFilter
+    VK_SAMPLER_MIPMAP_MODE_NEAREST, // Bilinear
+    VK_SAMPLER_MIPMAP_MODE_LINEAR,  // Trilinear
+    VK_SAMPLER_MIPMAP_MODE_NEAREST, // BilinearNoMipmap
 };
-static_assert(sizeof(g_gl_wrap_mode) / sizeof(g_gl_wrap_mode[0]) ==
-                  size_t(eTexRepeat::WrapModesCount),
-              "!");
-              */
+static_assert(sizeof(g_vk_mipmap_mode) / sizeof(g_vk_mipmap_mode[0]) == size_t(eTexFilter::_Count), "!");
+
 const float AnisotropyLevel = 4.0f;
 } // namespace Ren
 
-Ren::Sampler &Ren::Sampler::operator=(Sampler &&rhs) {
+Ren::Sampler &Ren::Sampler::operator=(Sampler &&rhs) noexcept {
     if (&rhs == this) {
         return (*this);
     }
@@ -42,46 +36,43 @@ Ren::Sampler &Ren::Sampler::operator=(Sampler &&rhs) {
 
     RefCounter::operator=(std::move(rhs));
 
-    // id_ = exchange(rhs.id_, 0);
+    ctx_ = exchange(rhs.ctx_, nullptr);
+    handle_ = exchange(rhs.handle_, {});
     params_ = exchange(rhs.params_, {});
 
     return (*this);
 }
 
 void Ren::Sampler::Destroy() {
-    /*if (id_) {
-        GLuint id = GLuint(exchange(id_, 0));
-        glDeleteSamplers(1, &id);
-    }*/
+    if (handle_) {
+        vkDestroySampler(ctx_->device, handle_, nullptr);
+    }
 }
 
-void Ren::Sampler::Init(const SamplingParams params) {
+void Ren::Sampler::Init(const SamplingParams params, VkContext *ctx) {
     Destroy();
 
-    /*GLuint new_sampler;
-    glGenSamplers(1, &new_sampler);
+    VkSamplerCreateInfo sampler_info = {};
+    sampler_info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+    sampler_info.magFilter = g_vk_min_mag_filter[size_t(params.filter)];
+    sampler_info.minFilter = g_vk_min_mag_filter[size_t(params.filter)];
+    sampler_info.addressModeU = g_vk_wrap_mode[size_t(params.repeat)];
+    sampler_info.addressModeV = g_vk_wrap_mode[size_t(params.repeat)];
+    sampler_info.addressModeW = g_vk_wrap_mode[size_t(params.repeat)];
+    sampler_info.anisotropyEnable = VK_TRUE;
+    sampler_info.maxAnisotropy = AnisotropyLevel;
+    sampler_info.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+    sampler_info.unnormalizedCoordinates = VK_FALSE;
+    sampler_info.compareEnable = VK_FALSE;
+    sampler_info.compareOp = VK_COMPARE_OP_ALWAYS;
+    sampler_info.mipmapMode = g_vk_mipmap_mode[size_t(params.filter)];
+    sampler_info.mipLodBias = params.lod_bias.to_float();
+    sampler_info.minLod = params.min_lod.to_float();
+    sampler_info.maxLod = params.max_lod.to_float();
 
-    glSamplerParameteri(new_sampler, GL_TEXTURE_MIN_FILTER,
-                        g_gl_min_filter[size_t(params.filter)]);
-    glSamplerParameteri(new_sampler, GL_TEXTURE_MAG_FILTER,
-                        g_gl_mag_filter[size_t(params.filter)]);
+    const VkResult res = vkCreateSampler(ctx->device, &sampler_info, nullptr, &handle_);
+    assert(res == VK_SUCCESS && "Failed to create sampler!");
 
-    glSamplerParameteri(new_sampler, GL_TEXTURE_WRAP_S,
-                        g_gl_wrap_mode[size_t(params.repeat)]);
-    glSamplerParameteri(new_sampler, GL_TEXTURE_WRAP_T,
-                        g_gl_wrap_mode[size_t(params.repeat)]);
-    glSamplerParameteri(new_sampler, GL_TEXTURE_WRAP_R,
-                        g_gl_wrap_mode[size_t(params.repeat)]);
-
-#ifndef __ANDROID__
-    glSamplerParameterf(new_sampler, GL_TEXTURE_LOD_BIAS, params.lod_bias.to_float());
-#endif
-
-    glSamplerParameterf(new_sampler, GL_TEXTURE_MIN_LOD, params.min_lod.to_float());
-    glSamplerParameterf(new_sampler, GL_TEXTURE_MAX_LOD, params.max_lod.to_float());
-
-    glSamplerParameterf(new_sampler, GL_TEXTURE_MAX_ANISOTROPY_EXT, AnisotropyLevel);
-
-    id_ = uint32_t(new_sampler);*/
+    ctx_ = ctx;
     params_ = params;
 }

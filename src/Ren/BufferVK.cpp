@@ -126,7 +126,7 @@ Ren::Buffer &Ren::Buffer::operator=(Buffer &&rhs) noexcept {
     handle_ = exchange(rhs.handle_, {});
     name_ = std::move(rhs.name_);
     ctx_ = exchange(rhs.ctx_, nullptr);
-    mem_ = exchange(rhs.mem_, VkDeviceMemory{VK_NULL_HANDLE});
+    mem_ = exchange(rhs.mem_, {});
 
     type_ = exchange(rhs.type_, eBufType::Undefined);
 

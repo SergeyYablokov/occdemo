@@ -5,7 +5,8 @@
 
 namespace Ren {
 class Sampler : public RefCounter {
-    //uint32_t id_ = 0;
+    VkContext *ctx_ = nullptr;
+    VkSampler handle_ = VK_NULL_HANDLE;
     SamplingParams params_;
 
     void Destroy();
@@ -16,13 +17,13 @@ class Sampler : public RefCounter {
     Sampler(Sampler &&rhs) noexcept { (*this) = std::move(rhs); }
     ~Sampler() { Destroy(); }
 
-    //uint32_t id() const { return id_; }
+    VkSampler handle() const { return handle_; }
     SamplingParams params() const { return params_; }
 
     Sampler &operator=(const Sampler &rhs) = delete;
-    Sampler &operator=(Sampler &&rhs);
+    Sampler &operator=(Sampler &&rhs) noexcept;
 
-    void Init(SamplingParams params);
+    void Init(SamplingParams params, VkContext *ctx);
 };
 
 } // namespace Ren
