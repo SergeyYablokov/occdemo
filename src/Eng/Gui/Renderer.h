@@ -102,15 +102,30 @@ class Renderer {
     int fill_range_index_, draw_range_index_;
 
     Ren::ProgramRef ui_program_;
-#if defined(USE_GL_RENDER)
-    Ren::Vao vao_;
-    Ren::BufferRef vertex_buf_, index_buf_;
-#endif
-    // TODO: Replace with buffer mapping
-    std::unique_ptr<vertex_t> vtx_data_;
-    std::unique_ptr<uint16_t> ndx_data_;
+#if defined(USE_VK_RENDER)
+    Ren::BufferRef vertex_stage_buf_, index_stage_buf_;
+    VkCommandBuffer cmd_bufs_[FrameSyncWindow] = {};
 
-    void *buf_range_fences_[FrameSyncWindow] = {};
+    VkDescriptorSetLayout desc_set_layout_ = {};
+    VkDescriptorPool descriptor_pool_ = {};
+    VkDescriptorSet desc_set_ = {};
+
+    VkRenderPass render_pass_ = {};
+
+    VkPipelineLayout pipeline_layout_ = {};
+    VkPipeline pipeline_ = {};
+#elif defined(USE_GL_RENDER)
+    Ren::Vao vao_;
+
+    std::unique_ptr<vertex_t> stage_vtx_data_;
+    std::unique_ptr<uint16_t> stage_ndx_data_;
+#endif
+    Ren::BufferRef vertex_buf_, index_buf_;
+
+    vertex_t *vtx_data_;
+    uint16_t *ndx_data_;
+
+    Ren::SyncFence buf_range_fences_[FrameSyncWindow];
 
     Ren::Vec2f clip_area_stack_[MaxClipStackSize][2];
     int clip_area_stack_size_ = 0;

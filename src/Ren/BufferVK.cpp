@@ -427,7 +427,7 @@ void Ren::Buffer::Resize(uint32_t new_size) {
     mem_ = buffer_mem;
 }
 
-uint8_t *Ren::Buffer::MapRange(const uint8_t dir, const uint32_t offset, const uint32_t size) {
+uint8_t *Ren::Buffer::MapRange(const uint8_t dir, const uint32_t offset, const uint32_t size, const bool persistent) {
     assert(!is_mapped_);
     assert(offset + size <= size_);
     assert(type_ == eBufType::Stage);

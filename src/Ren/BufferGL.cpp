@@ -55,6 +55,14 @@ GLenum GetGLBufUsage(const eBufAccessType access, const eBufAccessFreq freq) {
     return 0xffffffff;
 }
 
+GLbitfield GetGLBufFlags(const eBufAccessType access, const eBufAccessFreq freq) {
+    GLbitfield flags = GL_DYNAMIC_STORAGE_BIT | GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT;
+    if (access == eBufAccessType::Read) {
+        flags |= GL_MAP_READ_BIT;
+    }
+    return flags;
+}
+
 } // namespace Ren
 
 int Ren::Buffer::g_GenCounter = 0;
@@ -269,7 +277,8 @@ void Ren::Buffer::PrintNode(int i, std::string prefix, bool is_tail, ILog *log) 
     }
 }
 
-uint32_t Ren::Buffer::AllocRegion(uint32_t req_size, const char *tag, const Buffer *init_buf, void *, uint32_t init_off) {
+uint32_t Ren::Buffer::AllocRegion(uint32_t req_size, const char *tag, const Buffer *init_buf, void *,
+                                  uint32_t init_off) {
     const int i = Alloc_Recursive(0, req_size, tag);
     if (i != -1) {
         Node &n = nodes_[i];
@@ -318,9 +327,13 @@ void Ren::Buffer::Resize(uint32_t new_size) {
     GLuint gl_buffer;
     glGenBuffers(1, &gl_buffer);
     glBindBuffer(g_gl_buf_targets[int(type_)], gl_buffer);
+#if !defined(__ANDROID__)
+    glBufferStorage(g_gl_buf_targets[int(type_)], size_, nullptr, GetGLBufFlags(access_, freq_));
+#else
     glBufferData(g_gl_buf_targets[int(type_)], size_, nullptr, GetGLBufUsage(access_, freq_));
+#endif
 
-    if (handle_.id) {
+        if (handle_.id) {
         glBindBuffer(g_gl_buf_targets[int(type_)], GLuint(handle_.id));
         glBindBuffer(GL_COPY_WRITE_BUFFER, gl_buffer);
 
@@ -336,7 +349,7 @@ void Ren::Buffer::Resize(uint32_t new_size) {
     handle_.generation = g_GenCounter++;
 }
 
-uint8_t *Ren::Buffer::MapRange(const uint8_t dir, const uint32_t offset, const uint32_t size) {
+uint8_t *Ren::Buffer::MapRange(const uint8_t dir, const uint32_t offset, const uint32_t size, const bool persistent) {
     assert(!is_mapped_);
     assert(offset + size <= size_);
 
@@ -353,6 +366,10 @@ uint8_t *Ren::Buffer::MapRange(const uint8_t dir, const uint32_t offset, const u
 #endif
 
     GLbitfield buf_map_range_flags = GLbitfield(GL_MAP_UNSYNCHRONIZED_BIT) | GLbitfield(GL_MAP_FLUSH_EXPLICIT_BIT);
+
+    if (persistent) {
+        buf_map_range_flags |= GLbitfield(GL_MAP_PERSISTENT_BIT);
+    }
 
     if (dir & BufMapRead) {
         buf_map_range_flags |= GLbitfield(GL_MAP_READ_BIT);

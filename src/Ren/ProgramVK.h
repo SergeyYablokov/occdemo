@@ -83,6 +83,8 @@ class Program : public RefCounter {
         return uniform_blocks_[0];
     }
 
+    const ShaderRef &shader(eShaderType type) { return shaders_[int(type)]; }
+
     void Init(ShaderRef vs_ref, ShaderRef fs_ref, ShaderRef tcs_ref, ShaderRef tes_ref, eProgLoadStatus *status,
               ILog *log);
     void Init(ShaderRef cs_ref, eProgLoadStatus *status, ILog *log);

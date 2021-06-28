@@ -8,87 +8,9 @@
 #include <Ren/GL.h>
 #include <Sys/Json.h>
 
-#define VTX_POS_LOC 0
-#define VTX_COL_LOC 1
-#define VTX_UVS_LOC 2
-
-#define TEX_ATLAS_SLOT 0
+#include "shaders.inl"
 
 namespace UIRendererConstants {
-#define _AS_STR(x) #x
-#define AS_STR(x) _AS_STR(x)
-
-const char vs_source[] =
-    R"(#version 310 es
-
-layout(location = )" AS_STR(VTX_POS_LOC) R"() in vec3 aVertexPosition;
-layout(location = )" AS_STR(VTX_COL_LOC) R"() in vec4 aVertexColor;
-layout(location = )" AS_STR(VTX_UVS_LOC) R"() in vec4 aVertexUVs;
-
-     out vec4 aVertexColor_;
-     out vec3 aVertexUVs_;
-flat out float aVertexMode_;
-
-void main(void) {
-    gl_Position = vec4(aVertexPosition, 1.0);
-    aVertexColor_ = aVertexColor;
-    aVertexUVs_ = aVertexUVs.xyz * vec3(1.0, 1.0, 16.0);
-    aVertexMode_ = aVertexUVs.w;
-}
-)";
-
-const char fs_source[] =
-    R"(#version 310 es
-#ifdef GL_ES
-	precision mediump float;
-#else
-	#define lowp
-	#define mediump
-	#define highp
-#endif
-
-layout(binding = )" AS_STR(TEX_ATLAS_SLOT) R"() uniform mediump sampler2DArray s_texture;
-
-     in vec4 aVertexColor_;
-     in vec3 aVertexUVs_;
-flat in float aVertexMode_;
-
-out vec4 outColor;
-
-float median(float r, float g, float b) {
-    return max(min(r, g), min(max(r, g), b));
-}
-
-void main(void) {
-    vec4 tex_color = texture(s_texture, aVertexUVs_);
-
-    if (aVertexMode_ < 0.25) {
-        // Simple texture drawing
-	    outColor = aVertexColor_ * tex_color;
-    } else if (aVertexMode_ < 0.75) {
-        // SDF drawing
-        float sig_dist = median(tex_color.r, tex_color.g, tex_color.b);
-        
-        float s = sig_dist - 0.5;
-        float v = s / fwidth(s);
-        
-        vec4 base_color;
-        base_color.rgb = vec3(1.0);
-        base_color.a = clamp(v + 0.5, 0.0, 1.0);
-        
-        outColor = aVertexColor_ * base_color;
-    } else {
-        // SDF blitting
-        float sig_dist = median(tex_color.r, tex_color.g, tex_color.b);
-        outColor = aVertexColor_ * tex_color;
-        outColor.a = step(0.1, sig_dist);
-    }
-}
-)";
-
-#undef _AS_STR
-#undef AS_STR
-
 inline void BindTexture(int slot, uint32_t tex) {
     glActiveTexture((GLenum)(GL_TEXTURE0 + slot));
     glBindTexture(GL_TEXTURE_2D, (GLuint)tex);
@@ -106,24 +28,26 @@ Gui::Renderer::Renderer(Ren::Context &ctx, const JsObject &config) : ctx_(ctx) {
     { // Load main shader
         using namespace Ren;
 
-        eShaderLoadStatus sh_status;
-        ShaderRef ui_vs_ref = ctx_.LoadShaderGLSL("__ui_vs__", vs_source, eShaderType::Vert, &sh_status);
-        assert(sh_status == eShaderLoadStatus::CreatedFromData || sh_status == eShaderLoadStatus::Found);
-        ShaderRef ui_fs_ref = ctx_.LoadShaderGLSL("__ui_fs__", fs_source, eShaderType::Frag, &sh_status);
-        assert(sh_status == eShaderLoadStatus::CreatedFromData || sh_status == eShaderLoadStatus::Found);
+        ShaderRef ui_vs_ref, ui_fs_ref;
+        if (ctx.capabilities.spirv) {
+            eShaderLoadStatus sh_status;
+            ui_vs_ref =
+                ctx_.LoadShaderSPIRV("__ui_vs__", __ui_vert_spirv, __ui_vert_spirv_size, eShaderType::Vert, &sh_status);
+            assert(sh_status == eShaderLoadStatus::CreatedFromData || sh_status == eShaderLoadStatus::Found);
+            ui_fs_ref =
+                ctx_.LoadShaderSPIRV("__ui_fs__", __ui_frag_spirv, __ui_frag_spirv_size, eShaderType::Frag, &sh_status);
+            assert(sh_status == eShaderLoadStatus::CreatedFromData || sh_status == eShaderLoadStatus::Found);
+        } else {
+            eShaderLoadStatus sh_status;
+            ui_vs_ref = ctx_.LoadShaderGLSL("__ui_vs__", vs_source, eShaderType::Vert, &sh_status);
+            assert(sh_status == eShaderLoadStatus::CreatedFromData || sh_status == eShaderLoadStatus::Found);
+            ui_fs_ref = ctx_.LoadShaderGLSL("__ui_fs__", fs_source, eShaderType::Frag, &sh_status);
+            assert(sh_status == eShaderLoadStatus::CreatedFromData || sh_status == eShaderLoadStatus::Found);
+        }
 
         eProgLoadStatus status;
         ui_program_ = ctx_.LoadProgram("__ui_program__", ui_vs_ref, ui_fs_ref, {}, {}, &status);
         assert(status == eProgLoadStatus::CreatedFromData || status == eProgLoadStatus::Found);
-    }
-
-    vtx_data_.reset(new vertex_t[MaxVerticesPerRange * FrameSyncWindow]);
-    for (int i = 0; i < FrameSyncWindow; i++) {
-        vertex_count_[i] = 0;
-    }
-    ndx_data_.reset(new uint16_t[MaxIndicesPerRange * FrameSyncWindow]);
-    for (int i = 0; i < FrameSyncWindow; i++) {
-        index_count_[i] = 0;
     }
 
     const int instance_index = g_instance_count++;
@@ -141,6 +65,21 @@ Gui::Renderer::Renderer(Ren::Context &ctx, const JsObject &config) : ctx_(ctx) {
         ctx_.CreateBuffer(name_buf, Ren::eBufType::VertexIndices, Ren::eBufAccessType::Draw,
                           Ren::eBufAccessFreq::Dynamic, FrameSyncWindow * MaxIndicesPerRange * sizeof(uint16_t));
 
+    if (ctx.capabilities.persistent_buf_mapping) {
+        vtx_data_ = reinterpret_cast<vertex_t *>(vertex_buf_->Map(Ren::BufMapWrite, true /* persistent */));
+        ndx_data_ = reinterpret_cast<uint16_t *>(index_buf_->Map(Ren::BufMapWrite, true /* persistent */));
+    } else {
+        stage_vtx_data_.reset(new vertex_t[MaxVerticesPerRange * FrameSyncWindow]);
+        stage_ndx_data_.reset(new uint16_t[MaxIndicesPerRange * FrameSyncWindow]);
+        vtx_data_ = stage_vtx_data_.get();
+        ndx_data_ = stage_ndx_data_.get();
+    }
+
+    for (int i = 0; i < FrameSyncWindow; i++) {
+        vertex_count_[i] = 0;
+        index_count_[i] = 0;
+    }
+
     const Ren::VtxAttribDesc attribs[] = {{vertex_buf_->handle(), VTX_POS_LOC, 3, Ren::eType::Float32, sizeof(vertex_t),
                                            uintptr_t(offsetof(vertex_t, pos))},
                                           {vertex_buf_->handle(), VTX_COL_LOC, 4, Ren::eType::Uint8UNorm,
@@ -157,13 +96,11 @@ Gui::Renderer::Renderer(Ren::Context &ctx, const JsObject &config) : ctx_(ctx) {
 Gui::Renderer::~Renderer() {
     for (int i = 0; i < FrameSyncWindow; i++) {
         if (buf_range_fences_[i]) {
-            auto sync = reinterpret_cast<GLsync>(buf_range_fences_[i]);
-            const GLenum res = glClientWaitSync(sync, 0, 1000000000);
-            if (res != GL_ALREADY_SIGNALED && res != GL_CONDITION_SATISFIED) {
+            const Ren::WaitResult res = buf_range_fences_[i].ClientWaitSync();
+            if (res != Ren::WaitResult::Success) {
                 ctx_.log()->Error("[Gui::Renderer::~Renderer]: Wait failed!");
             }
-            glDeleteSync(sync);
-            buf_range_fences_[i] = nullptr;
+            buf_range_fences_[i] = {};
         }
     }
 }
@@ -193,10 +130,10 @@ int Gui::Renderer::AcquireVertexData(vertex_t **vertex_data, int *vertex_avail, 
                                      int *index_avail) {
     using namespace UIRendererConstants;
 
-    (*vertex_data) = vtx_data_.get() + fill_range_index_ * MaxVerticesPerRange + vertex_count_[fill_range_index_];
+    (*vertex_data) = vtx_data_ + fill_range_index_ * MaxVerticesPerRange + vertex_count_[fill_range_index_];
     (*vertex_avail) = MaxVerticesPerRange - vertex_count_[fill_range_index_];
 
-    (*index_data) = ndx_data_.get() + fill_range_index_ * MaxIndicesPerRange + index_count_[fill_range_index_];
+    (*index_data) = ndx_data_ + fill_range_index_ * MaxIndicesPerRange + index_count_[fill_range_index_];
     (*index_avail) = MaxIndicesPerRange - index_count_[fill_range_index_];
 
     return vertex_count_[fill_range_index_];
@@ -226,13 +163,11 @@ void Gui::Renderer::Draw(int w, int h) {
     // Synchronize with previous draw
     //
     if (buf_range_fences_[draw_range_index_]) {
-        auto sync = reinterpret_cast<GLsync>(buf_range_fences_[draw_range_index_]);
-        const GLenum res = glClientWaitSync(sync, 0, 1000000000);
-        if (res != GL_ALREADY_SIGNALED && res != GL_CONDITION_SATISFIED) {
+        const Ren::WaitResult res = buf_range_fences_[draw_range_index_].ClientWaitSync();
+        if (res != Ren::WaitResult::Success) {
             ctx_.log()->Error("[Gui::Renderer::BeginDraw2]: Wait failed!");
         }
-        glDeleteSync(sync);
-        buf_range_fences_[draw_range_index_] = nullptr;
+        buf_range_fences_[draw_range_index_] = {};
     }
 
     //
@@ -245,30 +180,44 @@ void Gui::Renderer::Draw(int w, int h) {
     if (vertex_count_[draw_range_index_]) {
         glBindBuffer(GL_ARRAY_BUFFER, vertex_buf_->id());
 
-        void *pinned_mem = glMapBufferRange(GL_ARRAY_BUFFER, draw_range_index_ * MaxVerticesPerRange * sizeof(vertex_t),
-                                            MaxVerticesPerRange * sizeof(vertex_t), BufferRangeBindFlags);
-        if (pinned_mem) {
-            const size_t vertex_buf_mem_size = vertex_count_[draw_range_index_] * sizeof(vertex_t);
-            memcpy(pinned_mem, vtx_data_.get() + draw_range_index_ * MaxVerticesPerRange, vertex_buf_mem_size);
-            glFlushMappedBufferRange(GL_ARRAY_BUFFER, 0, vertex_buf_mem_size);
-            glUnmapBuffer(GL_ARRAY_BUFFER);
+        const size_t vertex_buf_mem_size = vertex_count_[draw_range_index_] * sizeof(vertex_t);
+        if (ctx_.capabilities.persistent_buf_mapping) {
+            glFlushMappedBufferRange(GL_ARRAY_BUFFER,
+                                     GLintptr(draw_range_index_) * MaxVerticesPerRange * sizeof(vertex_t),
+                                     vertex_buf_mem_size);
         } else {
-            ctx_.log()->Error("[Gui::Renderer::SwapBuffers]: Failed to map vertex buffer!");
+            void *pinned_mem =
+                glMapBufferRange(GL_ARRAY_BUFFER, GLintptr(draw_range_index_) * MaxVerticesPerRange * sizeof(vertex_t),
+                                 MaxVerticesPerRange * sizeof(vertex_t), BufferRangeBindFlags);
+            if (pinned_mem) {
+                memcpy(pinned_mem, vtx_data_ + size_t(draw_range_index_) * MaxVerticesPerRange, vertex_buf_mem_size);
+                glFlushMappedBufferRange(GL_ARRAY_BUFFER, 0, vertex_buf_mem_size);
+                glUnmapBuffer(GL_ARRAY_BUFFER);
+            } else {
+                ctx_.log()->Error("[Gui::Renderer::SwapBuffers]: Failed to map vertex buffer!");
+            }
         }
     }
 
     if (index_count_[draw_range_index_]) {
         glBindBuffer(GL_ARRAY_BUFFER, index_buf_->id());
 
-        void *pinned_mem = glMapBufferRange(GL_ARRAY_BUFFER, draw_range_index_ * MaxIndicesPerRange * sizeof(uint16_t),
-                                            MaxIndicesPerRange * sizeof(uint16_t), BufferRangeBindFlags);
-        if (pinned_mem) {
-            const size_t index_buf_mem_size = index_count_[draw_range_index_] * sizeof(uint16_t);
-            memcpy(pinned_mem, ndx_data_.get() + draw_range_index_ * MaxIndicesPerRange, index_buf_mem_size);
-            glFlushMappedBufferRange(GL_ARRAY_BUFFER, 0, index_buf_mem_size);
-            glUnmapBuffer(GL_ARRAY_BUFFER);
+        const size_t index_buf_mem_size = index_count_[draw_range_index_] * sizeof(uint16_t);
+        if (ctx_.capabilities.persistent_buf_mapping) {
+            glFlushMappedBufferRange(GL_ARRAY_BUFFER,
+                                     GLintptr(draw_range_index_) * MaxIndicesPerRange * sizeof(uint16_t),
+                                     index_buf_mem_size);
         } else {
-            ctx_.log()->Error("[Gui::Renderer::SwapBuffers]: Failed to map index buffer!");
+            void *pinned_mem =
+                glMapBufferRange(GL_ARRAY_BUFFER, GLintptr(draw_range_index_) * MaxIndicesPerRange * sizeof(uint16_t),
+                                 MaxIndicesPerRange * sizeof(uint16_t), BufferRangeBindFlags);
+            if (pinned_mem) {
+                memcpy(pinned_mem, ndx_data_ + size_t(draw_range_index_) * MaxIndicesPerRange, index_buf_mem_size);
+                glFlushMappedBufferRange(GL_ARRAY_BUFFER, 0, index_buf_mem_size);
+                glUnmapBuffer(GL_ARRAY_BUFFER);
+            } else {
+                ctx_.log()->Error("[Gui::Renderer::SwapBuffers]: Failed to map index buffer!");
+            }
         }
     }
 
@@ -286,9 +235,9 @@ void Gui::Renderer::Draw(int w, int h) {
     glUseProgram(ui_program_->id());
 
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D_ARRAY, (GLuint)ctx_.texture_atlas().tex_id());
+    glBindTexture(GL_TEXTURE_2D_ARRAY, GLuint(ctx_.texture_atlas().tex_id()));
 
-    const size_t index_buf_mem_offset = draw_range_index_ * MaxIndicesPerRange * sizeof(uint16_t);
+    const size_t index_buf_mem_offset = size_t(draw_range_index_) * MaxIndicesPerRange * sizeof(uint16_t);
 
     glDrawElementsBaseVertex(GL_TRIANGLES, index_count_[draw_range_index_], GL_UNSIGNED_SHORT,
                              reinterpret_cast<const GLvoid *>(uintptr_t(index_buf_mem_offset)),
@@ -301,7 +250,7 @@ void Gui::Renderer::Draw(int w, int h) {
     index_count_[draw_range_index_] = 0;
 
     assert(!buf_range_fences_[draw_range_index_]);
-    buf_range_fences_[draw_range_index_] = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+    buf_range_fences_[draw_range_index_] = Ren::MakeFence();
 }
 
 void Gui::Renderer::PushImageQuad(const eDrawMode draw_mode, const int tex_layer, const Vec2f pos[2],

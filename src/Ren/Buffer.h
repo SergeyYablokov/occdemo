@@ -126,8 +126,8 @@ class Buffer : public RefCounter {
 
     void Resize(uint32_t new_size);
 
-    uint8_t *Map(const uint8_t dir) { return MapRange(dir, 0, size_); }
-    uint8_t *MapRange(uint8_t dir, uint32_t offset, uint32_t size);
+    uint8_t *Map(const uint8_t dir, const bool persistent = false) { return MapRange(dir, 0, size_, persistent); }
+    uint8_t *MapRange(uint8_t dir, uint32_t offset, uint32_t size, bool persistent = false);
     void FlushRange(uint32_t offset, uint32_t size);
     void Unmap();
 

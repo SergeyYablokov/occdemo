@@ -50,6 +50,7 @@ set(GUI_SOURCE_FILES    Gui/BaseElement.h
                         Gui/LinearLayout.cpp
                         Gui/Renderer.h
                         Gui/Renderer.cpp
+                        Gui/shaders.inl
                         Gui/TypeMesh.h
                         Gui/TypeMesh.cpp
                         Gui/Utils.h

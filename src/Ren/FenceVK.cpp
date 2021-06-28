@@ -31,6 +31,11 @@ Ren::SyncFence &Ren::SyncFence::operator=(SyncFence &&rhs) {
     return (*this);
 }
 
+bool Ren::SyncFence::Reset() {
+    const VkResult res = vkResetFences(device_, 1, &fence_);
+    return res == VK_SUCCESS;
+}
+
 void Ren::SyncFence::WaitSync() {
     // assert(sync_);
     // glWaitSync(reinterpret_cast<GLsync>(sync_), 0, GL_TIMEOUT_IGNORED);
