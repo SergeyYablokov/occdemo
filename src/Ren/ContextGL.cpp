@@ -1,6 +1,7 @@
 #include "Context.h"
 
 #include "GL.h"
+#include "GLCtx.h"
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -30,6 +31,11 @@ bool Ren::Context::Init(int w, int h, ILog *log, const char *) {
     w_ = w;
     h_ = h;
     log_ = log;
+
+    ctx_.reset(new GLContext);
+    for (int i = 0; i < MaxFramesInFlight; i++) {
+        ctx_->in_flight_fences.emplace_back(MakeFence());
+    }
 
     log_->Info("===========================================");
     log_->Info("Device info:");

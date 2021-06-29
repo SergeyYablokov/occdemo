@@ -339,11 +339,11 @@ Ren::SamplerRef Ren::Context::LoadSampler(SamplingParams params, eSamplerLoadSta
         return SamplerRef{&samplers_, it.index()};
     } else {
         const uint32_t new_index = samplers_.emplace();
-        samplers_.at(new_index).Init(params,
+        samplers_.at(new_index).Init(
 #if defined(USE_VK_RENDER)
-                                     ctx_.get()
+            ctx_.get(),
 #endif
-        );
+            params);
         (*load_status) = eSamplerLoadStatus::Created;
         return SamplerRef{&samplers_, new_index};
     }

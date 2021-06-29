@@ -135,7 +135,7 @@ class Buffer : public RefCounter {
 
 #if defined(USE_VK_RENDER)
     mutable VkAccessFlags last_access_mask = 0;
-    mutable VkPipelineStageFlags last_stage_mask = 0;
+    mutable VkPipelineStageFlags last_stage_mask = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
 #endif
 };
 

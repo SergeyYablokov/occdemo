@@ -3,9 +3,44 @@
 //#include "GL.h"
 #include "Utils.h"
 
-Ren::TextureAtlas::TextureAtlas(const int w, const int h, const int min_res,
-                                const eTexFormat *formats, const uint32_t *flags,
-                                eTexFilter filter, ILog *log)
+namespace Ren {
+const VkFormat g_vk_formats[] = {
+    VK_FORMAT_UNDEFINED,                // Undefined
+    VK_FORMAT_R8G8B8_UNORM,             // RawRGB888
+    VK_FORMAT_R8G8B8A8_UNORM,           // RawRGBA8888
+    VK_FORMAT_R8G8B8A8_SNORM,           // RawSignedRGBA8888
+    VK_FORMAT_R32_SFLOAT,               // RawR32F
+    VK_FORMAT_R16_SFLOAT,               // RawR16F
+    VK_FORMAT_R8_UNORM,                 // RawR8
+    VK_FORMAT_R8G8_UNORM,               // RawRG88
+    VK_FORMAT_R32G32B32_SFLOAT,         // RawRGB32F
+    VK_FORMAT_R32G32B32A32_SFLOAT,      // RawRGBA32F
+    VK_FORMAT_UNDEFINED,                // RawRGBE8888
+    VK_FORMAT_R16G16B16_SFLOAT,         // RawRGB16F
+    VK_FORMAT_R16G16B16A16_SFLOAT,      // RawRGBA16F
+    VK_FORMAT_R16G16_UNORM,             // RawRG16
+    VK_FORMAT_R16G16_UINT,              // RawRG16U
+    VK_FORMAT_R16G16_SFLOAT,            // RawRG16F
+    VK_FORMAT_R32G32_SFLOAT,            // RawRG32F
+    VK_FORMAT_R32G32_UINT,              // RawRG32U
+    VK_FORMAT_A2B10G10R10_UNORM_PACK32, // RawRGB10_A2
+    VK_FORMAT_B10G11R11_UFLOAT_PACK32,  // RawRG11F_B10F
+    VK_FORMAT_D16_UNORM,                // Depth16
+    VK_FORMAT_D24_UNORM_S8_UINT,        // Depth24Stencil8
+#ifndef __ANDROID__
+    VK_FORMAT_D32_SFLOAT, // Depth32
+#endif
+    VK_FORMAT_BC1_RGBA_UNORM_BLOCK, // Compressed_DXT1
+    VK_FORMAT_BC2_UNORM_BLOCK,      // Compressed_DXT3
+    VK_FORMAT_BC3_UNORM_BLOCK,      // Compressed_DXT5
+    VK_FORMAT_UNDEFINED,            // Compressed_ASTC
+    VK_FORMAT_UNDEFINED,            // None
+};
+static_assert(sizeof(g_vk_formats) / sizeof(g_vk_formats[0]) == size_t(eTexFormat::_Count), "!");
+} // namespace Ren
+
+Ren::TextureAtlas::TextureAtlas(const int w, const int h, const int min_res, const eTexFormat *formats,
+                                const uint32_t *flags, eTexFilter filter, ILog *log)
     : splitter_(w, h) {
     filter_ = filter;
 
@@ -119,8 +154,8 @@ Ren::TextureAtlas::TextureAtlas(TextureAtlas &&rhs) noexcept
         formats_[i] = rhs.formats_[i];
         rhs.formats_[i] = eTexFormat::Undefined;
 
-        //tex_ids_[i] = rhs.tex_ids_[i];
-        //rhs.tex_ids_[i] = 0xffffffff;
+        // tex_ids_[i] = rhs.tex_ids_[i];
+        // rhs.tex_ids_[i] = 0xffffffff;
     }
 }
 
@@ -131,12 +166,12 @@ Ren::TextureAtlas &Ren::TextureAtlas::operator=(TextureAtlas &&rhs) noexcept {
         formats_[i] = rhs.formats_[i];
         rhs.formats_[i] = eTexFormat::Undefined;
 
-       /* if (tex_ids_[i] != 0xffffffff) {
-            auto tex_id = (GLuint)tex_ids_[i];
-            glDeleteTextures(1, &tex_id);
-        }
-        tex_ids_[i] = rhs.tex_ids_[i];
-        rhs.tex_ids_[i] = 0xffffffff;*/
+        /* if (tex_ids_[i] != 0xffffffff) {
+             auto tex_id = (GLuint)tex_ids_[i];
+             glDeleteTextures(1, &tex_id);
+         }
+         tex_ids_[i] = rhs.tex_ids_[i];
+         rhs.tex_ids_[i] = 0xffffffff;*/
     }
 
     splitter_ = std::move(rhs.splitter_);
@@ -148,10 +183,8 @@ int Ren::TextureAtlas::AllocateRegion(const int res[2], int out_pos[2]) {
     return index;
 }
 
-void Ren::TextureAtlas::InitRegion(const void *data, const int data_len,
-                                   const eTexFormat format, const uint32_t flags,
-                                   const int layer, const int level, const int pos[2],
-                                   const int res[2], ILog *log) {
+void Ren::TextureAtlas::InitRegion(const void *data, const int data_len, const eTexFormat format, const uint32_t flags,
+                                   const int layer, const int level, const int pos[2], const int res[2], ILog *log) {
 #ifndef NDEBUG
     if (level == 0) {
         int _res[2];
@@ -190,10 +223,9 @@ bool Ren::TextureAtlas::Free(const int pos[2]) {
 
 void Ren::TextureAtlas::Finalize() {
     if (filter_ == eTexFilter::Trilinear || filter_ == eTexFilter::Bilinear) {
-        for (int i = 0; i < MaxTextureCount && (formats_[i] != eTexFormat::Undefined);
-             i++) {
+        for (int i = 0; i < MaxTextureCount && (formats_[i] != eTexFormat::Undefined); i++) {
             if (!IsCompressedFormat(formats_[i])) {
-                //ren_glGenerateTextureMipmap_Comp(GL_TEXTURE_2D, (GLuint)tex_ids_[i]);
+                // ren_glGenerateTextureMipmap_Comp(GL_TEXTURE_2D, (GLuint)tex_ids_[i]);
             }
         }
     }
@@ -201,27 +233,87 @@ void Ren::TextureAtlas::Finalize() {
 
 ////////////////////////////////////////////////////////////////////////////////////////////
 
-Ren::TextureAtlasArray::TextureAtlasArray(int w, int h, int layer_count,
+Ren::TextureAtlasArray::TextureAtlasArray(VkContext *ctx, const int w, const int h, const int layer_count,
                                           const eTexFormat format, eTexFilter filter)
-    : layer_count_(layer_count), format_(format), filter_(filter) {
-#if 0
-    GLuint tex_id;
-    ren_glCreateTextures(GL_TEXTURE_2D_ARRAY, 1, &tex_id);
+    : layer_count_(layer_count), format_(format), filter_(filter), ctx_(ctx) {
 
-    // TODO: add srgb here
+    mip_count_ = Ren::CalcMipCount(w, h, 1, filter);
 
-    const int mip_count = Ren::CalcMipCount(w, h, 1, filter);
-    ren_glTextureStorage3D_Comp(
-        GL_TEXTURE_2D_ARRAY, tex_id, mip_count,
-        GLInternalFormatFromTexFormat(format, false /* is_srgb */), w, h, layer_count);
+    { // create image
+        VkImageCreateInfo img_info = {};
+        img_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+        img_info.imageType = VK_IMAGE_TYPE_2D;
+        img_info.extent.width = uint32_t(w);
+        img_info.extent.height = uint32_t(h);
+        img_info.extent.depth = 1;
+        img_info.mipLevels = mip_count_;
+        img_info.arrayLayers = uint32_t(layer_count);
+        img_info.format = g_vk_formats[size_t(format)];
+        img_info.tiling = VK_IMAGE_TILING_OPTIMAL;
+        img_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        img_info.usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+        img_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        img_info.samples = VK_SAMPLE_COUNT_1_BIT;
+        img_info.flags = 0;
 
-    ren_glTextureParameteri_Comp(GL_TEXTURE_2D_ARRAY, tex_id, GL_TEXTURE_MIN_FILTER,
-                                 g_gl_min_filter[size_t(filter_)]);
-    ren_glTextureParameteri_Comp(GL_TEXTURE_2D_ARRAY, tex_id, GL_TEXTURE_MAG_FILTER,
-                                 g_gl_mag_filter[size_t(filter_)]);
+        VkResult res = vkCreateImage(ctx_->device, &img_info, nullptr, &img_);
+        if (res != VK_SUCCESS) {
+            throw std::runtime_error("Failed to create image!");
+        }
 
-    tex_id_ = uint32_t(tex_id);
-#endif
+        VkMemoryRequirements img_tex_mem_req = {};
+        vkGetImageMemoryRequirements(ctx_->device, img_, &img_tex_mem_req);
+
+        VkMemoryAllocateInfo img_alloc_info = {};
+        img_alloc_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+        img_alloc_info.allocationSize = img_tex_mem_req.size;
+
+        uint32_t img_tex_type_bits = img_tex_mem_req.memoryTypeBits;
+        const VkMemoryPropertyFlags img_tex_desired_mem_flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+        for (uint32_t i = 0; i < 32; i++) {
+            VkMemoryType mem_type = ctx_->mem_properties.memoryTypes[i];
+            if (img_tex_type_bits & 1u) {
+                if ((mem_type.propertyFlags & img_tex_desired_mem_flags) == img_tex_desired_mem_flags) {
+                    img_alloc_info.memoryTypeIndex = i;
+                    break;
+                }
+            }
+            img_tex_type_bits = img_tex_type_bits >> 1u;
+        }
+
+        res = vkAllocateMemory(ctx_->device, &img_alloc_info, nullptr, &mem_);
+        if (res != VK_SUCCESS) {
+            throw std::runtime_error("Failed to allocate memory!");
+        }
+
+        res = vkBindImageMemory(ctx_->device, img_, mem_, 0);
+        if (res != VK_SUCCESS) {
+            throw std::runtime_error("Failed to bind memory!");
+        }
+    }
+
+    { // create default image view
+        VkImageViewCreateInfo view_info = {};
+        view_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+        view_info.image = img_;
+        view_info.viewType = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
+        view_info.format = g_vk_formats[size_t(format)];
+        view_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        view_info.subresourceRange.baseMipLevel = 0;
+        view_info.subresourceRange.levelCount = 1;
+        view_info.subresourceRange.baseArrayLayer = 0;
+        view_info.subresourceRange.layerCount = mip_count_;
+
+        const VkResult res = vkCreateImageView(ctx_->device, &view_info, nullptr, &img_view_);
+        if (res != VK_SUCCESS) {
+            throw std::runtime_error("Failed to create image view!");
+        }
+    }
+
+    SamplingParams params;
+    params.filter = filter;
+
+    sampler_.Init(ctx_, params);
 
     for (int i = 0; i < layer_count; i++) {
         splitters_[i] = TextureSplitter{w, h};
@@ -229,46 +321,34 @@ Ren::TextureAtlasArray::TextureAtlasArray(int w, int h, int layer_count,
 }
 
 Ren::TextureAtlasArray::~TextureAtlasArray() {
-    /*if (tex_id_ != 0xffffffff) {
-        auto tex_id = (GLuint)tex_id_;
-        glDeleteTextures(1, &tex_id);
-    }*/
-}
-
-Ren::TextureAtlasArray::TextureAtlasArray(TextureAtlasArray &&rhs) noexcept {
-    layer_count_ = rhs.layer_count_;
-    rhs.layer_count_ = 0;
-
-    format_ = rhs.format_;
-    rhs.format_ = eTexFormat::Undefined;
-
-    filter_ = rhs.filter_;
-
-    //tex_id_ = rhs.tex_id_;
-    //rhs.tex_id_ = 0xffffffff;
-
-    for (int i = 0; i < layer_count_; i++) {
-        splitters_[i] = std::move(rhs.splitters_[i]);
+    if (img_ != VK_NULL_HANDLE) {
+        vkDestroyImageView(ctx_->device, img_view_, nullptr);
+        vkDestroyImage(ctx_->device, img_, nullptr);
+        vkFreeMemory(ctx_->device, mem_, nullptr);
     }
 }
 
-Ren::TextureAtlasArray &
-Ren::TextureAtlasArray::operator=(TextureAtlasArray &&rhs) noexcept {
-    layer_count_ = rhs.layer_count_;
-    rhs.layer_count_ = 0;
+Ren::TextureAtlasArray &Ren::TextureAtlasArray::operator=(TextureAtlasArray &&rhs) noexcept {
+    mip_count_ = exchange(rhs.mip_count_, 0);
+    layer_count_ = exchange(rhs.layer_count_, 0);
+    format_ = exchange(rhs.format_, eTexFormat::Undefined);
+    filter_ = exchange(rhs.filter_, eTexFilter::NoFilter);
 
-    format_ = rhs.format_;
-    rhs.format_ = eTexFormat::Undefined;
-
-    filter_ = rhs.filter_;
-
-    /*if (tex_id_ != 0xffffffff) {
-        auto tex_id = (GLuint)tex_id_;
-        glDeleteTextures(1, &tex_id);
+    if (img_ != VK_NULL_HANDLE) {
+        vkDestroyImageView(ctx_->device, img_view_, nullptr);
+        vkDestroyImage(ctx_->device, img_, nullptr);
+        vkFreeMemory(ctx_->device, mem_, nullptr);
     }
 
-    tex_id_ = rhs.tex_id_;
-    rhs.tex_id_ = 0xffffffff;*/
+    ctx_ = exchange(rhs.ctx_, nullptr);
+    img_ = exchange(rhs.img_, {});
+    mem_ = exchange(rhs.mem_, {});
+    img_view_ = exchange(rhs.img_view_, {});
+    sampler_ = exchange(rhs.sampler_, {});
+
+    layout = exchange(rhs.layout, VK_IMAGE_LAYOUT_UNDEFINED);
+    last_access_mask = exchange(rhs.last_access_mask, 0);
+    last_stage_mask = exchange(rhs.last_stage_mask, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT);
 
     for (int i = 0; i < layer_count_; i++) {
         splitters_[i] = std::move(rhs.splitters_[i]);
@@ -277,8 +357,8 @@ Ren::TextureAtlasArray::operator=(TextureAtlasArray &&rhs) noexcept {
     return (*this);
 }
 
-int Ren::TextureAtlasArray::Allocate(const void *data, const eTexFormat format,
-                                     const int res[2], int out_pos[3], const int border) {
+int Ren::TextureAtlasArray::Allocate(const void *data, const eTexFormat format, const int res[2], int out_pos[3],
+                                     const int border) {
     const int alloc_res[] = {res[0] < splitters_[0].resx() ? res[0] + border : res[0],
                              res[1] < splitters_[1].resy() ? res[1] + border : res[1]};
 
@@ -287,7 +367,7 @@ int Ren::TextureAtlasArray::Allocate(const void *data, const eTexFormat format,
         if (index != -1) {
             out_pos[2] = i;
 
-            //ren_glTextureSubImage3D_Comp(GL_TEXTURE_2D_ARRAY, (GLuint)tex_id_, 0,
+            // ren_glTextureSubImage3D_Comp(GL_TEXTURE_2D_ARRAY, (GLuint)tex_id_, 0,
             //                             out_pos[0], out_pos[1], out_pos[2], res[0],
             //                             res[1], 1, GLFormatFromTexFormat(format),
             //                             GLTypeFromTexFormat(format), data);

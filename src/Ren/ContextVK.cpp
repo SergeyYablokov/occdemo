@@ -81,7 +81,7 @@ bool Ren::Context::Init(const int w, const int h, ILog *log, const char *preferr
     w_ = w;
     h_ = h;
     log_ = log;
-    
+
     ctx_.reset(new VkContext);
 
 #ifndef NDEBUG
@@ -165,8 +165,8 @@ bool Ren::Context::Init(const int w, const int h, ILog *log, const char *preferr
 
     InitDefaultBuffers();
 
-    texture_atlas_ = TextureAtlasArray{TextureAtlasWidth, TextureAtlasHeight, TextureAtlasLayers,
-                                       eTexFormat::RawRGBA8888, eTexFilter::BilinearNoMipmap};
+    texture_atlas_ = TextureAtlasArray{ctx_.get(),         TextureAtlasWidth,       TextureAtlasHeight,
+                                       TextureAtlasLayers, eTexFormat::RawRGBA8888, eTexFilter::BilinearNoMipmap};
 
     return true;
 }

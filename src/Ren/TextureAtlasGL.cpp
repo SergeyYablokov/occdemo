@@ -203,39 +203,18 @@ Ren::TextureAtlasArray::~TextureAtlasArray() {
     }
 }
 
-Ren::TextureAtlasArray::TextureAtlasArray(TextureAtlasArray &&rhs) noexcept {
-    layer_count_ = rhs.layer_count_;
-    rhs.layer_count_ = 0;
-
-    format_ = rhs.format_;
-    rhs.format_ = eTexFormat::Undefined;
-
-    filter_ = rhs.filter_;
-
-    tex_id_ = rhs.tex_id_;
-    rhs.tex_id_ = 0xffffffff;
-
-    for (int i = 0; i < layer_count_; i++) {
-        splitters_[i] = std::move(rhs.splitters_[i]);
-    }
-}
-
 Ren::TextureAtlasArray &Ren::TextureAtlasArray::operator=(TextureAtlasArray &&rhs) noexcept {
-    layer_count_ = rhs.layer_count_;
-    rhs.layer_count_ = 0;
-
-    format_ = rhs.format_;
-    rhs.format_ = eTexFormat::Undefined;
-
-    filter_ = rhs.filter_;
-
     if (tex_id_ != 0xffffffff) {
         auto tex_id = (GLuint)tex_id_;
         glDeleteTextures(1, &tex_id);
     }
 
-    tex_id_ = rhs.tex_id_;
-    rhs.tex_id_ = 0xffffffff;
+    mip_count_ = exchange(rhs.mip_count_, 0);
+    layer_count_ = exchange(rhs.layer_count_, 0);
+    format_ = exchange(rhs.format_, eTexFormat::Undefined);
+    filter_ = exchange(rhs.filter_, eTexFilter::NoFilter);
+
+    tex_id_ = exchange(rhs.tex_id_, 0xffffffff);
 
     for (int i = 0; i < layer_count_; i++) {
         splitters_[i] = std::move(rhs.splitters_[i]);

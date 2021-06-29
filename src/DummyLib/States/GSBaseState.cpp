@@ -704,7 +704,11 @@ void GSBaseState::Draw() {
                 }
             }
 
-            ui_renderer_->SwapBuffers();
+#if defined(USE_VK_RENDER)
+#elif defined(USE_GL_RENDER)
+            // Target frontend to next frame
+            ren_ctx_->frontend_frame = (ren_ctx_->backend_frame + 1) % Ren::MaxFramesInFlight;
+#endif
 
             notified_ = true;
             thr_notify_.notify_one();
@@ -713,7 +717,8 @@ void GSBaseState::Draw() {
             // Ren::Vec3f{ 0.0f, 1.0f, 0.0f }, view_fov_);
             // Gather drawables for list 0
             UpdateFrame(0);
-            ui_renderer_->SwapBuffers();
+            // Target frontend to current frame
+            ren_ctx_->frontend_frame = ren_ctx_->backend_frame;
             back_list = 0;
         }
 

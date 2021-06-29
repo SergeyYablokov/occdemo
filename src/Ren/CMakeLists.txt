@@ -33,6 +33,7 @@ set(SOURCE_FILES Anim.h
                  Buffer.h
                  Camera.h
                  Camera.cpp
+                 Common.h
                  Context.h
                  Context.cpp
                  CPUFeatures.h
@@ -80,6 +81,7 @@ if(${RENDERER} STREQUAL "GL")
                      BufferGL.cpp
                      ContextGL.cpp
                      GL.h
+                     GLCtx.h
                      GLExt.cpp
                      GLExtDSAEmu.h
                      GLExtDSAEmu.cpp

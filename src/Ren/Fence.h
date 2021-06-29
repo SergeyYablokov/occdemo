@@ -31,10 +31,9 @@ class SyncFence {
     SyncFence &operator=(const SyncFence &rhs) = delete;
     SyncFence &operator=(SyncFence &&rhs);
 
-    VkFence fence() { return fence_; }
-
 #if defined(USE_VK_RENDER)
     operator bool() const { return fence_ != VK_NULL_HANDLE; }
+    VkFence fence() { return fence_; }
 
     bool Reset();
 #elif defined(USE_GL_RENDER)

@@ -2,6 +2,7 @@
 
 #include <vector>
 
+#include <Ren/Context.h>
 #include <Ren/MVec.h>
 #include <Ren/Program.h>
 #include <Ren/Texture.h>
@@ -23,10 +24,6 @@ template <typename T, typename FallBackAllocator> class MultiPoolAllocator;
 template <typename Alloc> struct JsObjectT;
 using JsObject = JsObjectT<std::allocator<char>>;
 using JsObjectP = JsObjectT<Sys::MultiPoolAllocator<char, std::allocator<char>>>;
-
-namespace Ren {
-class Context;
-}
 
 namespace Gui {
 const char GL_DEFINES_KEY[] = "gl_defines";
@@ -69,7 +66,6 @@ class Renderer {
 
     Ren::ProgramRef program() const { return ui_program_; }
 
-    void SwapBuffers();
     void Draw(int w, int h);
 
     void PushClipArea(const Ren::Vec2f dims[2]);
@@ -89,22 +85,20 @@ class Renderer {
                    const Vec4f &p2, const Vec4f &p3, const Vec4f &thickness);
 
   private:
-    static const int FrameSyncWindow = 3;
-    static const int MaxClipStackSize = 8;
+    static const int MaxVerticesPerRange = 64 * 1024;
+    static const int MaxIndicesPerRange = 128 * 1024;
 
-    static_assert(FrameSyncWindow > 1, "!");
+    static const int MaxClipStackSize = 8;
     static int g_instance_count;
 
     Ren::Context &ctx_;
 
-    int vertex_count_[FrameSyncWindow];
-    int index_count_[FrameSyncWindow];
-    int fill_range_index_, draw_range_index_;
+    int vertex_count_[Ren::MaxFramesInFlight];
+    int index_count_[Ren::MaxFramesInFlight];
 
     Ren::ProgramRef ui_program_;
 #if defined(USE_VK_RENDER)
     Ren::BufferRef vertex_stage_buf_, index_stage_buf_;
-    VkCommandBuffer cmd_bufs_[FrameSyncWindow] = {};
 
     VkDescriptorSetLayout desc_set_layout_ = {};
     VkDescriptorPool descriptor_pool_ = {};
@@ -114,6 +108,8 @@ class Renderer {
 
     VkPipelineLayout pipeline_layout_ = {};
     VkPipeline pipeline_ = {};
+
+    Ren::SmallVector<VkFramebuffer, 4> framebuffers_;
 #elif defined(USE_GL_RENDER)
     Ren::Vao vao_;
 
@@ -125,7 +121,9 @@ class Renderer {
     vertex_t *vtx_data_;
     uint16_t *ndx_data_;
 
-    Ren::SyncFence buf_range_fences_[FrameSyncWindow];
+#ifndef NDEBUG
+    Ren::SyncFence buf_range_fences_[Ren::MaxFramesInFlight];
+#endif
 
     Ren::Vec2f clip_area_stack_[MaxClipStackSize][2];
     int clip_area_stack_size_ = 0;

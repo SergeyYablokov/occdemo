@@ -23,7 +23,7 @@ class Sampler : public RefCounter {
     Sampler &operator=(const Sampler &rhs) = delete;
     Sampler &operator=(Sampler &&rhs) noexcept;
 
-    void Init(SamplingParams params, VkContext *ctx);
+    void Init(VkContext *ctx, SamplingParams params);
 };
 
 } // namespace Ren

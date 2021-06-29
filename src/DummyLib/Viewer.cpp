@@ -12,6 +12,13 @@
 #include <Ray/RendererFactory.h>
 #include <Ren/Context.h>
 #include <Ren/MVec.h>
+
+#if defined(USE_VK_RENDER)
+#include <Ren/VKCtx.h>
+#elif defined(USE_GL_RENDER)
+#include <Ren/GLCtx.h>
+#endif
+
 #include <Sys/AssetFile.h>
 #include <Sys/Json.h>
 #include <Sys/Time_.h>
@@ -130,22 +137,17 @@ Viewer::Viewer(const int w, const int h, const char *local_dir, const char *devi
     AddComponent(SWAP_TIMER_KEY, swap_interval);
 
     auto state_manager = GetComponent<GameStateManager>(STATE_MANAGER_KEY);
-    state_manager->Push(GSCreate(eGameState::GS_UI_TEST, this));
+    state_manager->Push(GSCreate(eGameState::GS_DRAW_TEST, this));
 }
 
 void Viewer::Resize(const int w, const int h) { GameBase::Resize(w, h); }
 
-#if defined(USE_VK_RENDER)
-#include <Ren/VKCtx.h>
-#endif
-
 void Viewer::Frame() {
-#if defined(USE_VK_RENDER)
     auto ctx = GetComponent<Ren::Context>(REN_CONTEXT_KEY);
+#if defined(USE_VK_RENDER)
     Ren::VkContext *vk_ctx = ctx->vk_ctx();
 
-    const int current_frame = vk_ctx->current_frame;
-
+    const int current_frame =  ctx->backend_frame;
     vkWaitForFences(vk_ctx->device, 1, &vk_ctx->in_flight_fences[current_frame], VK_TRUE, UINT64_MAX);
 
     uint32_t next_image_index = 0;
@@ -155,6 +157,8 @@ void Viewer::Frame() {
     if (res != VK_SUCCESS) {
         ctx->log()->Error("Failed to acquire next image!");
     };
+
+    vk_ctx->active_present_image = next_image_index;
 
     ///////////////////////////////////////////////////////////////
 
@@ -249,6 +253,11 @@ void Viewer::Frame() {
                                  &layout_transition_barrier);
         }
     }
+#elif defined(USE_GL_RENDER)
+    Ren::GLContext *gl_ctx = ctx->gl_ctx();
+
+    // Make sure all operations have finished
+    gl_ctx->in_flight_fences[ctx->backend_frame].ClientWaitSync();
 #endif
 
     auto state_manager = GetComponent<GameStateManager>(STATE_MANAGER_KEY);
@@ -317,9 +326,10 @@ void Viewer::Frame() {
     if (res != VK_SUCCESS) {
         ctx->log()->Error("Failed to present queue!");
     }
-
-    vk_ctx->current_frame = (vk_ctx->current_frame + 1) % Ren::MaxFramesInFlight;
+#elif defined(USE_GL_RENDER)
+    gl_ctx->in_flight_fences[ctx->backend_frame] = Ren::MakeFence();
 #endif
+    ctx->backend_frame = (ctx->backend_frame + 1) % Ren::MaxFramesInFlight;
 }
 
 void Viewer::PrepareAssets(const char *platform) {

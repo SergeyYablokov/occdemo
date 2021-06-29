@@ -1,11 +1,10 @@
 #pragma once
 
+#include "Common.h"
 #include "SmallVector.h"
 #include "VK.h"
 
 namespace Ren {
-const int MaxFramesInFlight = 3;
-
 struct VkContext {
     VkInstance instance = {};
 #ifndef NDEBUG
@@ -25,12 +24,13 @@ struct VkContext {
     SmallVector<VkImageView, MaxFramesInFlight> present_image_views;
     VkSwapchainKHR swapchain = {};
 
+    uint32_t active_present_image = 0;
+
     VkQueue present_queue = {}, graphics_queue = {};
 
     VkCommandPool command_pool = {}, temp_command_pool = {};
     VkCommandBuffer setup_cmd_buf, draw_cmd_buf[MaxFramesInFlight];
 
-    int current_frame = 0;
     VkSemaphore image_avail_semaphores[MaxFramesInFlight] = {};
     VkSemaphore render_finished_semaphores[MaxFramesInFlight] = {};
     VkFence in_flight_fences[MaxFramesInFlight] = {};

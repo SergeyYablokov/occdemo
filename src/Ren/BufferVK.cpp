@@ -142,7 +142,7 @@ Ren::Buffer &Ren::Buffer::operator=(Buffer &&rhs) noexcept {
 #endif
 
     last_access_mask = exchange(rhs.last_access_mask, 0);
-    last_stage_mask = exchange(rhs.last_stage_mask, 0);
+    last_stage_mask = exchange(rhs.last_stage_mask, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT);
 
     return (*this);
 }

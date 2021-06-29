@@ -49,7 +49,7 @@ void Ren::Sampler::Destroy() {
     }
 }
 
-void Ren::Sampler::Init(const SamplingParams params, VkContext *ctx) {
+void Ren::Sampler::Init(VkContext *ctx, const SamplingParams params) {
     Destroy();
 
     VkSamplerCreateInfo sampler_info = {};

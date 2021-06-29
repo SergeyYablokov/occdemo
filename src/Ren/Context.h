@@ -2,6 +2,7 @@
 
 #include "Anim.h"
 #include "Buffer.h"
+#include "Common.h"
 #include "Material.h"
 #include "Mesh.h"
 #include "Program.h"
@@ -19,6 +20,7 @@ const int TextureAtlasWidth = 1024, TextureAtlasHeight = 512, TextureAtlasLayers
 const int StageBufferCount = 4;
 
 struct VkContext;
+struct GLContext;
 
 struct StageBufs {
     BufferRef bufs[StageBufferCount];
@@ -51,6 +53,8 @@ class Context : public TaskExecutor {
 
 #if defined(USE_VK_RENDER)
     std::unique_ptr<VkContext> ctx_;
+#elif defined(USE_GL_RENDER)
+    std::unique_ptr<GLContext> ctx_;
 #elif defined(USE_SW_RENDER)
     SWcontext *sw_ctx_;
 #endif
@@ -67,6 +71,8 @@ class Context : public TaskExecutor {
 
 #if defined(USE_VK_RENDER)
     VkContext *vk_ctx() { return ctx_.get(); }
+#elif defined(USE_GL_RENDER)
+    GLContext *gl_ctx() { return ctx_.get(); }
 #elif defined(USE_SW_RENDER)
 
 #endif
@@ -169,6 +175,9 @@ class Context : public TaskExecutor {
     void InitDefaultBuffers();
     void ReleaseDefaultBuffers();
     void ReleaseAll();
+
+    int backend_frame = 0;
+    int frontend_frame = 0;
 
 #if defined(USE_GL_RENDER)
     struct { // NOLINT

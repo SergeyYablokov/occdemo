@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Sampler.h"
 #include "Texture.h"
 #include "TextureSplitter.h"
 
@@ -52,29 +53,52 @@ class TextureAtlasArray {
     static const int MaxTextureCount = 8;
 
     TextureAtlasArray() = default;
-    TextureAtlasArray(int w, int h, int layer_count, eTexFormat format, eTexFilter filter);
+    TextureAtlasArray(
+#if defined(USE_VK_RENDER)
+        VkContext *ctx,
+#endif
+        int w, int h, int layer_count, eTexFormat format, eTexFilter filter);
     ~TextureAtlasArray();
 
     TextureAtlasArray(const TextureAtlasArray &rhs) = delete;
-    TextureAtlasArray(TextureAtlasArray &&rhs) noexcept;
+    TextureAtlasArray(TextureAtlasArray &&rhs) noexcept { (*this) = std::move(rhs); }
 
     TextureAtlasArray &operator=(const TextureAtlasArray &rhs) = delete;
     TextureAtlasArray &operator=(TextureAtlasArray &&rhs) noexcept;
 
+    int mip_count() const { return mip_count_; }
+    int layer_count() const { return layer_count_; }
+
     int resx() const { return splitters_[0].resx(); }
     int resy() const { return splitters_[0].resy(); }
-#if defined(USE_GL_RENDER)
+#if defined(USE_VK_RENDER)
+    VkImage img() const { return img_; }
+    VkImageView img_view() const { return img_view_; }
+    const Sampler &sampler() const { return sampler_; }
+#elif defined(USE_GL_RENDER)
     uint32_t tex_id() const { return tex_id_; }
 #endif
 
     int Allocate(const void *data, eTexFormat format, const int res[2], int out_pos[3], int border);
     bool Free(const int pos[3]);
 
+#if defined(USE_VK_RENDER)
+    VkImageLayout layout = VK_IMAGE_LAYOUT_UNDEFINED;
+    VkAccessFlags last_access_mask = 0;
+    VkPipelineStageFlags last_stage_mask = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+#endif
   private:
+    int mip_count_ = 0;
     int layer_count_ = 0;
     eTexFormat format_ = eTexFormat::Undefined;
     eTexFilter filter_ = eTexFilter::NoFilter;
-#if defined(USE_GL_RENDER)
+#if defined(USE_VK_RENDER)
+    VkContext *ctx_ = nullptr;
+    VkImage img_ = VK_NULL_HANDLE;
+    VkDeviceMemory mem_ = VK_NULL_HANDLE;
+    VkImageView img_view_ = VK_NULL_HANDLE;
+    Sampler sampler_;
+#elif defined(USE_GL_RENDER)
     uint32_t tex_id_ = 0xffffffff;
 #endif
 
