@@ -78,7 +78,7 @@ class Buffer : public RefCounter {
     eBufAccessFreq freq_;
     uint32_t size_ = 0;
     SparseArray<Node> nodes_;
-    bool is_mapped_ = false;
+    uint32_t mapped_offset_ = 0xffffffff;
 #ifndef NDEBUG
     SmallVector<RangeFence, 4> flushed_ranges_;
 #endif

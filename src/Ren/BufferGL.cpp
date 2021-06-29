@@ -93,7 +93,7 @@ Ren::Buffer &Ren::Buffer::operator=(Buffer &&rhs) noexcept {
         glDeleteBuffers(1, &buf);
     }
 
-    assert(!is_mapped_);
+    assert(mapped_offset_ == 0xffffffff);
 
     handle_ = exchange(rhs.handle_, {});
     name_ = std::move(rhs.name_);
@@ -105,7 +105,7 @@ Ren::Buffer &Ren::Buffer::operator=(Buffer &&rhs) noexcept {
 
     size_ = exchange(rhs.size_, 0);
     nodes_ = std::move(rhs.nodes_);
-    is_mapped_ = exchange(rhs.is_mapped_, false);
+    mapped_offset_ = exchange(rhs.mapped_offset_, 0xffffffff);
 
 #ifndef NDEBUG
     flushed_ranges_ = std::move(rhs.flushed_ranges_);
@@ -333,7 +333,7 @@ void Ren::Buffer::Resize(uint32_t new_size) {
     glBufferData(g_gl_buf_targets[int(type_)], size_, nullptr, GetGLBufUsage(access_, freq_));
 #endif
 
-        if (handle_.id) {
+    if (handle_.id) {
         glBindBuffer(g_gl_buf_targets[int(type_)], GLuint(handle_.id));
         glBindBuffer(GL_COPY_WRITE_BUFFER, gl_buffer);
 
@@ -350,7 +350,7 @@ void Ren::Buffer::Resize(uint32_t new_size) {
 }
 
 uint8_t *Ren::Buffer::MapRange(const uint8_t dir, const uint32_t offset, const uint32_t size, const bool persistent) {
-    assert(!is_mapped_);
+    assert(mapped_offset_ == 0xffffffff);
     assert(offset + size <= size_);
 
 #ifndef NDEBUG
@@ -379,7 +379,7 @@ uint8_t *Ren::Buffer::MapRange(const uint8_t dir, const uint32_t offset, const u
         buf_map_range_flags |= GLbitfield(GL_MAP_WRITE_BIT);
         if ((dir & BufMapRead) == 0) {
             // write only case
-            buf_map_range_flags |= GLbitfield(GL_MAP_INVALIDATE_RANGE_BIT);
+            // buf_map_range_flags |= GLbitfield(GL_MAP_INVALIDATE_RANGE_BIT);
         }
     }
 
@@ -388,26 +388,27 @@ uint8_t *Ren::Buffer::MapRange(const uint8_t dir, const uint32_t offset, const u
                                             buf_map_range_flags);
     glBindBuffer(g_gl_buf_targets[int(type_)], GLuint(0));
 
-    is_mapped_ = true;
+    mapped_offset_ = offset;
     return ret;
 }
 
 void Ren::Buffer::FlushRange(uint32_t offset, uint32_t size) {
+    assert(mapped_offset_ != 0xffffffff);
     glBindBuffer(g_gl_buf_targets[int(type_)], GLuint(handle_.id));
     glFlushMappedBufferRange(g_gl_buf_targets[int(type_)], GLintptr(offset), GLsizeiptr(size));
 #ifndef NDEBUG
-    flushed_ranges_.emplace_back(std::make_pair(offset, size),
+    flushed_ranges_.emplace_back(std::make_pair(mapped_offset_ + offset, size),
                                  SyncFence{glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0)});
 #endif
     glBindBuffer(g_gl_buf_targets[int(type_)], GLuint(0));
 }
 
 void Ren::Buffer::Unmap() {
-    assert(is_mapped_);
+    assert(mapped_offset_ != 0xffffffff);
     glBindBuffer(g_gl_buf_targets[int(type_)], GLuint(handle_.id));
     glUnmapBuffer(g_gl_buf_targets[int(type_)]);
     glBindBuffer(g_gl_buf_targets[int(type_)], GLuint(0));
-    is_mapped_ = false;
+    mapped_offset_ = 0xffffffff;
 }
 
 void Ren::GLUnbindBufferUnits(int start, int count) {

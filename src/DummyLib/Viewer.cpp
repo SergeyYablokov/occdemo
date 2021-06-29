@@ -258,6 +258,7 @@ void Viewer::Frame() {
 
     // Make sure all operations have finished
     gl_ctx->in_flight_fences[ctx->backend_frame].ClientWaitSync();
+    gl_ctx->in_flight_fences[ctx->backend_frame] = {};
 #endif
 
     auto state_manager = GetComponent<GameStateManager>(STATE_MANAGER_KEY);
