@@ -58,9 +58,9 @@ Gui::Renderer::Renderer(Ren::Context &ctx, const JsObject &config) : ctx_(ctx) {
     char name_buf[32];
 
     sprintf(name_buf, "UI_VertexBuffer [%i]", instance_index);
-    vertex_buf_ =
-        ctx_.CreateBuffer(name_buf, Ren::eBufType::VertexAttribs, Ren::eBufAccessType::Draw,
-                          Ren::eBufAccessFreq::Dynamic, Ren::MaxFramesInFlight * MaxVerticesPerRange * sizeof(vertex_t));
+    vertex_buf_ = ctx_.CreateBuffer(name_buf, Ren::eBufType::VertexAttribs, Ren::eBufAccessType::Draw,
+                                    Ren::eBufAccessFreq::Dynamic,
+                                    Ren::MaxFramesInFlight * MaxVerticesPerRange * sizeof(vertex_t));
 
     sprintf(name_buf, "UI_VertexStageBuffer [%i]", instance_index);
     vertex_stage_buf_ =
@@ -367,25 +367,8 @@ Gui::Renderer::Renderer(Ren::Context &ctx, const JsObject &config) : ctx_(ctx) {
         assert(result == VK_SUCCESS && "Failed to create graphics pipeline!");
     }
 
-    { // create framebuffers
-        VkImageView framebuf_attachments[1];
-
-        VkFramebufferCreateInfo framebuf_create_info = {};
-        framebuf_create_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-        framebuf_create_info.renderPass = render_pass_;
-        framebuf_create_info.attachmentCount = 1;
-        framebuf_create_info.pAttachments = framebuf_attachments;
-        framebuf_create_info.width = ctx_.w();
-        framebuf_create_info.height = ctx_.h();
-        framebuf_create_info.layers = 1;
-
-        framebuffers_.resize(vk_ctx->present_images.size());
-        for (uint32_t i = 0; i < vk_ctx->present_images.size(); i++) {
-            framebuf_attachments[0] = vk_ctx->present_image_views[i];
-            const VkResult res = vkCreateFramebuffer(vk_ctx->device, &framebuf_create_info, nullptr, &framebuffers_[i]);
-            assert(res == VK_SUCCESS && "Failed to create framebuffer!");
-        }
-    }
+    framebuffers_.resize(vk_ctx->present_images.size(), VK_NULL_HANDLE);
+    present_image_views_.resize(vk_ctx->present_images.size(), VK_NULL_HANDLE);
 }
 
 Gui::Renderer::~Renderer() {
@@ -445,7 +428,7 @@ void Gui::Renderer::Draw(int w, int h) {
     //
     if (vertex_count_[ctx_.backend_frame]) {
         const uint32_t data_offset = uint32_t(ctx_.backend_frame) * MaxVerticesPerRange * sizeof(vertex_t);
-        const uint32_t data_size = uint32_t{vertex_count_[ctx_.backend_frame] * sizeof(vertex_t)};
+        const uint32_t data_size = uint32_t(vertex_count_[ctx_.backend_frame] * sizeof(vertex_t));
 
         vertex_stage_buf_->FlushRange(data_offset, data_size);
 
@@ -492,7 +475,7 @@ void Gui::Renderer::Draw(int w, int h) {
 
     if (index_count_[ctx_.backend_frame]) {
         const uint32_t data_offset = uint32_t(ctx_.backend_frame) * MaxIndicesPerRange * sizeof(uint16_t);
-        const uint32_t data_size = uint32_t{index_count_[ctx_.backend_frame] * sizeof(uint16_t)};
+        const uint32_t data_size = uint32_t(index_count_[ctx_.backend_frame] * sizeof(uint16_t));
 
         index_stage_buf_->FlushRange(data_offset, data_size);
 
@@ -570,8 +553,37 @@ void Gui::Renderer::Draw(int w, int h) {
     atlas.last_stage_mask |= VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
 
     //
+    // (Re)create framebuffer
+    //
+
+    if (present_image_views_[vk_ctx->active_present_image] !=
+        vk_ctx->present_image_views[vk_ctx->active_present_image]) { // create framebuffer
+        if (framebuffers_[vk_ctx->active_present_image]) {
+            vkDestroyFramebuffer(vk_ctx->device, framebuffers_[vk_ctx->active_present_image], nullptr);
+        }
+
+        present_image_views_[vk_ctx->active_present_image] = vk_ctx->present_image_views[vk_ctx->active_present_image];
+
+        VkFramebufferCreateInfo framebuf_create_info = {};
+        framebuf_create_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+        framebuf_create_info.renderPass = render_pass_;
+        framebuf_create_info.attachmentCount = 1;
+        framebuf_create_info.pAttachments = &present_image_views_[vk_ctx->active_present_image];
+        framebuf_create_info.width = ctx_.w();
+        framebuf_create_info.height = ctx_.h();
+        framebuf_create_info.layers = 1;
+
+        const VkResult res = vkCreateFramebuffer(vk_ctx->device, &framebuf_create_info, nullptr,
+                                                 &framebuffers_[vk_ctx->active_present_image]);
+        if (res != VK_SUCCESS) {
+            ctx_.log()->Error("Failed to create framebuffer!");
+        }
+    }
+
+    //
     // Submit draw call
     //
+
     VkRenderPassBeginInfo render_pass_begin_info = {};
     render_pass_begin_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
     render_pass_begin_info.renderPass = render_pass_;
@@ -594,11 +606,11 @@ void Gui::Renderer::Draw(int w, int h) {
     vkCmdBindIndexBuffer(cmd_buf, index_buf_->vk_handle(), 0, VK_INDEX_TYPE_UINT16);
 
     vkCmdDrawIndexed(cmd_buf,
-                     index_count_[ctx_.backend_frame],        // index count
-                     1,                                       // instance count
-                     ctx_.backend_frame * MaxIndicesPerRange, // first index
+                     index_count_[ctx_.backend_frame],         // index count
+                     1,                                        // instance count
+                     ctx_.backend_frame * MaxIndicesPerRange,  // first index
                      ctx_.backend_frame * MaxVerticesPerRange, // vertex offset
-                     0);                                      // first instance
+                     0);                                       // first instance
 
     vkCmdEndRenderPass(cmd_buf);
 

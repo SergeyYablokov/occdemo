@@ -110,6 +110,7 @@ class Renderer {
     VkPipeline pipeline_ = {};
 
     Ren::SmallVector<VkFramebuffer, 4> framebuffers_;
+    Ren::SmallVector<VkImageView, 4> present_image_views_;
 #elif defined(USE_GL_RENDER)
     Ren::Vao vao_;
 

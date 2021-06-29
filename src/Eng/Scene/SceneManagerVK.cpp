@@ -31,7 +31,7 @@ PersistentBuffers SceneManager::persistent_bufs() const {
 }
 
 void SceneManager::InsertPersistentBuffersFence() {
-    if (!scene_data_.mat_buf_sync[scene_data_.mat_buf_index]) {
+    if (!scene_data_.mat_buf_fences[scene_data_.mat_buf_index]) {
         //scene_data_.mat_buf_sync[scene_data_.mat_buf_index] =
        //     glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
     }

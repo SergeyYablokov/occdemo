@@ -7,6 +7,7 @@
 #undef max
 #undef min
 #undef None
+#undef Success
 
 #ifdef __VK_API_DEF__
 #define EXTERN_FUNC
@@ -91,7 +92,9 @@
 #define vkBindImageMemory ren_vkBindImageMemory
 
 #define vkCreateRenderPass ren_vkCreateRenderPass
+
 #define vkCreateFramebuffer ren_vkCreateFramebuffer
+#define vkDestroyFramebuffer ren_vkDestroyFramebuffer
 
 #define vkCreateBuffer ren_vkCreateBuffer
 #define vkGetBufferMemoryRequirements ren_vkGetBufferMemoryRequirements
@@ -230,7 +233,9 @@ EXTERN_FUNC PFN_vkFreeMemory ren_vkFreeMemory;
 EXTERN_FUNC PFN_vkBindImageMemory ren_vkBindImageMemory;
 
 EXTERN_FUNC PFN_vkCreateRenderPass ren_vkCreateRenderPass;
+
 EXTERN_FUNC PFN_vkCreateFramebuffer ren_vkCreateFramebuffer;
+EXTERN_FUNC PFN_vkDestroyFramebuffer ren_vkDestroyFramebuffer;
 
 EXTERN_FUNC PFN_vkCreateBuffer ren_vkCreateBuffer;
 EXTERN_FUNC PFN_vkGetBufferMemoryRequirements ren_vkGetBufferMemoryRequirements;

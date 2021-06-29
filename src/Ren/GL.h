@@ -329,6 +329,7 @@ EXTERN_FUNC PFNGLBINDTEXTUREUNITCOMPPROC        ren_glBindTextureUnit_Comp;
 #define GL_MAP_UNSYNCHRONIZED_BIT           0x0020
 #define GL_MAP_PERSISTENT_BIT               0x0040
 #define GL_DYNAMIC_STORAGE_BIT              0x0100
+#define GL_CLIENT_STORAGE_BIT               0x0200
 
 #define GL_COMPRESSED_RED       0x8225
 #define GL_COMPRESSED_RG        0x8226

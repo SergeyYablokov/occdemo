@@ -121,7 +121,7 @@ Ren::Buffer &Ren::Buffer::operator=(Buffer &&rhs) noexcept {
         vkFreeMemory(ctx_->device, mem_, nullptr);
     }
 
-    assert(!is_mapped_);
+    assert(mapped_offset_ == 0xffffffff);
 
     handle_ = exchange(rhs.handle_, {});
     name_ = std::move(rhs.name_);
@@ -135,7 +135,7 @@ Ren::Buffer &Ren::Buffer::operator=(Buffer &&rhs) noexcept {
 
     size_ = exchange(rhs.size_, 0);
     nodes_ = std::move(rhs.nodes_);
-    is_mapped_ = exchange(rhs.is_mapped_, false);
+    mapped_offset_ = exchange(rhs.mapped_offset_, 0xffffffff);
 
 #ifndef NDEBUG
     flushed_ranges_ = std::move(rhs.flushed_ranges_);
@@ -428,7 +428,7 @@ void Ren::Buffer::Resize(uint32_t new_size) {
 }
 
 uint8_t *Ren::Buffer::MapRange(const uint8_t dir, const uint32_t offset, const uint32_t size, const bool persistent) {
-    assert(!is_mapped_);
+    assert(mapped_offset_ == 0xffffffff);
     assert(offset + size <= size_);
     assert(type_ == eBufType::Stage);
 
@@ -453,7 +453,7 @@ uint8_t *Ren::Buffer::MapRange(const uint8_t dir, const uint32_t offset, const u
         vkMapMemory(ctx_->device, mem_, VkDeviceSize(offset_aligned), VkDeviceSize(size_aligned), 0, &mapped);
     assert(res == VK_SUCCESS && "Failed to map memory!");
 
-    is_mapped_ = true;
+    mapped_offset_ = offset;
     return reinterpret_cast<uint8_t *>(mapped) + (offset % align_to);
 }
 
@@ -485,9 +485,9 @@ void Ren::Buffer::FlushRange(uint32_t offset, uint32_t size) {
 }
 
 void Ren::Buffer::Unmap() {
-    assert(is_mapped_);
+    assert(mapped_offset_ != 0xffffffff);
     vkUnmapMemory(ctx_->device, mem_);
-    is_mapped_ = false;
+    mapped_offset_ = 0xffffffff;
 }
 
 void Ren::Buffer::Print(ILog *log) {

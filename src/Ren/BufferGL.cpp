@@ -56,7 +56,8 @@ GLenum GetGLBufUsage(const eBufAccessType access, const eBufAccessFreq freq) {
 }
 
 GLbitfield GetGLBufFlags(const eBufAccessType access, const eBufAccessFreq freq) {
-    GLbitfield flags = GL_DYNAMIC_STORAGE_BIT | GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT;
+    GLbitfield flags =
+        GL_DYNAMIC_STORAGE_BIT | GL_MAP_WRITE_BIT | /*GL_CLIENT_STORAGE_BIT |*/ GL_MAP_PERSISTENT_BIT;
     if (access == eBufAccessType::Read) {
         flags |= GL_MAP_READ_BIT;
     }
