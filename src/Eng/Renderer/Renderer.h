@@ -44,8 +44,7 @@ class ShaderLoader;
 
 class Renderer {
   public:
-    Renderer(Ren::Context &ctx, ShaderLoader &sh,
-             std::shared_ptr<Sys::ThreadPool> threads);
+    Renderer(Ren::Context &ctx, ShaderLoader &sh, std::shared_ptr<Sys::ThreadPool> threads);
     ~Renderer();
 
     uint32_t render_flags() const { return render_flags_; }
@@ -60,27 +59,23 @@ class Renderer {
 
     void BlitPixels(const void *data, int w, int h, Ren::eTexFormat format);
     void BlitPixelsTonemap(const void *data, int w, int h, Ren::eTexFormat format);
-    void BlitBuffer(float px, float py, float sx, float sy, const FrameBuf &buf,
-                    int first_att, int att_count, float multiplier = 1.0f);
-    void BlitTexture(float px, float py, float sx, float sy, const Ren::Tex2DRef &tex,
-                     float multiplier = 1.0f, bool is_ms = false);
+    void BlitBuffer(float px, float py, float sx, float sy, const FrameBuf &buf, int first_att, int att_count,
+                    float multiplier = 1.0f);
+    void BlitTexture(float px, float py, float sx, float sy, const Ren::Tex2DRef &tex, float multiplier = 1.0f,
+                     bool is_ms = false);
 
-    void BlitToTempProbeFace(const FrameBuf &src_buf, const ProbeStorage &dst_store,
-                             int face);
+    void BlitToTempProbeFace(const FrameBuf &src_buf, const ProbeStorage &dst_store, int face);
     void BlitPrefilterFromTemp(const ProbeStorage &dst_store, int probe_index);
-    bool BlitProjectSH(const ProbeStorage &store, int probe_index, int iteration,
-                       LightProbe &probe);
+    bool BlitProjectSH(const ProbeStorage &store, int probe_index, int iteration, LightProbe &probe);
 
   private:
     Ren::Context &ctx_;
     ShaderLoader &sh_;
     std::shared_ptr<Sys::ThreadPool> threads_;
     SWcull_ctx cull_ctx_ = {};
-    Ren::ProgramRef blit_prog_, blit_ms_prog_, blit_combine_prog_, blit_down_prog_,
-        blit_gauss_prog_, blit_depth_prog_, blit_rgbm_prog_, blit_mipmap_prog_,
-        blit_prefilter_prog_, blit_project_sh_prog_;
-    Ren::Tex2DRef dummy_black_, dummy_white_, rand2d_8x8_, rand2d_dirs_4x4_, brdf_lut_,
-        cone_rt_lut_, noise_tex_;
+    Ren::ProgramRef blit_prog_, blit_ms_prog_, blit_combine_prog_, blit_down_prog_, blit_gauss_prog_, blit_depth_prog_,
+        blit_rgbm_prog_, blit_mipmap_prog_, blit_prefilter_prog_, blit_project_sh_prog_;
+    Ren::Tex2DRef dummy_black_, dummy_white_, rand2d_8x8_, rand2d_dirs_4x4_, brdf_lut_, cone_rt_lut_, noise_tex_;
 
     FrameBuf probe_sample_buf_;
     Ren::Tex2DRef history_tex_, down_tex_4x_;
@@ -96,8 +91,8 @@ class Renderer {
          EnableBloom | EnableTaa /*EnableMsaa | EnableFxaa*/ | EnableTimers | EnableDOF /*|
          DebugEllipsoids*/);
 #else
-        (EnableZFill | EnableCulling | EnableSSR | EnableLightmap | EnableLights |
-         EnableDecals | EnableShadows | EnableTonemap | EnableDOF | EnableTimers);
+        (EnableZFill | EnableCulling | EnableSSR | EnableLightmap | EnableLights | EnableDecals | EnableShadows |
+         EnableTonemap | EnableDOF | EnableTimers);
 #endif
     uint32_t render_flags_ = default_flags;
 
@@ -130,8 +125,8 @@ class Renderer {
 
     ShadowFrustumCache sun_shadow_cache_[4];
 
-    uint32_t temp_buf1_vtx_offset_, temp_buf2_vtx_offset_, temp_buf_ndx_offset_,
-        skinned_buf1_vtx_offset_, skinned_buf2_vtx_offset_;
+    uint32_t temp_buf1_vtx_offset_, temp_buf2_vtx_offset_, temp_buf_ndx_offset_, skinned_buf1_vtx_offset_,
+        skinned_buf2_vtx_offset_;
 
 #if defined(USE_GL_RENDER)
     Ren::Tex2DRef temp_tex_;
@@ -192,8 +187,7 @@ class Renderer {
     RpTAA rp_taa_ = {prim_draw_};
     RpDOF rp_dof_ = {prim_draw_};
     RpBlur rp_blur_ = {prim_draw_};
-    RpSampleBrightness rp_sample_brightness_ = {prim_draw_, Ren::Vec2i{16, 8},
-                                                Ren::MaxFramesInFlight};
+    RpSampleBrightness rp_sample_brightness_ = {prim_draw_, Ren::Vec2i{16, 8}, Ren::MaxFramesInFlight};
     RpCombine rp_combine_ = {prim_draw_};
     RpFXAA rp_fxaa_ = {prim_draw_};
 
@@ -214,22 +208,16 @@ class Renderer {
     static uint64_t GetGpuTimeBlockingUs();
 
     // Parallel Jobs
-    static void ClusterItemsForZSlice_Job(int slice, const Ren::Frustum *sub_frustums,
-                                         const BBox *decals_boxes,
-                                         const LightSource *const *litem_to_lsource,
-                                         DrawList &list, std::atomic_int &items_count);
+    static void ClusterItemsForZSlice_Job(int slice, const Ren::Frustum *sub_frustums, const BBox *decals_boxes,
+                                          const LightSource *const *litem_to_lsource, DrawList &list,
+                                          std::atomic_int &items_count);
 
     // Generate auxiliary textures
-    static std::unique_ptr<uint16_t[]> Generate_BRDF_LUT(int res,
-                                                         std::string &out_c_header);
-    static std::unique_ptr<int8_t[]> Generate_PeriodicPerlin(int res,
-                                                             std::string &out_c_header);
-    static std::unique_ptr<uint8_t[]>
-    Generate_SSSProfile_LUT(int res, int gauss_count, const float gauss_variances[],
-                            const Ren::Vec3f diffusion_weights[]);
-    static std::unique_ptr<int16_t[]> Generate_RandDirs(int res,
-                                                        std::string &out_c_header);
-    static std::unique_ptr<uint8_t[]> Generate_ConeTraceLUT(int resx, int resy,
-                                                            const float cone_angles[4],
+    static std::unique_ptr<uint16_t[]> Generate_BRDF_LUT(int res, std::string &out_c_header);
+    static std::unique_ptr<int8_t[]> Generate_PeriodicPerlin(int res, std::string &out_c_header);
+    static std::unique_ptr<uint8_t[]> Generate_SSSProfile_LUT(int res, int gauss_count, const float gauss_variances[],
+                                                              const Ren::Vec3f diffusion_weights[]);
+    static std::unique_ptr<int16_t[]> Generate_RandDirs(int res, std::string &out_c_header);
+    static std::unique_ptr<uint8_t[]> Generate_ConeTraceLUT(int resx, int resy, const float cone_angles[4],
                                                             std::string &out_c_header);
 };

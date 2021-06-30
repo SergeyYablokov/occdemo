@@ -29,8 +29,7 @@ void test_async_file() {
         Sys::AsyncFileReader reader;
         Sys::DefaultFileReadBuf buf;
 
-        require(reader.ReadFileBlocking(test_file_name, 0 /* read_offset */,
-                                        Sys::WholeFile, buf));
+        require(reader.ReadFileBlocking(test_file_name, 0 /* read_offset */, Sys::WholeFile, buf));
         require(buf.data_len() == test_file_size);
 
         for (size_t i = 0; i < buf.data_len(); i += 1000) {
@@ -46,8 +45,8 @@ void test_async_file() {
         Sys::AsyncFileReader reader;
 
         size_t file_size = file_data_buf_size;
-        require(reader.ReadFileBlocking(test_file_name, 0 /* read_offset */,
-                                        Sys::WholeFile, file_data_buf.get(), file_size));
+        require(reader.ReadFileBlocking(test_file_name, 0 /* read_offset */, Sys::WholeFile, file_data_buf.get(),
+                                        file_size));
         require(file_size == test_file_size);
 
         for (size_t i = 0; i < file_size; i += 1000) {
@@ -60,8 +59,7 @@ void test_async_file() {
         Sys::DefaultFileReadBuf buf;
         Sys::FileReadEvent event;
 
-        require(reader.ReadFileNonBlocking(test_file_name, 0 /* read_offset */,
-                                           Sys::WholeFile, buf, event));
+        require(reader.ReadFileNonBlocking(test_file_name, 0 /* read_offset */, Sys::WholeFile, buf, event));
 
         size_t bytes_read;
         require(event.GetResult(true, &bytes_read) == Sys::eFileReadResult::Successful);
@@ -79,12 +77,10 @@ void test_async_file() {
         Sys::DefaultFileReadBuf buf;
         Sys::FileReadEvent event;
 
-        require(reader.ReadFileNonBlocking(test_file_name, 0 /* read_offset */,
-                                           Sys::WholeFile, buf, event));
+        require(reader.ReadFileNonBlocking(test_file_name, 0 /* read_offset */, Sys::WholeFile, buf, event));
 
         size_t bytes_read;
-        while (event.GetResult(false /* block */, &bytes_read) ==
-               Sys::eFileReadResult::Pending) {
+        while (event.GetResult(false /* block */, &bytes_read) == Sys::eFileReadResult::Pending) {
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
         }
 

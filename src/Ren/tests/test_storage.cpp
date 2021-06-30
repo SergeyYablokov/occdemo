@@ -12,13 +12,13 @@ void test_storage() {
         MyObj() : ref(nullptr) {}
         MyObj(const char *name, int *r) : name_(name), ref(r) { (*ref)++; }
         MyObj(const MyObj &rhs) = delete;
-        MyObj(MyObj &&rhs) {
+        MyObj(MyObj &&rhs) noexcept {
             name_ = std::move(rhs.name_);
             ref = rhs.ref;
             rhs.ref = nullptr;
         }
         MyObj &operator=(const MyObj &rhs) = delete;
-        MyObj &operator=(MyObj &&rhs) {
+        MyObj &operator=(MyObj &&rhs) noexcept {
             if (ref) {
                 (*ref)--;
             }
