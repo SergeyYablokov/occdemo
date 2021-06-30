@@ -704,11 +704,8 @@ void GSBaseState::Draw() {
                 }
             }
 
-#if defined(USE_VK_RENDER)
-#elif defined(USE_GL_RENDER)
             // Target frontend to next frame
             ren_ctx_->frontend_frame = (ren_ctx_->backend_frame + 1) % Ren::MaxFramesInFlight;
-#endif
 
             notified_ = true;
             thr_notify_.notify_one();

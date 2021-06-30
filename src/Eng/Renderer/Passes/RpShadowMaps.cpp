@@ -6,10 +6,8 @@
 #include "../Renderer_Structs.h"
 
 void RpShadowMaps::Setup(RpBuilder &builder, const DrawList &list, const PersistentBuffers *bufs,
-                         const int orphan_index, const char instances_buf[], const char shared_data_buf[],
+                         const char instances_buf[], const char shared_data_buf[],
                          const char shadowmap_tex[], Ren::TexHandle noise_tex) {
-    orphan_index_ = orphan_index;
-
     materials_ = list.materials;
     shadow_batches_ = list.shadow_batches;
     shadow_batch_indices_ = list.shadow_batch_indices;

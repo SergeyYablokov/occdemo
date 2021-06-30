@@ -275,7 +275,6 @@ struct MaterialData {
 static_assert(sizeof(MaterialData) == 48, "!");
 
 // Constant that controls buffers orphaning
-const int FrameSyncWindow = 3;
 const size_t SkinTransformsBufChunkSize = sizeof(SkinTransform) * REN_MAX_SKIN_XFORMS_TOTAL;
 const size_t ShapeKeysBufChunkSize = sizeof(ShapeKeyData) * REN_MAX_SHAPE_KEYS_TOTAL;
 const size_t SkinRegionsBufChunkSize = sizeof(SkinRegion) * REN_MAX_SKIN_REGIONS_TOTAL;

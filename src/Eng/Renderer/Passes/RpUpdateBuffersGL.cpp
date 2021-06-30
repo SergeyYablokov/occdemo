@@ -8,15 +8,7 @@
 #include "../Renderer_Structs.h"
 
 void RpUpdateBuffers::Execute(RpBuilder &builder) {
-    if (fences_[orphan_index_]) {
-        auto sync = reinterpret_cast<GLsync>(fences_[orphan_index_]);
-        const GLenum res = glClientWaitSync(sync, 0, 1000000000);
-        if (res != GL_ALREADY_SIGNALED && res != GL_CONDITION_SATISFIED) {
-            builder.log()->Error("RpUpdateBuffers: Wait failed!");
-        }
-        glDeleteSync(sync);
-        fences_[orphan_index_] = nullptr;
-    }
+    Ren::Context &ctx = builder.ctx();
 
     const GLbitfield BufferRangeMapFlags = GLbitfield(GL_MAP_WRITE_BIT) | GLbitfield(GL_MAP_INVALIDATE_RANGE_BIT) |
                                            GLbitfield(GL_MAP_UNSYNCHRONIZED_BIT) |
@@ -29,10 +21,10 @@ void RpUpdateBuffers::Execute(RpBuilder &builder) {
     if (skin_transforms_.count) {
         glBindBuffer(GL_COPY_READ_BUFFER, GLuint(skin_transforms_stage_buf.ref->id()));
 
-        void *pinned_mem = glMapBufferRange(GL_COPY_READ_BUFFER, orphan_index_ * SkinTransformsBufChunkSize,
+        void *pinned_mem = glMapBufferRange(GL_COPY_READ_BUFFER, ctx.backend_frame * SkinTransformsBufChunkSize,
                                             SkinTransformsBufChunkSize, BufferRangeMapFlags);
+        const size_t skin_transforms_mem_size = skin_transforms_.count * sizeof(SkinTransform);
         if (pinned_mem) {
-            const size_t skin_transforms_mem_size = skin_transforms_.count * sizeof(SkinTransform);
             memcpy(pinned_mem, skin_transforms_.data, skin_transforms_mem_size);
             glFlushMappedBufferRange(GL_COPY_READ_BUFFER, 0, skin_transforms_mem_size);
             glUnmapBuffer(GL_COPY_READ_BUFFER);
@@ -42,8 +34,8 @@ void RpUpdateBuffers::Execute(RpBuilder &builder) {
 
         glBindBuffer(GL_COPY_WRITE_BUFFER, GLuint(skin_transforms_buf.ref->id()));
         glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER,
-                            orphan_index_ * SkinTransformsBufChunkSize /* readOffset */, 0 /* writeOffset */,
-                            SkinTransformsBufChunkSize);
+                            ctx.backend_frame * SkinTransformsBufChunkSize /* readOffset */, 0 /* writeOffset */,
+                            skin_transforms_mem_size);
 
         glBindBuffer(GL_COPY_READ_BUFFER, 0);
         glBindBuffer(GL_COPY_WRITE_BUFFER, 0);
@@ -55,10 +47,10 @@ void RpUpdateBuffers::Execute(RpBuilder &builder) {
     if (shape_keys_.count) {
         glBindBuffer(GL_COPY_READ_BUFFER, GLuint(shape_keys_stage_buf.ref->id()));
 
-        void *pinned_mem = glMapBufferRange(GL_COPY_READ_BUFFER, orphan_index_ * ShapeKeysBufChunkSize,
+        void *pinned_mem = glMapBufferRange(GL_COPY_READ_BUFFER, ctx.backend_frame * ShapeKeysBufChunkSize,
                                             ShapeKeysBufChunkSize, BufferRangeMapFlags);
+        const size_t shape_keys_mem_size = shape_keys_.count * sizeof(ShapeKeyData);
         if (pinned_mem) {
-            const size_t shape_keys_mem_size = shape_keys_.count * sizeof(ShapeKeyData);
             memcpy(pinned_mem, shape_keys_.data, shape_keys_mem_size);
             glFlushMappedBufferRange(GL_COPY_READ_BUFFER, 0, shape_keys_mem_size);
             glUnmapBuffer(GL_COPY_READ_BUFFER);
@@ -68,14 +60,12 @@ void RpUpdateBuffers::Execute(RpBuilder &builder) {
 
         glBindBuffer(GL_COPY_WRITE_BUFFER, GLuint(shape_keys_buf.ref->id()));
         glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER,
-                            orphan_index_ * ShapeKeysBufChunkSize /* readOffset */, 0 /* writeOffset */,
-                            ShapeKeysBufChunkSize);
+                            ctx.backend_frame * ShapeKeysBufChunkSize /* readOffset */, 0 /* writeOffset */,
+                            shape_keys_mem_size);
 
         glBindBuffer(GL_COPY_READ_BUFFER, 0);
         glBindBuffer(GL_COPY_WRITE_BUFFER, 0);
     }
-
-    Ren::Context &ctx = builder.ctx();
 
     RpAllocBuf &instances_buf = builder.GetWriteBuffer(instances_buf_);
     RpAllocBuf &instances_stage_buf = builder.GetWriteBuffer(instances_stage_buf_);
@@ -89,10 +79,10 @@ void RpUpdateBuffers::Execute(RpBuilder &builder) {
     if (instances_.count) {
         glBindBuffer(GL_COPY_READ_BUFFER, GLuint(instances_stage_buf.ref->id()));
 
-        void *pinned_mem = glMapBufferRange(GL_COPY_READ_BUFFER, orphan_index_ * InstanceDataBufChunkSize,
+        void *pinned_mem = glMapBufferRange(GL_COPY_READ_BUFFER, ctx.backend_frame * InstanceDataBufChunkSize,
                                             InstanceDataBufChunkSize, BufferRangeMapFlags);
+        const size_t instance_mem_size = instances_.count * sizeof(InstanceData);
         if (pinned_mem) {
-            const size_t instance_mem_size = instances_.count * sizeof(InstanceData);
             memcpy(pinned_mem, instances_.data, instance_mem_size);
             glFlushMappedBufferRange(GL_COPY_READ_BUFFER, 0, instance_mem_size);
             glUnmapBuffer(GL_COPY_READ_BUFFER);
@@ -102,8 +92,8 @@ void RpUpdateBuffers::Execute(RpBuilder &builder) {
 
         glBindBuffer(GL_COPY_WRITE_BUFFER, GLuint(instances_buf.ref->id()));
         glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER,
-                            orphan_index_ * InstanceDataBufChunkSize /* readOffset */, 0 /* writeOffset */,
-                            InstanceDataBufChunkSize);
+                            ctx.backend_frame * InstanceDataBufChunkSize /* readOffset */, 0 /* writeOffset */,
+                            instance_mem_size);
         glBindBuffer(GL_COPY_READ_BUFFER, 0);
         glBindBuffer(GL_COPY_WRITE_BUFFER, 0);
     }
@@ -120,10 +110,10 @@ void RpUpdateBuffers::Execute(RpBuilder &builder) {
     if (cells_.count) {
         glBindBuffer(GL_COPY_READ_BUFFER, GLuint(cells_stage_buf.ref->id()));
 
-        void *pinned_mem = glMapBufferRange(GL_COPY_READ_BUFFER, orphan_index_ * CellsBufChunkSize, CellsBufChunkSize,
-                                            BufferRangeMapFlags);
+        void *pinned_mem = glMapBufferRange(GL_COPY_READ_BUFFER, ctx.backend_frame * CellsBufChunkSize,
+                                            CellsBufChunkSize, BufferRangeMapFlags);
+        const size_t cells_mem_size = cells_.count * sizeof(CellData);
         if (pinned_mem) {
-            const size_t cells_mem_size = cells_.count * sizeof(CellData);
             memcpy(pinned_mem, cells_.data, cells_mem_size);
             glFlushMappedBufferRange(GL_COPY_READ_BUFFER, 0, cells_mem_size);
             glUnmapBuffer(GL_COPY_READ_BUFFER);
@@ -133,7 +123,8 @@ void RpUpdateBuffers::Execute(RpBuilder &builder) {
 
         glBindBuffer(GL_COPY_WRITE_BUFFER, GLuint(cells_buf.ref->id()));
         glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER,
-                            orphan_index_ * CellsBufChunkSize /* readOffset */, 0 /* writeOffset */, CellsBufChunkSize);
+                            ctx.backend_frame * CellsBufChunkSize /* readOffset */, 0 /* writeOffset */,
+                            cells_mem_size);
         glBindBuffer(GL_COPY_READ_BUFFER, 0);
         glBindBuffer(GL_COPY_WRITE_BUFFER, 0);
     }
@@ -150,10 +141,10 @@ void RpUpdateBuffers::Execute(RpBuilder &builder) {
     if (light_sources_.count) {
         glBindBuffer(GL_COPY_READ_BUFFER, GLuint(lights_stage_buf.ref->id()));
 
-        void *pinned_mem = glMapBufferRange(GL_COPY_READ_BUFFER, orphan_index_ * LightsBufChunkSize, LightsBufChunkSize,
-                                            BufferRangeMapFlags);
+        void *pinned_mem = glMapBufferRange(GL_COPY_READ_BUFFER, ctx.backend_frame * LightsBufChunkSize,
+                                            LightsBufChunkSize, BufferRangeMapFlags);
+        const size_t lights_mem_size = light_sources_.count * sizeof(LightSourceItem);
         if (pinned_mem) {
-            const size_t lights_mem_size = light_sources_.count * sizeof(LightSourceItem);
             memcpy(pinned_mem, light_sources_.data, lights_mem_size);
             glFlushMappedBufferRange(GL_COPY_READ_BUFFER, 0, lights_mem_size);
             glUnmapBuffer(GL_COPY_READ_BUFFER);
@@ -163,8 +154,8 @@ void RpUpdateBuffers::Execute(RpBuilder &builder) {
 
         glBindBuffer(GL_COPY_WRITE_BUFFER, GLuint(lights_buf.ref->id()));
         glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER,
-                            orphan_index_ * LightsBufChunkSize /* readOffset */, 0 /* writeOffset */,
-                            LightsBufChunkSize);
+                            ctx.backend_frame * LightsBufChunkSize /* readOffset */, 0 /* writeOffset */,
+                            lights_mem_size);
         glBindBuffer(GL_COPY_READ_BUFFER, 0);
         glBindBuffer(GL_COPY_WRITE_BUFFER, 0);
     }
@@ -181,10 +172,10 @@ void RpUpdateBuffers::Execute(RpBuilder &builder) {
     if (decals_.count) {
         glBindBuffer(GL_COPY_READ_BUFFER, GLuint(decals_stage_buf.ref->id()));
 
-        void *pinned_mem = glMapBufferRange(GL_COPY_READ_BUFFER, orphan_index_ * DecalsBufChunkSize, DecalsBufChunkSize,
-                                            BufferRangeMapFlags);
+        void *pinned_mem = glMapBufferRange(GL_COPY_READ_BUFFER, ctx.backend_frame * DecalsBufChunkSize,
+                                            DecalsBufChunkSize, BufferRangeMapFlags);
+        const size_t decals_mem_size = decals_.count * sizeof(DecalItem);
         if (pinned_mem) {
-            const size_t decals_mem_size = decals_.count * sizeof(DecalItem);
             memcpy(pinned_mem, decals_.data, decals_mem_size);
             glFlushMappedBufferRange(GL_COPY_READ_BUFFER, 0, decals_mem_size);
             glUnmapBuffer(GL_COPY_READ_BUFFER);
@@ -194,8 +185,8 @@ void RpUpdateBuffers::Execute(RpBuilder &builder) {
 
         glBindBuffer(GL_COPY_WRITE_BUFFER, GLuint(decals_buf.ref->id()));
         glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER,
-                            orphan_index_ * DecalsBufChunkSize /* readOffset */, 0 /* writeOffset */,
-                            DecalsBufChunkSize);
+                            ctx.backend_frame * DecalsBufChunkSize /* readOffset */, 0 /* writeOffset */,
+                            decals_mem_size);
         glBindBuffer(GL_COPY_READ_BUFFER, 0);
         glBindBuffer(GL_COPY_WRITE_BUFFER, 0);
     }
@@ -212,10 +203,10 @@ void RpUpdateBuffers::Execute(RpBuilder &builder) {
     if (items_.count) {
         glBindBuffer(GL_COPY_READ_BUFFER, GLuint(items_stage_buf.ref->id()));
 
-        void *pinned_mem = glMapBufferRange(GL_COPY_READ_BUFFER, orphan_index_ * ItemsBufChunkSize, ItemsBufChunkSize,
-                                            BufferRangeMapFlags);
+        void *pinned_mem = glMapBufferRange(GL_COPY_READ_BUFFER, ctx.backend_frame * ItemsBufChunkSize,
+                                            ItemsBufChunkSize, BufferRangeMapFlags);
+        const size_t items_mem_size = items_.count * sizeof(ItemData);
         if (pinned_mem) {
-            const size_t items_mem_size = items_.count * sizeof(ItemData);
             memcpy(pinned_mem, items_.data, items_mem_size);
             glFlushMappedBufferRange(GL_COPY_READ_BUFFER, 0, items_mem_size);
             glUnmapBuffer(GL_COPY_READ_BUFFER);
@@ -225,14 +216,30 @@ void RpUpdateBuffers::Execute(RpBuilder &builder) {
 
         glBindBuffer(GL_COPY_WRITE_BUFFER, GLuint(items_buf.ref->id()));
         glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER,
-                            orphan_index_ * ItemsBufChunkSize /* readOffset */, 0 /* writeOffset */, ItemsBufChunkSize);
+                            ctx.backend_frame * ItemsBufChunkSize /* readOffset */, 0 /* writeOffset */,
+                            items_mem_size);
         glBindBuffer(GL_COPY_READ_BUFFER, 0);
         glBindBuffer(GL_COPY_WRITE_BUFFER, 0);
     } else {
-        glBindBuffer(GL_TEXTURE_BUFFER, GLuint(items_buf.ref->id()));
-        ItemData dummy = {};
-        glBufferSubData(GL_TEXTURE_BUFFER, orphan_index_ * ItemsBufChunkSize, sizeof(ItemData), &dummy);
-        glBindBuffer(GL_TEXTURE_BUFFER, 0);
+        glBindBuffer(GL_COPY_READ_BUFFER, GLuint(items_stage_buf.ref->id()));
+
+        void *pinned_mem = glMapBufferRange(GL_COPY_READ_BUFFER, ctx.backend_frame * ItemsBufChunkSize,
+                                            ItemsBufChunkSize, BufferRangeMapFlags);
+        if (pinned_mem) {
+            ItemData dummy = {};
+            memcpy(pinned_mem, &dummy, sizeof(ItemData));
+            glFlushMappedBufferRange(GL_COPY_READ_BUFFER, 0, sizeof(ItemData));
+            glUnmapBuffer(GL_COPY_READ_BUFFER);
+        } else {
+            builder.log()->Error("RpUpdateBuffers: Failed to map items buffer!");
+        }
+
+        glBindBuffer(GL_COPY_WRITE_BUFFER, GLuint(items_buf.ref->id()));
+        glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER,
+                            ctx.backend_frame * ItemsBufChunkSize /* readOffset */, 0 /* writeOffset */,
+                            sizeof(ItemData));
+        glBindBuffer(GL_COPY_READ_BUFFER, 0);
+        glBindBuffer(GL_COPY_WRITE_BUFFER, 0);
     }
 
     //
@@ -304,7 +311,7 @@ void RpUpdateBuffers::Execute(RpBuilder &builder) {
         memcpy(&shrd_data.uEllipsoids[0], ellipsoids_.data, sizeof(EllipsItem) * ellipsoids_.count);
 
         glBindBuffer(GL_COPY_READ_BUFFER, GLuint(unif_shared_data_stage_buf.ref->id()));
-        void *pinned_mem = glMapBufferRange(GL_COPY_READ_BUFFER, orphan_index_ * SharedDataBlockSize,
+        void *pinned_mem = glMapBufferRange(GL_COPY_READ_BUFFER, ctx.backend_frame * SharedDataBlockSize,
                                             sizeof(SharedDataBlock), BufferRangeMapFlags);
         if (pinned_mem) {
             memcpy(pinned_mem, &shrd_data, sizeof(SharedDataBlock));
@@ -314,7 +321,7 @@ void RpUpdateBuffers::Execute(RpBuilder &builder) {
 
         glBindBuffer(GL_COPY_WRITE_BUFFER, GLuint(unif_shared_data_buf.ref->id()));
         glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER,
-                            orphan_index_ * SharedDataBlockSize /* readOffset */, 0 /* writeOffset */,
+                            ctx.backend_frame * SharedDataBlockSize /* readOffset */, 0 /* writeOffset */,
                             SharedDataBlockSize);
         glBindBuffer(GL_COPY_READ_BUFFER, 0);
         glBindBuffer(GL_COPY_WRITE_BUFFER, 0);

@@ -167,13 +167,9 @@ void RpOpaque::DrawOpaque(RpBuilder &builder) {
     RpAllocTex &shadowmap_tex = builder.GetReadTexture(shadowmap_tex_);
     RpAllocTex &ssao_tex = builder.GetReadTexture(ssao_tex_);
 
-    if (bufs_->materials_buf_range.second) {
-        glBindBufferRange(GL_SHADER_STORAGE_BUFFER, REN_MATERIALS_SLOT, GLuint(bufs_->materials_buf.id),
-                          GLintptr(bufs_->materials_buf_range.first), GLsizeiptr(bufs_->materials_buf_range.second));
-    }
-    if (ctx.capabilities.bindless_texture && bufs_->textures_buf_range.second) {
-        glBindBufferRange(GL_SHADER_STORAGE_BUFFER, REN_BINDLESS_TEX_SLOT, GLuint(bufs_->textures_buf.id),
-                          GLintptr(bufs_->textures_buf_range.first), GLsizeiptr(bufs_->textures_buf_range.second));
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, REN_MATERIALS_SLOT, GLuint(bufs_->materials_buf.id));
+    if (ctx.capabilities.bindless_texture) {
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, REN_BINDLESS_TEX_SLOT, GLuint(bufs_->textures_buf.id));
     }
 
     glBindBufferBase(GL_UNIFORM_BUFFER, REN_UB_SHARED_DATA_LOC, unif_shared_data_buf.ref->id());

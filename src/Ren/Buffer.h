@@ -85,8 +85,7 @@ class Buffer : public RefCounter {
   public:
     Buffer() = default;
 #if defined(USE_VK_RENDER)
-    explicit Buffer(const char *name, VkContext *ctx, eBufType type, eBufAccessType access, eBufAccessFreq freq,
-                    uint32_t initial_size);
+    explicit Buffer(const char *name, VkContext *ctx, eBufType type, uint32_t initial_size);
 #else
     explicit Buffer(const char *name, eBufType type, uint32_t initial_size);
 #endif

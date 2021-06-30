@@ -3,12 +3,9 @@
 #include "../../Utils/ShaderLoader.h"
 #include "../Renderer_Structs.h"
 
-void RpSkinning::Setup(RpBuilder &builder, const DrawList &list, const int orphan_index, Ren::BufferRef vtx_buf1,
+void RpSkinning::Setup(RpBuilder &builder, const DrawList &list, Ren::BufferRef vtx_buf1,
                        Ren::BufferRef vtx_buf2, Ren::BufferRef delta_buf, Ren::BufferRef skin_vtx_buf,
                        const char skin_transforms_buf[], const char shape_keys_buf[]) {
-    orphan_index_ = orphan_index;
-
-    // fences_ = fences;
     skin_regions_ = list.skin_regions;
 
     vtx_buf1_ = std::move(vtx_buf1);

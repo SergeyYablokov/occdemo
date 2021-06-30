@@ -95,9 +95,8 @@ uint32_t FindMemoryType(const VkPhysicalDeviceMemoryProperties *mem_properties, 
 
 int Ren::Buffer::g_GenCounter = 0;
 
-Ren::Buffer::Buffer(const char *name, VkContext *ctx, const eBufType type, const eBufAccessType access,
-                    const eBufAccessFreq freq, const uint32_t initial_size)
-    : name_(name), ctx_(ctx), type_(type), access_(access), freq_(freq), size_(0) {
+Ren::Buffer::Buffer(const char *name, VkContext *ctx, const eBufType type, const uint32_t initial_size)
+    : name_(name), ctx_(ctx), type_(type), size_(0) {
     nodes_.reserve(1024);
 
     nodes_.emplace();
@@ -129,9 +128,6 @@ Ren::Buffer &Ren::Buffer::operator=(Buffer &&rhs) noexcept {
     mem_ = exchange(rhs.mem_, {});
 
     type_ = exchange(rhs.type_, eBufType::Undefined);
-
-    access_ = rhs.access_;
-    freq_ = rhs.freq_;
 
     size_ = exchange(rhs.size_, 0);
     nodes_ = std::move(rhs.nodes_);

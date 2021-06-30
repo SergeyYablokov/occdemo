@@ -88,7 +88,7 @@ void Renderer::InitRendererInternal() {
     Ren::CheckError("[InitRendererInternal]: temp framebuffer", ctx_.log());
 
     {                                               // Create timer queries
-        for (int i = 0; i < FrameSyncWindow; i++) { // NOLINT
+        for (int i = 0; i < Ren::MaxFramesInFlight; i++) { // NOLINT
             glGenQueries(TimersCount, queries_[i]);
 
             for (int j = 0; j < TimersCount; j++) {
@@ -150,15 +150,9 @@ void Renderer::DestroyRendererInternal() {
         assert(ndx_buf->FreeRegion(temp_buf_ndx_offset_));
     }
 
-    for (int i = 0; i < FrameSyncWindow; i++) {
+    for (int i = 0; i < Ren::MaxFramesInFlight; i++) {
         static_assert(sizeof(queries_[0][0]) == sizeof(GLuint), "!");
         glDeleteQueries(TimersCount, queries_[i]);
-
-        if (buf_range_fences_[i]) {
-            auto sync = reinterpret_cast<GLsync>(buf_range_fences_[i]);
-            glDeleteSync(sync);
-            buf_range_fences_[i] = nullptr;
-        }
     }
 }
 

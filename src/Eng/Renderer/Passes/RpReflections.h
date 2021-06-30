@@ -11,7 +11,6 @@ class RpReflections : public RenderPassBase {
     bool initialized = false;
 
     // lazily initialized data
-    int orphan_index_ = -1;
     Ren::ProgramRef blit_ssr_prog_, blit_ssr_ms_prog_, blit_ssr_dilate_prog_, blit_ssr_compose_prog_,
         blit_ssr_compose_ms_prog_;
 
@@ -41,7 +40,7 @@ class RpReflections : public RenderPassBase {
   public:
     RpReflections(PrimDraw &prim_draw) : prim_draw_(prim_draw) {}
 
-    void Setup(RpBuilder &builder, const ViewState *view_state, int orphan_index, const ProbeStorage *probe_storage,
+    void Setup(RpBuilder &builder, const ViewState *view_state, const ProbeStorage *probe_storage,
                Ren::TexHandle down_buf_4x_tex, Ren::Tex2DRef brdf_lut, const char shared_data_buf[],
                const char cells_buf[], const char items_buf[], const char depth_tex[], const char normal_tex[],
                const char spec_tex[], const char depth_down_2x[], const char output_tex_name[]);

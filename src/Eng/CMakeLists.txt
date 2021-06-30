@@ -129,8 +129,6 @@ set(PASS_SOURCES   Renderer/Passes/RpBlur.h
                    Renderer/Passes/RpDownDepth.cpp
                    Renderer/Passes/RpFXAA.h
                    Renderer/Passes/RpFXAA.cpp
-                   Renderer/Passes/RpInsertFence.h
-                   Renderer/Passes/RpInsertFence.cpp
                    Renderer/Passes/RpOpaque.h
                    Renderer/Passes/RpOpaque.cpp
                    Renderer/Passes/RpReflections.h
@@ -167,7 +165,6 @@ if(${RENDERER} STREQUAL "GL")
     set(PASS_SOURCES ${PASS_SOURCES}
                         Renderer/Passes/RpDebugTexturesGL.cpp
                         Renderer/Passes/RpDepthFillGL.cpp
-                        Renderer/Passes/RpInsertFenceGL.cpp
                         Renderer/Passes/RpOpaqueGL.cpp
                         Renderer/Passes/RpSampleBrightnessGL.cpp
                         Renderer/Passes/RpShadowMapsGL.cpp

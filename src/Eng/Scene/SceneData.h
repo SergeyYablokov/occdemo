@@ -139,9 +139,7 @@ public:
 
 struct PersistentBuffers {
     Ren::BufHandle                  materials_buf;
-    std::pair<uint32_t, uint32_t>   materials_buf_range;
     Ren::BufHandle                  textures_buf;
-    std::pair<uint32_t, uint32_t>   textures_buf_range;
 };
 
 struct SceneData {

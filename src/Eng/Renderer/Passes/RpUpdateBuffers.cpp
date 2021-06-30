@@ -2,10 +2,10 @@
 
 #include "../Renderer_Structs.h"
 
-void RpUpdateBuffers::Setup(RpBuilder &builder, const DrawList &list, const ViewState *view_state, int orphan_index,
-                            void **fences, const char skin_transforms_buf[], const char shape_keys_buf[],
-                            const char instances_buf[], const char cells_buf[], const char lights_buf[],
-                            const char decals_buf[], const char items_buf[], const char shared_data_buf[]) {
+void RpUpdateBuffers::Setup(RpBuilder &builder, const DrawList &list, const ViewState *view_state,
+                            const char skin_transforms_buf[], const char shape_keys_buf[], const char instances_buf[],
+                            const char cells_buf[], const char lights_buf[], const char decals_buf[],
+                            const char items_buf[], const char shared_data_buf[]) {
     assert(list.instances.count < REN_MAX_INSTANCES_TOTAL);
     assert(list.skin_transforms.count < REN_MAX_SKIN_XFORMS_TOTAL);
     assert(list.skin_regions.count < REN_MAX_SKIN_REGIONS_TOTAL);
@@ -16,9 +16,6 @@ void RpUpdateBuffers::Setup(RpBuilder &builder, const DrawList &list, const View
     assert(list.ellipsoids.count < REN_MAX_ELLIPSES_TOTAL);
     assert(list.items.count < REN_MAX_ITEMS_TOTAL);
 
-    orphan_index_ = orphan_index;
-
-    fences_ = fences;
     skin_transforms_ = list.skin_transforms;
     shape_keys_ = list.shape_keys_data;
     instances_ = list.instances;
@@ -46,7 +43,7 @@ void RpUpdateBuffers::Setup(RpBuilder &builder, const DrawList &list, const View
 
         sprintf(name_buf, "%s (Stage)", skin_transforms_buf);
         desc.type = Ren::eBufType::Stage;
-        desc.size *= FrameSyncWindow;
+        desc.size *= Ren::MaxFramesInFlight;
         skin_transforms_stage_buf_ = builder.WriteBuffer(name_buf, desc, *this);
     }
     { // create shape keys buffer
@@ -57,7 +54,7 @@ void RpUpdateBuffers::Setup(RpBuilder &builder, const DrawList &list, const View
 
         sprintf(name_buf, "%s (Stage)", shape_keys_buf);
         desc.type = Ren::eBufType::Stage;
-        desc.size *= FrameSyncWindow;
+        desc.size *= Ren::MaxFramesInFlight;
         shape_keys_stage_buf_ = builder.WriteBuffer(name_buf, desc, *this);
     }
     { // create instances buffer
@@ -68,7 +65,7 @@ void RpUpdateBuffers::Setup(RpBuilder &builder, const DrawList &list, const View
 
         sprintf(name_buf, "%s (Stage)", instances_buf);
         desc.type = Ren::eBufType::Stage;
-        desc.size *= FrameSyncWindow;
+        desc.size *= Ren::MaxFramesInFlight;
         instances_stage_buf_ = builder.WriteBuffer(name_buf, desc, *this);
     }
     { // create cells buffer
@@ -79,7 +76,7 @@ void RpUpdateBuffers::Setup(RpBuilder &builder, const DrawList &list, const View
 
         sprintf(name_buf, "%s (Stage)", cells_buf);
         desc.type = Ren::eBufType::Stage;
-        desc.size *= FrameSyncWindow;
+        desc.size *= Ren::MaxFramesInFlight;
         cells_stage_buf_ = builder.WriteBuffer(name_buf, desc, *this);
     }
     { // create lights buffer
@@ -90,7 +87,7 @@ void RpUpdateBuffers::Setup(RpBuilder &builder, const DrawList &list, const View
 
         sprintf(name_buf, "%s (Stage)", lights_buf);
         desc.type = Ren::eBufType::Stage;
-        desc.size *= FrameSyncWindow;
+        desc.size *= Ren::MaxFramesInFlight;
         lights_stage_buf_ = builder.WriteBuffer(name_buf, desc, *this);
     }
     { // create decals buffer
@@ -101,7 +98,7 @@ void RpUpdateBuffers::Setup(RpBuilder &builder, const DrawList &list, const View
 
         sprintf(name_buf, "%s (Stage)", decals_buf);
         desc.type = Ren::eBufType::Stage;
-        desc.size *= FrameSyncWindow;
+        desc.size *= Ren::MaxFramesInFlight;
         decals_stage_buf_ = builder.WriteBuffer(name_buf, desc, *this);
     }
     { // create items buffer
@@ -112,7 +109,7 @@ void RpUpdateBuffers::Setup(RpBuilder &builder, const DrawList &list, const View
 
         sprintf(name_buf, "%s (Stage)", items_buf);
         desc.type = Ren::eBufType::Stage;
-        desc.size *= FrameSyncWindow;
+        desc.size *= Ren::MaxFramesInFlight;
         items_stage_buf_ = builder.WriteBuffer(name_buf, desc, *this);
     }
     { // create uniform buffer
@@ -123,7 +120,7 @@ void RpUpdateBuffers::Setup(RpBuilder &builder, const DrawList &list, const View
 
         sprintf(name_buf, "%s (Stage)", shared_data_buf);
         desc.type = Ren::eBufType::Stage;
-        desc.size *= FrameSyncWindow;
+        desc.size *= Ren::MaxFramesInFlight;
         shared_data_stage_buf_ = builder.WriteBuffer(name_buf, desc, *this);
     }
 }

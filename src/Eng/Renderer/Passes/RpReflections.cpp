@@ -9,13 +9,12 @@
 #include "../PrimDraw.h"
 #include "../Renderer_Structs.h"
 
-void RpReflections::Setup(RpBuilder &builder, const ViewState *view_state, int orphan_index,
+void RpReflections::Setup(RpBuilder &builder, const ViewState *view_state,
                           const ProbeStorage *probe_storage, Ren::TexHandle down_buf_4x_tex, Ren::Tex2DRef brdf_lut,
                           const char shared_data_buf[], const char cells_buf[], const char items_buf[],
                           const char depth_tex[], const char normal_tex[], const char spec_tex[],
                           const char depth_down_2x[], const char output_tex_name[]) {
     view_state_ = view_state;
-    orphan_index_ = orphan_index;
 
     down_buf_4x_tex_ = down_buf_4x_tex;
     brdf_lut_ = brdf_lut;

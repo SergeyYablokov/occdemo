@@ -58,31 +58,25 @@ Gui::Renderer::Renderer(Ren::Context &ctx, const JsObject &config) : ctx_(ctx) {
     char name_buf[32];
 
     sprintf(name_buf, "UI_VertexBuffer [%i]", instance_index);
-    vertex_buf_ = ctx_.CreateBuffer(name_buf, Ren::eBufType::VertexAttribs, Ren::eBufAccessType::Draw,
-                                    Ren::eBufAccessFreq::Dynamic,
-                                    Ren::MaxFramesInFlight * MaxVerticesPerRange * sizeof(vertex_t));
+    vertex_buf_ = ctx_.CreateBuffer(name_buf, Ren::eBufType::VertexAttribs, MaxVerticesPerRange * sizeof(vertex_t));
 
     sprintf(name_buf, "UI_VertexStageBuffer [%i]", instance_index);
-    vertex_stage_buf_ =
-        ctx_.CreateBuffer(name_buf, Ren::eBufType::Stage, Ren::eBufAccessType::Copy, Ren::eBufAccessFreq::Stream,
-                          Ren::MaxFramesInFlight * MaxVerticesPerRange * sizeof(vertex_t));
+    vertex_stage_buf_ = ctx_.CreateBuffer(name_buf, Ren::eBufType::Stage,
+                                          Ren::MaxFramesInFlight * MaxVerticesPerRange * sizeof(vertex_t));
 
     sprintf(name_buf, "UI_IndexBuffer [%i]", instance_index);
-    index_buf_ =
-        ctx_.CreateBuffer(name_buf, Ren::eBufType::VertexIndices, Ren::eBufAccessType::Draw,
-                          Ren::eBufAccessFreq::Dynamic, Ren::MaxFramesInFlight * MaxIndicesPerRange * sizeof(uint16_t));
+    index_buf_ = ctx_.CreateBuffer(name_buf, Ren::eBufType::VertexIndices, MaxIndicesPerRange * sizeof(uint16_t));
 
     sprintf(name_buf, "UI_IndexStageBuffer [%i]", instance_index);
-    index_stage_buf_ =
-        ctx_.CreateBuffer(name_buf, Ren::eBufType::Stage, Ren::eBufAccessType::Copy, Ren::eBufAccessFreq::Stream,
-                          Ren::MaxFramesInFlight * MaxIndicesPerRange * sizeof(uint16_t));
+    index_stage_buf_ = ctx_.CreateBuffer(name_buf, Ren::eBufType::Stage,
+                                         Ren::MaxFramesInFlight * MaxIndicesPerRange * sizeof(uint16_t));
 
-    vtx_data_ = reinterpret_cast<vertex_t *>(vertex_stage_buf_->Map(Ren::BufMapWrite, true /* persistent */));
-    ndx_data_ = reinterpret_cast<uint16_t *>(index_stage_buf_->Map(Ren::BufMapWrite, true /* persistent */));
+    vtx_stage_data_ = reinterpret_cast<vertex_t *>(vertex_stage_buf_->Map(Ren::BufMapWrite, true /* persistent */));
+    ndx_stage_data_ = reinterpret_cast<uint16_t *>(index_stage_buf_->Map(Ren::BufMapWrite, true /* persistent */));
 
     for (int i = 0; i < Ren::MaxFramesInFlight; i++) {
-        vertex_count_[i] = 0;
-        index_count_[i] = 0;
+        vtx_count_[i] = 0;
+        ndx_count_[i] = 0;
     }
 
     Ren::VkContext *vk_ctx = ctx_.vk_ctx();
@@ -399,36 +393,15 @@ Gui::Renderer::~Renderer() {
 void Gui::Renderer::Draw(int w, int h) {
     using namespace UIRendererConstants;
 
-    //
-    // Synchronize with previous draw
-    //
-    /*if (buf_range_fences_[draw_range_index_]) {
-        const Ren::WaitResult res = buf_range_fences_[draw_range_index_].ClientWaitSync();
-        if (res != Ren::WaitResult::Success) {
-            ctx_.log()->Error("[Gui::Renderer::Draw]: Wait failed!");
-        }
-        if (!buf_range_fences_[draw_range_index_].Reset()) {
-            ctx_.log()->Error("[Gui::Renderer::Draw]: Reset failed!");
-        }
-    }*/
-
     Ren::VkContext *vk_ctx = ctx_.vk_ctx();
-    VkCommandBuffer cmd_buf = vk_ctx->draw_cmd_buf[ctx_.backend_frame]; // cmd_bufs_[draw_range_index_];
-
-    /*vkResetCommandBuffer(cmd_buf, 0);
-
-    VkCommandBufferBeginInfo begin_info = {};
-    begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-
-    vkBeginCommandBuffer(cmd_buf, &begin_info);*/
+    VkCommandBuffer cmd_buf = vk_ctx->draw_cmd_buf[ctx_.backend_frame];
 
     //
     // Update buffers
     //
-    if (vertex_count_[ctx_.backend_frame]) {
+    if (vtx_count_[ctx_.backend_frame]) {
         const uint32_t data_offset = uint32_t(ctx_.backend_frame) * MaxVerticesPerRange * sizeof(vertex_t);
-        const uint32_t data_size = uint32_t(vertex_count_[ctx_.backend_frame] * sizeof(vertex_t));
+        const uint32_t data_size = uint32_t(vtx_count_[ctx_.backend_frame] * sizeof(vertex_t));
 
         vertex_stage_buf_->FlushRange(data_offset, data_size);
 
@@ -451,7 +424,7 @@ void Gui::Renderer::Draw(int w, int h) {
             barriers[1].srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
             barriers[1].dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
             barriers[1].buffer = vertex_buf_->handle().buf;
-            barriers[1].offset = data_offset;
+            barriers[1].offset = 0;
             barriers[1].size = data_size;
             ++barriers_count;
         }
@@ -461,7 +434,7 @@ void Gui::Renderer::Draw(int w, int h) {
 
         VkBufferCopy region_to_copy = {};
         region_to_copy.srcOffset = data_offset;
-        region_to_copy.dstOffset = data_offset;
+        region_to_copy.dstOffset = 0;
         region_to_copy.size = data_size;
 
         vkCmdCopyBuffer(cmd_buf, vertex_stage_buf_->handle().buf, vertex_buf_->handle().buf, 1, &region_to_copy);
@@ -473,9 +446,9 @@ void Gui::Renderer::Draw(int w, int h) {
         vertex_buf_->last_stage_mask = VK_PIPELINE_STAGE_TRANSFER_BIT;
     }
 
-    if (index_count_[ctx_.backend_frame]) {
+    if (ndx_count_[ctx_.backend_frame]) {
         const uint32_t data_offset = uint32_t(ctx_.backend_frame) * MaxIndicesPerRange * sizeof(uint16_t);
-        const uint32_t data_size = uint32_t(index_count_[ctx_.backend_frame] * sizeof(uint16_t));
+        const uint32_t data_size = uint32_t(ndx_count_[ctx_.backend_frame] * sizeof(uint16_t));
 
         index_stage_buf_->FlushRange(data_offset, data_size);
 
@@ -498,7 +471,7 @@ void Gui::Renderer::Draw(int w, int h) {
             barriers[1].srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
             barriers[1].dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
             barriers[1].buffer = index_buf_->handle().buf;
-            barriers[1].offset = data_offset;
+            barriers[1].offset = 0;
             barriers[1].size = data_size;
             ++barriers_count;
         }
@@ -508,7 +481,7 @@ void Gui::Renderer::Draw(int w, int h) {
 
         VkBufferCopy region_to_copy = {};
         region_to_copy.srcOffset = data_offset;
-        region_to_copy.dstOffset = data_offset;
+        region_to_copy.dstOffset = 0;
         region_to_copy.size = data_size;
 
         vkCmdCopyBuffer(cmd_buf, index_stage_buf_->handle().buf, index_buf_->handle().buf, 1, &region_to_copy);
@@ -606,25 +579,16 @@ void Gui::Renderer::Draw(int w, int h) {
     vkCmdBindIndexBuffer(cmd_buf, index_buf_->vk_handle(), 0, VK_INDEX_TYPE_UINT16);
 
     vkCmdDrawIndexed(cmd_buf,
-                     index_count_[ctx_.backend_frame],         // index count
-                     1,                                        // instance count
-                     ctx_.backend_frame * MaxIndicesPerRange,  // first index
-                     ctx_.backend_frame * MaxVerticesPerRange, // vertex offset
-                     0);                                       // first instance
+                     ndx_count_[ctx_.backend_frame], // index count
+                     1,                              // instance count
+                     0,                              // first index
+                     0,                              // vertex offset
+                     0);                             // first instance
 
     vkCmdEndRenderPass(cmd_buf);
 
-    vertex_count_[ctx_.backend_frame] = 0;
-    index_count_[ctx_.backend_frame] = 0;
-
-    /*vkEndCommandBuffer(cmd_buf);
-
-    VkSubmitInfo submit_info = {};
-    submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    submit_info.commandBufferCount = 1;
-    submit_info.pCommandBuffers = &cmd_buf;
-
-    vkQueueSubmit(vk_ctx->graphics_queue, 1, &submit_info, buf_range_fences_[draw_range_index_].fence());*/
+    vtx_count_[ctx_.backend_frame] = 0;
+    ndx_count_[ctx_.backend_frame] = 0;
 }
 
 #undef VTX_POS_LOC

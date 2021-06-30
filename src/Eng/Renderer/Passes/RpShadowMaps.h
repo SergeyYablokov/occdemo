@@ -12,8 +12,6 @@ class RpShadowMaps : public RenderPassBase {
     int w_, h_;
     Ren::ProgramRef shadow_solid_prog_, shadow_vege_solid_prog_, shadow_transp_prog_, shadow_vege_transp_prog_;
 
-    int orphan_index_ = 0;
-
     // lazily initialized data
 
     // temp data (valid only between Setup and Execute calls)
@@ -43,7 +41,7 @@ class RpShadowMaps : public RenderPassBase {
   public:
     RpShadowMaps(int w, int h) : w_(w), h_(h) {}
 
-    void Setup(RpBuilder &builder, const DrawList &list, const PersistentBuffers *bufs, int orphan_index,
+    void Setup(RpBuilder &builder, const DrawList &list, const PersistentBuffers *bufs,
                const char instances_buf[], const char shared_data_buf[], const char shadowmap_tex[],
                Ren::TexHandle noise_tex);
     void Execute(RpBuilder &builder) override;

@@ -9,7 +9,6 @@
 
 class RpOpaque : public RenderPassBase {
     bool initialized = false;
-    int orphan_index_ = 0;
 
     // lazily initialized data
     Ren::Tex2DRef dummy_black_, dummy_white_;
@@ -53,7 +52,7 @@ class RpOpaque : public RenderPassBase {
 #endif
   public:
     void Setup(RpBuilder &builder, const DrawList &list, const ViewState *view_state, const PersistentBuffers *bufs,
-               int orphan_index, Ren::Tex2DRef brdf_lut, Ren::Tex2DRef noise_tex, Ren::Tex2DRef cone_rt_lut,
+               Ren::Tex2DRef brdf_lut, Ren::Tex2DRef noise_tex, Ren::Tex2DRef cone_rt_lut,
                const char instances_buf[], const char shared_data_buf[], const char cells_buf[], const char items_buf[],
                const char lights_buf[], const char decals_buf[], const char shadowmap_tex[], const char ssao_tex[],
                const char out_color[], const char out_normals[], const char out_spec[], const char out_depth[]);

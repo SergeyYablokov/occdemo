@@ -36,7 +36,7 @@ class RpDOF : public RenderPassBase {
   public:
     RpDOF(PrimDraw &prim_draw) : prim_draw_(prim_draw) {}
 
-    void Setup(RpBuilder &builder, const Ren::Camera *draw_cam, const ViewState *view_state, int orphan_index,
+    void Setup(RpBuilder &builder, const Ren::Camera *draw_cam, const ViewState *view_state,
                const char shared_data_buf[], const char color_tex_name[], const char depth_tex_name[],
                const char depth_down_2x_name[], const char depth_down_4x_name[], Ren::TexHandle down_buf_4x,
                const char output_tex_name[]);

@@ -53,13 +53,9 @@ void RpShadowMaps::DrawShadowMaps(RpBuilder &builder) {
 
     Ren::Context &ctx = builder.ctx();
 
-    if (bufs_->materials_buf_range.second) {
-        glBindBufferRange(GL_SHADER_STORAGE_BUFFER, REN_MATERIALS_SLOT, GLuint(bufs_->materials_buf.id),
-                          GLintptr(bufs_->materials_buf_range.first), GLsizeiptr(bufs_->materials_buf_range.second));
-    }
-    if (ctx.capabilities.bindless_texture && bufs_->textures_buf_range.second) {
-        glBindBufferRange(GL_SHADER_STORAGE_BUFFER, REN_BINDLESS_TEX_SLOT, GLuint(bufs_->textures_buf.id),
-                          GLintptr(bufs_->textures_buf_range.first), GLsizeiptr(bufs_->textures_buf_range.second));
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, REN_MATERIALS_SLOT, GLuint(bufs_->materials_buf.id));
+    if (ctx.capabilities.bindless_texture) {
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, REN_BINDLESS_TEX_SLOT, GLuint(bufs_->textures_buf.id));
     }
 
     RpAllocBuf &instances_buf = builder.GetReadBuffer(instances_buf_);
@@ -69,7 +65,6 @@ void RpShadowMaps::DrawShadowMaps(RpBuilder &builder) {
 
     RpAllocBuf &unif_shared_data_buf = builder.GetReadBuffer(shared_data_buf_);
     glBindBufferBase(GL_UNIFORM_BUFFER, REN_UB_SHARED_DATA_LOC, GLuint(unif_shared_data_buf.ref->id()));
-    assert(orphan_index_ * SharedDataBlockSize % builder.ctx().capabilities.unif_buf_offset_alignment == 0);
 
     ren_glBindTextureUnit_Comp(GL_TEXTURE_2D, REN_NOISE_TEX_SLOT, noise_tex_.id);
 

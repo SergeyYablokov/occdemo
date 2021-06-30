@@ -16,12 +16,7 @@ namespace SceneManagerInternal {} // namespace SceneManagerInternal
 PersistentBuffers SceneManager::persistent_bufs() const {
     PersistentBuffers ret;
     ret.materials_buf = scene_data_.materials_buf->handle();
-    ret.materials_buf_range.first = scene_data_.mat_buf_index * scene_data_.materials.capacity() * sizeof(MaterialData);
-    ret.materials_buf_range.second = scene_data_.materials.capacity() * sizeof(MaterialData);
     ret.textures_buf = scene_data_.textures_buf->handle();
-    ret.textures_buf_range.first =
-        scene_data_.mat_buf_index * REN_MAX_TEX_PER_MATERIAL * scene_data_.materials.capacity() * sizeof(uint64_t);
-    ret.textures_buf_range.second = REN_MAX_TEX_PER_MATERIAL * scene_data_.materials.capacity() * sizeof(uint64_t);
     return ret;
 }
 
@@ -36,42 +31,40 @@ void SceneManager::UpdateMaterialsBuffer() {
     const uint32_t req_mat_buf_size = std::max(1u, max_mat_count) * sizeof(MaterialData);
 
     if (!scene_data_.materials_buf) {
-        scene_data_.materials_buf =
-            ren_ctx_.CreateBuffer("Materials Buffer", Ren::eBufType::Storage, FrameSyncWindow * req_mat_buf_size);
-        scene_data_.materials_stage_buf =
-            ren_ctx_.CreateBuffer("Materials Stage Buffer", Ren::eBufType::Stage, FrameSyncWindow * req_mat_buf_size);
+        scene_data_.materials_buf = ren_ctx_.CreateBuffer("Materials Buffer", Ren::eBufType::Storage, req_mat_buf_size);
+        scene_data_.materials_stage_buf = ren_ctx_.CreateBuffer("Materials Stage Buffer", Ren::eBufType::Stage,
+                                                                Ren::MaxFramesInFlight * req_mat_buf_size);
     }
 
-    if (scene_data_.materials_buf->size() < FrameSyncWindow * req_mat_buf_size) {
-        scene_data_.materials_buf->Resize(FrameSyncWindow * req_mat_buf_size);
-        scene_data_.materials_stage_buf->Resize(FrameSyncWindow * req_mat_buf_size);
+    if (scene_data_.materials_buf->size() < req_mat_buf_size) {
+        scene_data_.materials_buf->Resize(req_mat_buf_size);
+        scene_data_.materials_stage_buf->Resize(Ren::MaxFramesInFlight * req_mat_buf_size);
     }
 
     const uint32_t max_tex_count = std::max(1u, REN_MAX_TEX_PER_MATERIAL * max_mat_count);
     const uint32_t req_tex_buf_size = max_tex_count * sizeof(GLuint64);
 
     if (!scene_data_.textures_buf) {
-        scene_data_.textures_buf =
-            ren_ctx_.CreateBuffer("Textures Buffer", Ren::eBufType::Storage, FrameSyncWindow * req_tex_buf_size);
-        scene_data_.textures_stage_buf =
-            ren_ctx_.CreateBuffer("Textures Stage Buffer", Ren::eBufType::Stage, FrameSyncWindow * req_tex_buf_size);
+        scene_data_.textures_buf = ren_ctx_.CreateBuffer("Textures Buffer", Ren::eBufType::Storage, req_tex_buf_size);
+        scene_data_.textures_stage_buf = ren_ctx_.CreateBuffer("Textures Stage Buffer", Ren::eBufType::Stage,
+                                                               Ren::MaxFramesInFlight * req_tex_buf_size);
     }
 
-    if (scene_data_.textures_buf->size() < FrameSyncWindow * req_tex_buf_size) {
-        scene_data_.textures_buf->Resize(FrameSyncWindow * req_tex_buf_size);
-        scene_data_.textures_stage_buf->Resize(FrameSyncWindow * req_tex_buf_size);
+    if (scene_data_.textures_buf->size() < req_tex_buf_size) {
+        scene_data_.textures_buf->Resize(req_tex_buf_size);
+        scene_data_.textures_stage_buf->Resize(Ren::MaxFramesInFlight * req_tex_buf_size);
     }
 
     // propagate material changes
     for (const uint32_t i : scene_data_.material_changes) {
-        for (int j = 0; j < FrameSyncWindow; ++j) {
+        for (int j = 0; j < Ren::MaxFramesInFlight; ++j) {
             scene_data_.mat_update_ranges[j].first = std::min(scene_data_.mat_update_ranges[j].first, i);
             scene_data_.mat_update_ranges[j].second = std::max(scene_data_.mat_update_ranges[j].second, i + 1);
         }
     }
     scene_data_.material_changes.clear();
 
-    const uint32_t next_buf_index = (scene_data_.mat_buf_index + 1) % FrameSyncWindow;
+    const uint32_t next_buf_index = (scene_data_.mat_buf_index + 1) % Ren::MaxFramesInFlight;
     auto &cur_update_range = scene_data_.mat_update_ranges[next_buf_index];
 
     if (cur_update_range.second <= cur_update_range.first) {
@@ -133,7 +126,7 @@ void SceneManager::UpdateMaterialsBuffer() {
 
         glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER,
                             GLintptr(tex_buf_offset + cur_update_range.first * TexSizePerMaterial) /* readOffset */,
-                            GLintptr(tex_buf_offset + cur_update_range.first * TexSizePerMaterial) /* writeOffset */,
+                            GLintptr(cur_update_range.first * TexSizePerMaterial) /* writeOffset */,
                             (cur_update_range.second - cur_update_range.first) * TexSizePerMaterial);
 
         glBindBuffer(GL_COPY_READ_BUFFER, 0);
@@ -149,7 +142,7 @@ void SceneManager::UpdateMaterialsBuffer() {
 
     glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER,
                         GLintptr(mat_buf_offset + cur_update_range.first * sizeof(MaterialData)) /* readOffset */,
-                        GLintptr(mat_buf_offset + cur_update_range.first * sizeof(MaterialData)) /* writeOffset */,
+                        GLintptr(cur_update_range.first * sizeof(MaterialData)) /* writeOffset */,
                         (cur_update_range.second - cur_update_range.first) * sizeof(MaterialData));
 
     glBindBuffer(GL_COPY_READ_BUFFER, 0);

@@ -102,13 +102,9 @@ void RpDepthFill::DrawDepth(RpBuilder &builder) {
 
     ren_glBindTextureUnit_Comp(GL_TEXTURE_2D, REN_NOISE_TEX_SLOT, noise_tex_.id);
 
-    if (bufs_->materials_buf_range.second) {
-        glBindBufferRange(GL_SHADER_STORAGE_BUFFER, REN_MATERIALS_SLOT, GLuint(bufs_->materials_buf.id),
-                          GLintptr(bufs_->materials_buf_range.first), GLsizeiptr(bufs_->materials_buf_range.second));
-    }
-    if (ctx.capabilities.bindless_texture && bufs_->textures_buf_range.second) {
-        glBindBufferRange(GL_SHADER_STORAGE_BUFFER, REN_BINDLESS_TEX_SLOT, GLuint(bufs_->textures_buf.id),
-                          GLintptr(bufs_->textures_buf_range.first), GLsizeiptr(bufs_->textures_buf_range.second));
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, REN_MATERIALS_SLOT, GLuint(bufs_->materials_buf.id));
+    if (ctx.capabilities.bindless_texture) {
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, REN_BINDLESS_TEX_SLOT, GLuint(bufs_->textures_buf.id));
     }
 
     glBindFramebuffer(GL_FRAMEBUFFER, GLuint(depth_fill_fb_.id()));

@@ -10,7 +10,7 @@
 #include "../PrimDraw.h"
 #include "../Renderer_Structs.h"
 
-void RpDOF::Setup(RpBuilder &builder, const Ren::Camera *draw_cam, const ViewState *view_state, const int orphan_index,
+void RpDOF::Setup(RpBuilder &builder, const Ren::Camera *draw_cam, const ViewState *view_state,
                   const char shared_data_buf[], const char color_tex_name[], const char depth_tex_name[],
                   const char depth_down_2x_name[], const char depth_down_4x_name[], Ren::TexHandle down_buf_4x,
                   const char output_tex_name[]) {

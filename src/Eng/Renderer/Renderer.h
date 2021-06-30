@@ -2,6 +2,7 @@
 
 #include <atomic>
 
+#include <Ren/Common.h>
 #include <Ren/TextureSplitter.h>
 extern "C" {
 #include <Ren/SW/SWculling.h>
@@ -19,7 +20,6 @@ extern "C" {
 #include "Passes/RpDownColor.h"
 #include "Passes/RpDownDepth.h"
 #include "Passes/RpFXAA.h"
-#include "Passes/RpInsertFence.h"
 #include "Passes/RpOpaque.h"
 #include "Passes/RpReflections.h"
 #include "Passes/RpResolve.h"
@@ -140,7 +140,7 @@ class Renderer {
 
     // uint32_t unif_shared_data_block_[FrameSyncWindow];
     Ren::Vao temp_vao_;
-    Ren::Tex1DRef lights_tbo_[FrameSyncWindow], decals_tbo_[FrameSyncWindow];
+    //::Tex1DRef lights_tbo_[FrameSyncWindow], decals_tbo_[FrameSyncWindow];
     uint32_t /*reduce_pbo_[FrameSyncWindow], */ probe_sample_pbo_;
     // int cur_reduce_pbo_ = 0;
 
@@ -159,10 +159,8 @@ class Renderer {
         TimeDrawEnd,
         TimersCount
     };
-    uint32_t queries_[FrameSyncWindow][TimersCount];
+    uint32_t queries_[Ren::MaxFramesInFlight][TimersCount];
     int cur_query_ = 0;
-
-    void *buf_range_fences_[FrameSyncWindow] = {};
 #endif
 
     DynArray<ShadReg> allocated_shadow_regions_;
@@ -194,9 +192,8 @@ class Renderer {
     RpTAA rp_taa_ = {prim_draw_};
     RpDOF rp_dof_ = {prim_draw_};
     RpBlur rp_blur_ = {prim_draw_};
-    RpInsertFence rp_fence_;
     RpSampleBrightness rp_sample_brightness_ = {prim_draw_, Ren::Vec2i{16, 8},
-                                                FrameSyncWindow};
+                                                Ren::MaxFramesInFlight};
     RpCombine rp_combine_ = {prim_draw_};
     RpFXAA rp_fxaa_ = {prim_draw_};
 
