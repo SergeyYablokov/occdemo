@@ -9,7 +9,6 @@
 
 class RpDepthFill : public RenderPassBase {
     bool initialized = false;
-    int orphan_index_ = 0;
 
     // lazily initialized data
     Ren::ProgramRef fillz_solid_prog_, fillz_solid_mov_prog_, fillz_vege_solid_prog_, fillz_vege_solid_vel_prog_,
@@ -46,7 +45,7 @@ class RpDepthFill : public RenderPassBase {
 #endif
   public:
     void Setup(RpBuilder &builder, const DrawList &list, const ViewState *view_state, const PersistentBuffers *bufs,
-               int orphan_index, const char instances_buf[], const char shared_data_buf[], const char main_depth_tex[],
+               const char instances_buf[], const char shared_data_buf[], const char main_depth_tex[],
                const char main_velocity_tex[], Ren::TexHandle noise_tex);
     void Execute(RpBuilder &builder) override;
 

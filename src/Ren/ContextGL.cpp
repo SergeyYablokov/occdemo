@@ -13,7 +13,9 @@ void DebugCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsiz
                    const void *userParam) {
     auto *self = reinterpret_cast<const Context *>(userParam);
     if (severity != GL_DEBUG_SEVERITY_NOTIFICATION) {
-        self->log()->Error("%s", message);
+        if (id != 131154 /* pixel-path performance warning */) {
+            self->log()->Error("%s", message);
+        }
     } else if (type != GL_DEBUG_TYPE_PUSH_GROUP && type != GL_DEBUG_TYPE_POP_GROUP && type != GL_DEBUG_TYPE_OTHER) {
         self->log()->Warning("%s", message);
     }
@@ -67,12 +69,12 @@ bool Ren::Context::Init(int w, int h, ILog *log, const char *) {
         GLint i = 0;
         glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &i);
         capabilities.max_vertex_input = i;
-        log_->Info("\tMax vertex attribs\t: %i", capabilities.max_vertex_input);
+        log_->Info("\tMax vtx attribs\t: %i", capabilities.max_vertex_input);
 
         glGetIntegerv(GL_MAX_VERTEX_OUTPUT_COMPONENTS, &i);
         i /= 4;
         capabilities.max_vertex_output = i;
-        log_->Info("\tMax vertex output\t: %i", capabilities.max_vertex_output);
+        log_->Info("\tMax vtx output\t: %i", capabilities.max_vertex_output);
     }
 
     // determine compute work group sizes
@@ -99,7 +101,7 @@ bool Ren::Context::Init(int w, int h, ILog *log, const char *) {
 #endif
 
     capabilities.spirv = IsExtensionSupported("GL_ARB_gl_spirv");
-    capabilities.persistent_buf_mapping = IsExtensionSupported("GL_ARB_buffer_storage");
+    capabilities.persistent_buf_mapping = false;//IsExtensionSupported("GL_ARB_buffer_storage");
 
     const bool bindless_texture_arb = IsExtensionSupported("GL_ARB_bindless_texture");
     const bool bindless_texture_nv = IsExtensionSupported("GL_NV_bindless_texture");

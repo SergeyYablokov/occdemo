@@ -93,13 +93,11 @@ class Renderer {
 
     Ren::Context &ctx_;
 
-    int vertex_count_[Ren::MaxFramesInFlight];
-    int index_count_[Ren::MaxFramesInFlight];
+    int vtx_count_[Ren::MaxFramesInFlight];
+    int ndx_count_[Ren::MaxFramesInFlight];
 
     Ren::ProgramRef ui_program_;
 #if defined(USE_VK_RENDER)
-    Ren::BufferRef vertex_stage_buf_, index_stage_buf_;
-
     VkDescriptorSetLayout desc_set_layout_ = {};
     VkDescriptorPool descriptor_pool_ = {};
     VkDescriptorSet desc_set_ = {};
@@ -114,13 +112,15 @@ class Renderer {
 #elif defined(USE_GL_RENDER)
     Ren::Vao vao_;
 
+    // buffers in case persistent mapping is not available
     std::unique_ptr<vertex_t> stage_vtx_data_;
     std::unique_ptr<uint16_t> stage_ndx_data_;
 #endif
+    Ren::BufferRef vertex_stage_buf_, index_stage_buf_;
     Ren::BufferRef vertex_buf_, index_buf_;
 
-    vertex_t *vtx_data_;
-    uint16_t *ndx_data_;
+    vertex_t *vtx_stage_data_;
+    uint16_t *ndx_stage_data_;
 
 #ifndef NDEBUG
     Ren::SyncFence buf_range_fences_[Ren::MaxFramesInFlight];

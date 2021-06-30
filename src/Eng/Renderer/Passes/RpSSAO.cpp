@@ -8,11 +8,10 @@
 #include "../PrimDraw.h"
 #include "../Renderer_Structs.h"
 
-void RpSSAO::Setup(RpBuilder &builder, const ViewState *view_state, const int orphan_index,
-                   Ren::TexHandle rand2d_dirs_4x4_tex, const char shared_data_buf[], const char depth_down_2x[],
-                   const char depth_tex[], const char output_tex[]) {
+void RpSSAO::Setup(RpBuilder &builder, const ViewState *view_state, Ren::TexHandle rand2d_dirs_4x4_tex,
+                   const char shared_data_buf[], const char depth_down_2x[], const char depth_tex[],
+                   const char output_tex[]) {
     view_state_ = view_state;
-    orphan_index_ = orphan_index;
     rand2d_dirs_4x4_tex_ = rand2d_dirs_4x4_tex;
 
     shared_data_buf_ = builder.ReadBuffer(shared_data_buf, *this);
@@ -66,8 +65,8 @@ void RpSSAO::Execute(RpBuilder &builder) {
         const PrimDraw::Binding bindings[] = {
             {Ren::eBindTarget::Tex2D, REN_BASE0_TEX_SLOT, down_depth_2x_tex.ref->handle()},
             {Ren::eBindTarget::Tex2D, REN_BASE1_TEX_SLOT, rand2d_dirs_4x4_tex_},
-            {Ren::eBindTarget::UBuf, REN_UB_SHARED_DATA_LOC, orphan_index_ * SharedDataBlockSize,
-             sizeof(SharedDataBlock), unif_shared_data_buf.ref->handle()}};
+            {Ren::eBindTarget::UBuf, REN_UB_SHARED_DATA_LOC, 0, sizeof(SharedDataBlock),
+             unif_shared_data_buf.ref->handle()}};
 
         const PrimDraw::Uniform uniforms[] = {{0, Ren::Vec4f{applied_state.viewport}}};
 
@@ -103,8 +102,7 @@ void RpSSAO::Execute(RpBuilder &builder) {
         PrimDraw::Binding bindings[] = {{Ren::eBindTarget::Tex2D, 0, depth_tex.ref->handle()},
                                         {Ren::eBindTarget::Tex2D, 1, down_depth_2x_tex.ref->handle()},
                                         {Ren::eBindTarget::Tex2D, 2, ssao1_tex.ref->handle()},
-                                        {Ren::eBindTarget::UBuf, REN_UB_SHARED_DATA_LOC,
-                                         orphan_index_ * SharedDataBlockSize, sizeof(SharedDataBlock),
+                                        {Ren::eBindTarget::UBuf, REN_UB_SHARED_DATA_LOC, 0, sizeof(SharedDataBlock),
                                          unif_shared_data_buf.ref->handle()}};
 
         Ren::Program *blit_upscale_prog = nullptr;

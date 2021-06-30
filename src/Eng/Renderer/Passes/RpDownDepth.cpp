@@ -8,10 +8,9 @@
 #include "../PrimDraw.h"
 #include "../Renderer_Structs.h"
 
-void RpDownDepth::Setup(RpBuilder &builder, const ViewState *view_state, const int orphan_index,
+void RpDownDepth::Setup(RpBuilder &builder, const ViewState *view_state,
                         const char shared_data_buf[], const char depth_tex[], const char output_tex[]) {
     view_state_ = view_state;
-    orphan_index_ = orphan_index;
 
     shared_data_buf_ = builder.ReadBuffer(shared_data_buf, *this);
 
@@ -48,7 +47,7 @@ void RpDownDepth::Execute(RpBuilder &builder) {
     const PrimDraw::Binding bindings[] = {
         {view_state_->is_multisampled ? Ren::eBindTarget::Tex2DMs : Ren::eBindTarget::Tex2D, REN_BASE0_TEX_SLOT,
          depth_tex.ref->handle()},
-        {Ren::eBindTarget::UBuf, REN_UB_SHARED_DATA_LOC, orphan_index_ * SharedDataBlockSize, sizeof(SharedDataBlock),
+        {Ren::eBindTarget::UBuf, REN_UB_SHARED_DATA_LOC, 0, sizeof(SharedDataBlock),
          unif_shared_data_buf.ref->handle()}};
 
     const PrimDraw::Uniform uniforms[] = {

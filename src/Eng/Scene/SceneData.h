@@ -151,6 +151,7 @@ struct SceneData {
     Ren::MaterialStorage                    materials;
     std::vector<uint32_t>                   material_changes;
     Ren::BufferRef                          materials_buf, textures_buf;
+    Ren::BufferRef                          materials_stage_buf, textures_stage_buf;
     Ren::SyncFence                          mat_buf_fences[4];
     std::pair<uint32_t, uint32_t>           mat_update_ranges[4];
     uint32_t                                mat_buf_index = 0;

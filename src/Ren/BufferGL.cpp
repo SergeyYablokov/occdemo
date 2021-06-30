@@ -18,59 +18,32 @@ const uint32_t g_gl_buf_targets[] = {
 };
 static_assert(sizeof(g_gl_buf_targets) / sizeof(g_gl_buf_targets[0]) == size_t(eBufType::_Count), "!");
 
-GLenum GetGLBufUsage(const eBufAccessType access, const eBufAccessFreq freq) {
-    if (access == eBufAccessType::Draw) {
-        if (freq == eBufAccessFreq::Stream) {
-            return GL_STREAM_DRAW;
-        } else if (freq == eBufAccessFreq::Static) {
-            return GL_STATIC_DRAW;
-        } else if (freq == eBufAccessFreq::Dynamic) {
-            return GL_DYNAMIC_DRAW;
-        } else {
-            assert(false);
-        }
-    } else if (access == eBufAccessType::Read) {
-        if (freq == eBufAccessFreq::Stream) {
-            return GL_STREAM_READ;
-        } else if (freq == eBufAccessFreq::Static) {
-            return GL_STATIC_READ;
-        } else if (freq == eBufAccessFreq::Dynamic) {
-            return GL_DYNAMIC_READ;
-        } else {
-            assert(false);
-        }
-    } else if (access == eBufAccessType::Copy) {
-        if (freq == eBufAccessFreq::Stream) {
-            return GL_STREAM_COPY;
-        } else if (freq == eBufAccessFreq::Static) {
-            return GL_STATIC_COPY;
-        } else if (freq == eBufAccessFreq::Dynamic) {
-            return GL_DYNAMIC_COPY;
-        } else {
-            assert(false);
-        }
+GLenum GetGLBufUsage(const eBufType type) {
+    if (type == eBufType::Stage) {
+        return GL_STREAM_COPY;
     } else {
-        assert(false);
+        return GL_STATIC_DRAW;
     }
-    return 0xffffffff;
 }
 
-GLbitfield GetGLBufFlags(const eBufAccessType access, const eBufAccessFreq freq) {
-    GLbitfield flags =
-        GL_DYNAMIC_STORAGE_BIT | GL_MAP_WRITE_BIT | /*GL_CLIENT_STORAGE_BIT |*/ GL_MAP_PERSISTENT_BIT;
-    if (access == eBufAccessType::Read) {
-        flags |= GL_MAP_READ_BIT;
+#if !defined(__ANDROID__)
+GLbitfield GetGLBufStorageFlags(const eBufType type) {
+    GLbitfield flags = 0;
+
+    if (type == eBufType::Stage) {
+        flags |= (GL_CLIENT_STORAGE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_READ_BIT | GL_MAP_WRITE_BIT);
     }
+
     return flags;
 }
+#endif
 
 } // namespace Ren
 
 int Ren::Buffer::g_GenCounter = 0;
 
-Ren::Buffer::Buffer(const char *name, const eBufType type, const eBufAccessType access, const eBufAccessFreq freq,
-                    const uint32_t initial_size)
-    : name_(name), type_(type), access_(access), freq_(freq), size_(0) {
+Ren::Buffer::Buffer(const char *name, const eBufType type, const uint32_t initial_size)
+    : name_(name), type_(type), size_(0) {
     nodes_.reserve(1024);
 
     nodes_.emplace();
@@ -100,9 +73,6 @@ Ren::Buffer &Ren::Buffer::operator=(Buffer &&rhs) noexcept {
     name_ = std::move(rhs.name_);
 
     type_ = exchange(rhs.type_, eBufType::Undefined);
-
-    access_ = rhs.access_;
-    freq_ = rhs.freq_;
 
     size_ = exchange(rhs.size_, 0);
     nodes_ = std::move(rhs.nodes_);
@@ -329,9 +299,9 @@ void Ren::Buffer::Resize(uint32_t new_size) {
     glGenBuffers(1, &gl_buffer);
     glBindBuffer(g_gl_buf_targets[int(type_)], gl_buffer);
 #if !defined(__ANDROID__)
-    glBufferStorage(g_gl_buf_targets[int(type_)], size_, nullptr, GetGLBufFlags(access_, freq_));
+    glBufferStorage(g_gl_buf_targets[int(type_)], size_, nullptr, GetGLBufStorageFlags(type_));
 #else
-    glBufferData(g_gl_buf_targets[int(type_)], size_, nullptr, GetGLBufUsage(access_, freq_));
+    glBufferData(g_gl_buf_targets[int(type_)], size_, nullptr, GetGLBufUsage(type_));
 #endif
 
     if (handle_.id) {

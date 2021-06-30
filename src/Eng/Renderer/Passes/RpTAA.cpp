@@ -8,11 +8,10 @@
 #include "../PrimDraw.h"
 #include "../Renderer_Structs.h"
 
-void RpTAA::Setup(RpBuilder &builder, const ViewState *view_state, const int orphan_index, Ren::TexHandle history_tex,
-                  float reduced_average, float max_exposure, const char shared_data_buf[], const char color_tex[],
-                  const char depth_tex[], const char velocity_tex[], const char output_tex_name[]) {
+void RpTAA::Setup(RpBuilder &builder, const ViewState *view_state, Ren::TexHandle history_tex, float reduced_average,
+                  float max_exposure, const char shared_data_buf[], const char color_tex[], const char depth_tex[],
+                  const char velocity_tex[], const char output_tex_name[]) {
     view_state_ = view_state;
-    orphan_index_ = orphan_index;
     history_tex_ = history_tex;
 
     reduced_average_ = reduced_average;
@@ -66,9 +65,8 @@ void RpTAA::Execute(RpBuilder &builder) {
         Ren::Program *blit_prog = blit_static_vel_prog_.get();
 
         const PrimDraw::Binding bindings[] = {{Ren::eBindTarget::Tex2D, 0, depth_tex.ref->handle()},
-                                              {Ren::eBindTarget::UBuf, REN_UB_SHARED_DATA_LOC,
-                                               orphan_index_ * SharedDataBlockSize, sizeof(SharedDataBlock),
-                                               unif_shared_data_buf.ref->handle()}};
+                                              {Ren::eBindTarget::UBuf, REN_UB_SHARED_DATA_LOC, 0,
+                                               sizeof(SharedDataBlock), unif_shared_data_buf.ref->handle()}};
 
         const PrimDraw::Uniform uniforms[] = {{0, Ren::Vec4f{applied_state.viewport}}};
 

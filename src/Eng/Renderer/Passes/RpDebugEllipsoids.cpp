@@ -8,11 +8,9 @@
 #include "../Renderer_Structs.h"
 
 void RpDebugEllipsoids::Setup(RpBuilder &builder, const DrawList &list, const ViewState *view_state,
-                              const int orphan_index, const char shared_data_buf_name[], const char output_tex_name[]) {
+                              const char shared_data_buf_name[], const char output_tex_name[]) {
 
     view_state_ = view_state;
-    orphan_index_ = orphan_index;
-
     ellipsoids_ = list.ellipsoids;
 
     shared_data_buf_ = builder.ReadBuffer(shared_data_buf_name, *this);
@@ -52,7 +50,7 @@ void RpDebugEllipsoids::DrawProbes(RpBuilder &builder) {
     RpAllocBuf &unif_shared_data_buf = builder.GetReadBuffer(shared_data_buf_);
 
     const PrimDraw::Binding bindings[] = {{Ren::eBindTarget::UBuf, REN_UB_SHARED_DATA_LOC,
-                                           orphan_index_ * SharedDataBlockSize, sizeof(SharedDataBlock),
+                                           0, sizeof(SharedDataBlock),
                                            unif_shared_data_buf.ref->handle()}};
 
     for (int i = 0; i < int(ellipsoids_.count); i++) {

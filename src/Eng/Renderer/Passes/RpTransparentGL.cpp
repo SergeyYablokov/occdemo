@@ -71,8 +71,7 @@ void RpTransparent::DrawTransparent_Simple(RpBuilder &builder, RpAllocBuf &insta
     // Bind resources (shadow atlas, lightmap, cells item data)
     //
 
-    glBindBufferRange(GL_UNIFORM_BUFFER, REN_UB_SHARED_DATA_LOC, unif_shared_data_buf.ref->id(),
-                      orphan_index_ * SharedDataBlockSize, sizeof(SharedDataBlock));
+    glBindBufferBase(GL_UNIFORM_BUFFER, REN_UB_SHARED_DATA_LOC, unif_shared_data_buf.ref->id());
 
     ren_glBindTextureUnit_Comp(GL_TEXTURE_2D, REN_SHAD_TEX_SLOT, shadowmap_tex.ref->id());
 
@@ -101,10 +100,10 @@ void RpTransparent::DrawTransparent_Simple(RpBuilder &builder, RpAllocBuf &insta
     ren_glBindTextureUnit_Comp(GL_TEXTURE_CUBE_MAP_ARRAY, REN_ENV_TEX_SLOT,
                                probe_storage_ ? probe_storage_->handle().id : 0);
 
-    ren_glBindTextureUnit_Comp(GL_TEXTURE_BUFFER, REN_LIGHT_BUF_SLOT, GLuint(lights_buf.tbos[orphan_index_]->id()));
-    ren_glBindTextureUnit_Comp(GL_TEXTURE_BUFFER, REN_DECAL_BUF_SLOT, GLuint(decals_buf.tbos[orphan_index_]->id()));
-    ren_glBindTextureUnit_Comp(GL_TEXTURE_BUFFER, REN_CELLS_BUF_SLOT, GLuint(cells_buf.tbos[orphan_index_]->id()));
-    ren_glBindTextureUnit_Comp(GL_TEXTURE_BUFFER, REN_ITEMS_BUF_SLOT, GLuint(items_buf.tbos[orphan_index_]->id()));
+    ren_glBindTextureUnit_Comp(GL_TEXTURE_BUFFER, REN_LIGHT_BUF_SLOT, GLuint(lights_buf.tbos[0]->id()));
+    ren_glBindTextureUnit_Comp(GL_TEXTURE_BUFFER, REN_DECAL_BUF_SLOT, GLuint(decals_buf.tbos[0]->id()));
+    ren_glBindTextureUnit_Comp(GL_TEXTURE_BUFFER, REN_CELLS_BUF_SLOT, GLuint(cells_buf.tbos[0]->id()));
+    ren_glBindTextureUnit_Comp(GL_TEXTURE_BUFFER, REN_ITEMS_BUF_SLOT, GLuint(items_buf.tbos[0]->id()));
 
     ren_glBindTextureUnit_Comp(GL_TEXTURE_2D, REN_NOISE_TEX_SLOT, noise_tex_->id());
     ren_glBindTextureUnit_Comp(GL_TEXTURE_2D, REN_CONE_RT_LUT_SLOT, cone_rt_lut_->id());
@@ -117,7 +116,7 @@ void RpTransparent::DrawTransparent_Simple(RpBuilder &builder, RpAllocBuf &insta
         glBindBufferRange(GL_SHADER_STORAGE_BUFFER, REN_BINDLESS_TEX_SLOT, GLuint(bufs_->textures_buf.id),
                           GLintptr(bufs_->textures_buf_range.first), GLsizeiptr(bufs_->textures_buf_range.second));
     }
-    ren_glBindTextureUnit_Comp(GL_TEXTURE_BUFFER, REN_INST_BUF_SLOT, GLuint(instances_buf.tbos[orphan_index_]->id()));
+    ren_glBindTextureUnit_Comp(GL_TEXTURE_BUFFER, REN_INST_BUF_SLOT, GLuint(instances_buf.tbos[0]->id()));
 
     uint64_t cur_prog_id = 0xffffffffffffffff;
     uint64_t cur_mat_id = 0xffffffffffffffff;
@@ -259,8 +258,7 @@ void RpTransparent::DrawTransparent_OIT_MomentBased(RpBuilder &builder) {
 
     RpAllocBuf &unif_shared_data_buf = builder.GetReadBuffer(shared_data_buf_);
 
-    glBindBufferRange(GL_UNIFORM_BUFFER, REN_UB_SHARED_DATA_LOC, unif_shared_data_buf.ref->id(),
-                      orphan_index_ * SharedDataBlockSize, sizeof(SharedDataBlock));
+    glBindBufferBase(GL_UNIFORM_BUFFER, REN_UB_SHARED_DATA_LOC, unif_shared_data_buf.ref->id());
 
     // ren_glBindTextureUnit_Comp(GL_TEXTURE_2D, REN_SHAD_TEX_SLOT,
     // shadowmap_tex.ref->id());

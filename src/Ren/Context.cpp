@@ -391,13 +391,12 @@ void Ren::Context::ReleaseAnims() {
     anims_.clear();
 }
 
-Ren::BufferRef Ren::Context::CreateBuffer(const char *name, const eBufType type, const eBufAccessType access,
-                                          const eBufAccessFreq freq, const uint32_t initial_size) {
+Ren::BufferRef Ren::Context::CreateBuffer(const char *name, const eBufType type, const uint32_t initial_size) {
     return buffers_.Add(name,
 #if defined(USE_VK_RENDER)
                         ctx_.get(),
 #endif
-                        type, access, freq, initial_size);
+                        type, initial_size);
 }
 
 void Ren::Context::ReleaseBuffers() {
@@ -413,46 +412,40 @@ void Ren::Context::ReleaseBuffers() {
 }
 
 void Ren::Context::InitDefaultBuffers() {
-    default_vertex_buf1_ =
-        buffers_.Add("default_vtx_buf1",
+    default_vertex_buf1_ = buffers_.Add("default_vtx_buf1",
 #if defined(USE_VK_RENDER)
-                     ctx_.get(),
+                                        ctx_.get(),
 #endif
-                     eBufType::VertexAttribs, eBufAccessType::Draw, eBufAccessFreq::Static, 64 * 1024 * 1024);
-    default_vertex_buf2_ =
-        buffers_.Add("default_vtx_buf2",
+                                        eBufType::VertexAttribs, 64 * 1024 * 1024);
+    default_vertex_buf2_ = buffers_.Add("default_vtx_buf2",
 #if defined(USE_VK_RENDER)
-                     ctx_.get(),
+                                        ctx_.get(),
 #endif
-                     eBufType::VertexAttribs, eBufAccessType::Draw, eBufAccessFreq::Static, 64 * 1024 * 1024);
-    default_skin_vertex_buf_ =
-        buffers_.Add("default_skin_vtx_buf",
+                                        eBufType::VertexAttribs, 64 * 1024 * 1024);
+    default_skin_vertex_buf_ = buffers_.Add("default_skin_vtx_buf",
 #if defined(USE_VK_RENDER)
-                     ctx_.get(),
+                                            ctx_.get(),
 #endif
-                     eBufType::VertexAttribs, eBufAccessType::Draw, eBufAccessFreq::Static, 64 * 1024 * 1024);
-    default_delta_buf_ =
-        buffers_.Add("default_delta_buf",
+                                            eBufType::VertexAttribs, 64 * 1024 * 1024);
+    default_delta_buf_ = buffers_.Add("default_delta_buf",
 #if defined(USE_VK_RENDER)
-                     ctx_.get(),
+                                      ctx_.get(),
 #endif
-                     eBufType::VertexAttribs, eBufAccessType::Draw, eBufAccessFreq::Static, 64 * 1024 * 1024);
-    default_indices_buf_ =
-        buffers_.Add("default_ndx_buf2",
+                                      eBufType::VertexAttribs, 64 * 1024 * 1024);
+    default_indices_buf_ = buffers_.Add("default_ndx_buf2",
 #if defined(USE_VK_RENDER)
-                     ctx_.get(),
+                                        ctx_.get(),
 #endif
-                     eBufType::VertexIndices, eBufAccessType::Draw, eBufAccessFreq::Static, 64 * 1024 * 1024);
+                                        eBufType::VertexIndices, 64 * 1024 * 1024);
 
     for (int i = 0; i < StageBufferCount; ++i) {
         char name_buf[32];
         sprintf(name_buf, "default_stage_buf_%i", i);
-        default_stage_bufs_.bufs[i] =
-            buffers_.Add(name_buf,
+        default_stage_bufs_.bufs[i] = buffers_.Add(name_buf,
 #if defined(USE_VK_RENDER)
-                         ctx_.get(),
+                                                   ctx_.get(),
 #endif
-                         eBufType::Stage, eBufAccessType::Copy, eBufAccessFreq::Stream, 32 * 1024 * 1024);
+                                                   eBufType::Stage, 32 * 1024 * 1024);
 #if defined(USE_VK_RENDER)
         VkFenceCreateInfo fence_info = {};
         fence_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;

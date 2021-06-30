@@ -25,14 +25,14 @@ class RpUpdateBuffers : public RenderPassBase {
     const Ren::Camera *draw_cam_ = nullptr;
     const ViewState *view_state_ = nullptr;
 
-    RpResource skin_transforms_buf_;
-    RpResource shape_keys_buf_;
-    RpResource instances_buf_;
-    RpResource cells_buf_;
-    RpResource lights_buf_;
-    RpResource decals_buf_;
-    RpResource items_buf_;
-    RpResource shared_data_buf_;
+    RpResource skin_transforms_buf_, skin_transforms_stage_buf_;
+    RpResource shape_keys_buf_, shape_keys_stage_buf_;
+    RpResource instances_buf_, instances_stage_buf_;
+    RpResource cells_buf_, cells_stage_buf_;
+    RpResource lights_buf_, lights_stage_buf_;
+    RpResource decals_buf_, decals_stage_buf_;
+    RpResource items_buf_, items_stage_buf_;
+    RpResource shared_data_buf_, shared_data_stage_buf_;
 
     std::vector<uint64_t> texture_handles_;
 

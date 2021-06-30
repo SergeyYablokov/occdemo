@@ -7,11 +7,10 @@
 #include "../PrimDraw.h"
 #include "../Renderer_Structs.h"
 
-void RpDebugProbes::Setup(RpBuilder &builder, const DrawList &list, const ViewState *view_state, const int orphan_index,
+void RpDebugProbes::Setup(RpBuilder &builder, const DrawList &list, const ViewState *view_state,
                           const char shared_data_buf_name[], const char output_tex_name[]) {
 
     view_state_ = view_state;
-    orphan_index_ = orphan_index;
 
     probe_storage_ = list.probe_storage;
     probes_ = list.probes;
@@ -54,7 +53,7 @@ void RpDebugProbes::DrawProbes(RpBuilder &builder) {
 
     const PrimDraw::Binding bindings[] = {
         {Ren::eBindTarget::TexCubeArray, REN_BASE0_TEX_SLOT, probe_storage_->handle()},
-        {Ren::eBindTarget::UBuf, REN_UB_SHARED_DATA_LOC, orphan_index_ * SharedDataBlockSize, sizeof(SharedDataBlock),
+        {Ren::eBindTarget::UBuf, REN_UB_SHARED_DATA_LOC, 0, sizeof(SharedDataBlock),
          unif_shared_data_buf.ref->handle()}};
 
     debug_roughness_ += 0.1f;

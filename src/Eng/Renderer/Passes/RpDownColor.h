@@ -15,7 +15,6 @@ class RpDownColor : public RenderPassBase {
     // temp data (valid only between Setup and Execute calls)
     Ren::TexHandle output_tex_;
     const ViewState *view_state_ = nullptr;
-    int orphan_index_ = -1;
 
     RpResource shared_data_buf_;
 
@@ -29,7 +28,7 @@ class RpDownColor : public RenderPassBase {
   public:
     RpDownColor(PrimDraw &prim_draw) : prim_draw_(prim_draw) {}
 
-    void Setup(RpBuilder &builder, const ViewState *view_state, int orphan_index, const char shared_data_buf[],
+    void Setup(RpBuilder &builder, const ViewState *view_state, const char shared_data_buf[],
                const char color_tex_name[], Ren::TexHandle output_tex);
     void Execute(RpBuilder &builder) override;
 

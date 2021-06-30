@@ -115,8 +115,7 @@ void test_buffer() {
     {
         BufferTest test;
 
-        auto buf =
-            Ren::Buffer{"buf", Ren::eBufType::Uniform, Ren::eBufAccessType::Draw, Ren::eBufAccessFreq::Static, 256};
+        auto buf = Ren::Buffer{"buf", Ren::eBufType::Uniform, 256};
 
         require(buf.AllocRegion(16, "temp") == 0);
         require(buf.AllocRegion(32, "temp") == 16);

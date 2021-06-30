@@ -63,13 +63,12 @@ void RpShadowMaps::DrawShadowMaps(RpBuilder &builder) {
     }
 
     RpAllocBuf &instances_buf = builder.GetReadBuffer(instances_buf_);
-    assert(instances_buf.tbos[orphan_index_]);
+    assert(instances_buf.tbos[0]);
 
-    ren_glBindTextureUnit_Comp(GL_TEXTURE_BUFFER, REN_INST_BUF_SLOT, GLuint(instances_buf.tbos[orphan_index_]->id()));
+    ren_glBindTextureUnit_Comp(GL_TEXTURE_BUFFER, REN_INST_BUF_SLOT, GLuint(instances_buf.tbos[0]->id()));
 
     RpAllocBuf &unif_shared_data_buf = builder.GetReadBuffer(shared_data_buf_);
-    glBindBufferRange(GL_UNIFORM_BUFFER, REN_UB_SHARED_DATA_LOC, GLuint(unif_shared_data_buf.ref->id()),
-                      orphan_index_ * SharedDataBlockSize, sizeof(SharedDataBlock));
+    glBindBufferBase(GL_UNIFORM_BUFFER, REN_UB_SHARED_DATA_LOC, GLuint(unif_shared_data_buf.ref->id()));
     assert(orphan_index_ * SharedDataBlockSize % builder.ctx().capabilities.unif_buf_offset_alignment == 0);
 
     ren_glBindTextureUnit_Comp(GL_TEXTURE_2D, REN_NOISE_TEX_SLOT, noise_tex_.id);

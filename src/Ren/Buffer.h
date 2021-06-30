@@ -16,14 +16,7 @@ class ILog;
 struct VkContext;
 
 enum class eType : uint8_t { Float16, Float32, Uint32, Uint16UNorm, Int16SNorm, Uint8UNorm, Int32, _Count };
-
 enum class eBufType : uint8_t { Undefined, VertexAttribs, VertexIndices, Texture, Uniform, Storage, Stage, _Count };
-enum class eBufAccessType : uint8_t { Draw, Read, Copy };
-enum class eBufAccessFreq : uint8_t {
-    Stream, // modified once, used a few times
-    Static, // modified once, used many times
-    Dynamic // modified often, used many times
-};
 
 const uint8_t BufMapRead = (1u << 0u);
 const uint8_t BufMapWrite = (1u << 1u);
@@ -74,8 +67,6 @@ class Buffer : public RefCounter {
     VkDeviceMemory mem_ = VK_NULL_HANDLE;
 #endif
     eBufType type_ = eBufType::Undefined;
-    eBufAccessType access_;
-    eBufAccessFreq freq_;
     uint32_t size_ = 0;
     SparseArray<Node> nodes_;
     uint32_t mapped_offset_ = 0xffffffff;
@@ -97,7 +88,7 @@ class Buffer : public RefCounter {
     explicit Buffer(const char *name, VkContext *ctx, eBufType type, eBufAccessType access, eBufAccessFreq freq,
                     uint32_t initial_size);
 #else
-    explicit Buffer(const char *name, eBufType type, eBufAccessType access, eBufAccessFreq freq, uint32_t initial_size);
+    explicit Buffer(const char *name, eBufType type, uint32_t initial_size);
 #endif
     Buffer(const Buffer &rhs) = delete;
     Buffer(Buffer &&rhs) noexcept { (*this) = std::move(rhs); }
@@ -108,8 +99,6 @@ class Buffer : public RefCounter {
 
     const String &name() const { return name_; }
     eBufType type() const { return type_; }
-    eBufAccessType access() const { return access_; }
-    eBufAccessFreq freq() const { return freq_; }
     uint32_t size() const { return size_; }
 
     BufHandle handle() const { return handle_; }

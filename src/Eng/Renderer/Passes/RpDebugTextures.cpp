@@ -9,13 +9,12 @@
 #include "../Renderer_Structs.h"
 
 void RpDebugTextures::Setup(RpBuilder &builder, const ViewState *view_state, const DrawList &list,
-                            const int orphan_index, const Ren::Tex2DRef &down_tex_4x, const char shared_data_buf_name[],
+                            const Ren::Tex2DRef &down_tex_4x, const char shared_data_buf_name[],
                             const char cells_buf_name[], const char items_buf_name[], const char shadow_map_name[],
                             const char main_color_tex_name[], const char main_normal_tex_name[],
                             const char main_spec_tex_name[], const char main_depth_tex_name[],
                             const char ssao_tex_name[], const char blur_res_name[], const char reduced_tex_name[],
                             Ren::TexHandle output_tex) {
-    orphan_index_ = orphan_index;
     render_flags_ = list.render_flags;
     view_state_ = view_state;
     draw_cam_ = &list.draw_cam;
@@ -111,8 +110,8 @@ void RpDebugTextures::Execute(RpBuilder &builder) {
             bindings[0] = {Ren::eBindTarget::Tex2D, REN_BASE0_TEX_SLOT, depth_tex.ref->handle()};
         }
 
-        bindings[1] = {Ren::eBindTarget::TexBuf, REN_CELLS_BUF_SLOT, cells_buf.tbos[orphan_index_]->handle()};
-        bindings[2] = {Ren::eBindTarget::TexBuf, REN_ITEMS_BUF_SLOT, items_buf.tbos[orphan_index_]->handle()};
+        bindings[1] = {Ren::eBindTarget::TexBuf, REN_CELLS_BUF_SLOT, cells_buf.tbos[0]->handle()};
+        bindings[2] = {Ren::eBindTarget::TexBuf, REN_ITEMS_BUF_SLOT, items_buf.tbos[0]->handle()};
 
         prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, {output_fb_.id(), 0}, blit_prog, bindings, 3, uniforms, 4);
     }
@@ -153,8 +152,7 @@ void RpDebugTextures::Execute(RpBuilder &builder) {
     if (render_flags_ & DebugBVH) {
         const uint32_t buf_size = nodes_count_ * sizeof(bvh_node_t);
 
-        Ren::BufferRef temp_stage_buf = builder.ctx().CreateBuffer(
-            "Nodes stage buf", Ren::eBufType::Stage, Ren::eBufAccessType::Copy, Ren::eBufAccessFreq::Stream, buf_size);
+        Ren::BufferRef temp_stage_buf = builder.ctx().CreateBuffer("Nodes stage buf", Ren::eBufType::Stage, buf_size);
 
         auto *stage_nodes = reinterpret_cast<bvh_node_t *>(temp_stage_buf->Map(Ren::BufMapWrite));
         memcpy(stage_nodes, nodes_, buf_size);
@@ -164,8 +162,7 @@ void RpDebugTextures::Execute(RpBuilder &builder) {
         if (!nodes_buf_ || buf_size > nodes_buf_->size()) {
             nodes_buf_ = {};
             nodes_tbo_ = {};
-            nodes_buf_ = builder.ctx().CreateBuffer("Nodes buf", Ren::eBufType::Texture, Ren::eBufAccessType::Draw,
-                                                    Ren::eBufAccessFreq::Dynamic, buf_size);
+            nodes_buf_ = builder.ctx().CreateBuffer("Nodes buf", Ren::eBufType::Texture, buf_size);
             nodes_tbo_ =
                 builder.ctx().CreateTexture1D("Nodes TBO", nodes_buf_, Ren::eTexFormat::RawRGBA32F, 0, buf_size);
         }
@@ -188,8 +185,8 @@ void RpDebugTextures::Execute(RpBuilder &builder) {
             view_state_->is_multisampled ? blit_debug_bvh_ms_prog_.get() : blit_debug_bvh_prog_.get();
 
         PrimDraw::Binding bindings[3];
-        bindings[0] = {Ren::eBindTarget::UBuf, REN_UB_SHARED_DATA_LOC, orphan_index_ * SharedDataBlockSize,
-                       sizeof(SharedDataBlock), unif_shared_data_buf.ref->handle()};
+        bindings[0] = {Ren::eBindTarget::UBuf, REN_UB_SHARED_DATA_LOC, 0, sizeof(SharedDataBlock),
+                       unif_shared_data_buf.ref->handle()};
         bindings[1] = {view_state_->is_multisampled ? Ren::eBindTarget::Tex2DMs : Ren::eBindTarget::Tex2D, 0,
                        depth_tex.ref->handle()};
         bindings[2] = {Ren::eBindTarget::TexBuf, 1, nodes_tbo_->handle()};

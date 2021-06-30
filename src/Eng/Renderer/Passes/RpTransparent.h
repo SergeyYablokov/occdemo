@@ -12,7 +12,6 @@ class PrimDraw;
 class RpTransparent : public RenderPassBase {
     PrimDraw &prim_draw_;
     bool initialized = false;
-    int orphan_index_ = 0;
 
     // lazily initialized data
     Ren::ProgramRef blit_ms_resolve_prog_;
@@ -68,7 +67,7 @@ class RpTransparent : public RenderPassBase {
     RpTransparent(PrimDraw &prim_draw) : prim_draw_(prim_draw) {}
 
     void Setup(RpBuilder &builder, const DrawList &list, const int *alpha_blend_start_index,
-               const ViewState *view_state, const PersistentBuffers *bufs, int orphan_index, Ren::Tex2DRef brdf_lut,
+               const ViewState *view_state, const PersistentBuffers *bufs, Ren::Tex2DRef brdf_lut,
                Ren::Tex2DRef noise_tex, Ren::Tex2DRef cone_rt_lut, const char instances_buf[],
                const char shared_data_buf[], const char cells_buf[], const char items_buf[], const char lights_buf[],
                const char decals_buf[], const char shadowmap_tex[], const char ssao_tex[], const char color_tex[],

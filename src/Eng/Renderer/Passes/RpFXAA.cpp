@@ -8,10 +8,9 @@
 #include "../PrimDraw.h"
 #include "../Renderer_Structs.h"
 
-void RpFXAA::Setup(RpBuilder &builder, const ViewState *view_state, const int orphan_index,
-                   const char shared_data_buf[], const char color_tex[], const char output_tex_name[]) {
+void RpFXAA::Setup(RpBuilder &builder, const ViewState *view_state, const char shared_data_buf[],
+                   const char color_tex[], const char output_tex_name[]) {
     view_state_ = view_state;
-    orphan_index_ = orphan_index;
 
     shared_data_buf_ = builder.ReadBuffer(shared_data_buf, *this);
     color_tex_ = builder.ReadTexture(color_tex, *this);
@@ -44,8 +43,7 @@ void RpFXAA::Execute(RpBuilder &builder) {
     Ren::Program *blit_prog = blit_fxaa_prog_.get();
 
     const PrimDraw::Binding bindings[] = {{Ren::eBindTarget::Tex2D, REN_BASE0_TEX_SLOT, color_tex.ref->handle()},
-                                          {Ren::eBindTarget::UBuf, REN_UB_SHARED_DATA_LOC,
-                                           orphan_index_ * SharedDataBlockSize, sizeof(SharedDataBlock),
+                                          {Ren::eBindTarget::UBuf, REN_UB_SHARED_DATA_LOC, 0, sizeof(SharedDataBlock),
                                            unif_shared_data_buf.ref->handle()}};
 
     const PrimDraw::Uniform uniforms[] = {

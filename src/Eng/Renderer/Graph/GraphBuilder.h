@@ -63,12 +63,10 @@ class RenderPassBase {
 struct RpBufDesc {
     uint32_t size;
     Ren::eBufType type;
-    Ren::eBufAccessType access;
-    Ren::eBufAccessFreq freq;
 };
 
 inline bool operator==(const RpBufDesc &lhs, const RpBufDesc &rhs) {
-    return lhs.size == rhs.size && lhs.type == rhs.type && lhs.access == rhs.access && lhs.freq == rhs.freq;
+    return lhs.size == rhs.size && lhs.type == rhs.type;
 }
 
 struct RpAllocBuf {

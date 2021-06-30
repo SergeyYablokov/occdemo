@@ -15,7 +15,6 @@ class RpTAA : public RenderPassBase {
     // temp data (valid only between Setup and Execute calls)
     Ren::TexHandle history_tex_;
     const ViewState *view_state_ = nullptr;
-    int orphan_index_ = -1;
     float reduced_average_ = 0.0f, max_exposure_ = 1.0f;
 
     RpResource shared_data_buf_;
@@ -34,9 +33,9 @@ class RpTAA : public RenderPassBase {
   public:
     RpTAA(PrimDraw &prim_draw) : prim_draw_(prim_draw) {}
 
-    void Setup(RpBuilder &builder, const ViewState *view_state, int orphan_index, Ren::TexHandle history_tex,
-               float reduced_average, float max_exposure, const char shared_data_buf[], const char color_tex[],
-               const char depth_tex[], const char velocity_tex[], const char output_tex_name[]);
+    void Setup(RpBuilder &builder, const ViewState *view_state, Ren::TexHandle history_tex, float reduced_average,
+               float max_exposure, const char shared_data_buf[], const char color_tex[], const char depth_tex[],
+               const char velocity_tex[], const char output_tex_name[]);
     void Execute(RpBuilder &builder) override;
 
     const char *name() const override { return "TAA"; }

@@ -107,8 +107,7 @@ class Context : public TaskExecutor {
                      eMeshLoadStatus *load_status);
     MeshRef LoadMesh(const char *name, std::istream *data, const material_load_callback &on_mat_load,
                      StageBufs &stage_bufs, BufferRef &vertex_buf1, BufferRef &vertex_buf2, BufferRef &index_buf,
-                     BufferRef &skin_vertex_buf,
-                     BufferRef &delta_buf, eMeshLoadStatus *load_status);
+                     BufferRef &skin_vertex_buf, BufferRef &delta_buf, eMeshLoadStatus *load_status);
 
     /*** Material ***/
     MaterialRef LoadMaterial(const char *name, const char *mat_src, eMatLoadStatus *status,
@@ -168,8 +167,7 @@ class Context : public TaskExecutor {
     void ReleaseAnims();
 
     /*** Buffers ***/
-    BufferRef CreateBuffer(const char *name, eBufType type, eBufAccessType access, eBufAccessFreq freq,
-                           uint32_t initial_size);
+    BufferRef CreateBuffer(const char *name, eBufType type, uint32_t initial_size);
     void ReleaseBuffers();
 
     void InitDefaultBuffers();

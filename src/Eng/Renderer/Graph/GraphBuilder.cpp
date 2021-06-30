@@ -237,7 +237,7 @@ RpAllocBuf &RpBuilder::GetWriteBuffer(RpResource handle) {
     assert(buf._generation == handle._generation);
 
     if (!buf.ref) {
-        buf.ref = ctx_.CreateBuffer(buf.name.c_str(), buf.desc.type, buf.desc.access, buf.desc.freq, buf.desc.size);
+        buf.ref = ctx_.CreateBuffer(buf.name.c_str(), buf.desc.type, buf.desc.size);
     }
 
     ++buf.write_count;

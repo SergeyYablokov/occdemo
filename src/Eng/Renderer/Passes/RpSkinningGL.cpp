@@ -23,10 +23,8 @@ void RpSkinning::Execute(RpBuilder &builder) {
 
         glUseProgram(p->id());
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, skin_vtx_buf_id);
-        glBindBufferRange(GL_SHADER_STORAGE_BUFFER, 1, (GLuint)skin_transforms_buf.ref->id(),
-                          orphan_index_ * SkinTransformsBufChunkSize, SkinTransformsBufChunkSize);
-        glBindBufferRange(GL_SHADER_STORAGE_BUFFER, 2, (GLuint)shape_keys_buf.ref->id(),
-                          orphan_index_ * ShapeKeysBufChunkSize, ShapeKeysBufChunkSize);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, GLuint(skin_transforms_buf.ref->id()));
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, GLuint(shape_keys_buf.ref->id()));
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, delta_buf_id);
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, vertex_buf1_id);
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, vertex_buf2_id);

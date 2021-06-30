@@ -16,7 +16,6 @@ class RpSSAO : public RenderPassBase {
     // temp data (valid only between Setup and Execute calls)
     Ren::TexHandle rand2d_dirs_4x4_tex_;
     const ViewState *view_state_ = nullptr;
-    int orphan_index_ = -1;
 
     RpResource shared_data_buf_;
 
@@ -34,7 +33,7 @@ class RpSSAO : public RenderPassBase {
   public:
     RpSSAO(PrimDraw &prim_draw) : prim_draw_(prim_draw) {}
 
-    void Setup(RpBuilder &builder, const ViewState *view_state, int orphan_index, Ren::TexHandle rand2d_dirs_4x4_tex,
+    void Setup(RpBuilder &builder, const ViewState *view_state, Ren::TexHandle rand2d_dirs_4x4_tex,
                const char shared_data_buf[], const char depth_down_2x[], const char depth_tex[],
                const char output_tex[]);
     void Execute(RpBuilder &builder) override;

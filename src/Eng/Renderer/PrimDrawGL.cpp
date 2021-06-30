@@ -25,8 +25,7 @@ bool PrimDraw::LazyInit(Ren::Context &ctx) {
             mem_required += (16 - mem_required % 16); // align to vertex stride
 
             Ren::BufferRef temp_stage_buf =
-                ctx.CreateBuffer("Temp prim buf", Ren::eBufType::Stage, Ren::eBufAccessType::Copy,
-                                 Ren::eBufAccessFreq::Stream, sizeof(__sphere_indices));
+                ctx.CreateBuffer("Temp prim buf", Ren::eBufType::Stage, sizeof(__sphere_indices));
             { // copy quad vertices
                 uint8_t *mapped_ptr = temp_stage_buf->Map(Ren::BufMapWrite);
                 memcpy(mapped_ptr, fs_quad_positions, sizeof(fs_quad_positions));
@@ -42,8 +41,7 @@ bool PrimDraw::LazyInit(Ren::Context &ctx) {
 
         { // Allocate quad indices
             Ren::BufferRef temp_stage_buf =
-                ctx.CreateBuffer("Temp prim buf", Ren::eBufType::Stage, Ren::eBufAccessType::Copy,
-                                 Ren::eBufAccessFreq::Stream, 6 * sizeof(uint16_t));
+                ctx.CreateBuffer("Temp prim buf", Ren::eBufType::Stage, 6 * sizeof(uint16_t));
 
             { // copy quad indices
                 uint8_t *mapped_ptr = temp_stage_buf->Map(Ren::BufMapWrite);
@@ -60,8 +58,7 @@ bool PrimDraw::LazyInit(Ren::Context &ctx) {
             const size_t sphere_vertices_size = sizeof(__sphere_positions) + (16 - sizeof(__sphere_positions) % 16);
 
             Ren::BufferRef temp_stage_buf =
-                ctx.CreateBuffer("Temp prim buf", Ren::eBufType::Stage, Ren::eBufAccessType::Copy,
-                                 Ren::eBufAccessFreq::Stream, sphere_vertices_size);
+                ctx.CreateBuffer("Temp prim buf", Ren::eBufType::Stage, sphere_vertices_size);
 
             { // copy sphere positions
                 uint8_t *mapped_ptr = temp_stage_buf->Map(Ren::BufMapWrite);
@@ -78,8 +75,7 @@ bool PrimDraw::LazyInit(Ren::Context &ctx) {
 
         { // Allocate sphere indices
             Ren::BufferRef temp_stage_buf =
-                ctx.CreateBuffer("Temp prim buf", Ren::eBufType::Stage, Ren::eBufAccessType::Copy,
-                                 Ren::eBufAccessFreq::Stream, sizeof(__sphere_indices));
+                ctx.CreateBuffer("Temp prim buf", Ren::eBufType::Stage, sizeof(__sphere_indices));
 
             { // copy sphere indices
                 uint8_t *mapped_ptr = temp_stage_buf->Map(Ren::BufMapWrite);

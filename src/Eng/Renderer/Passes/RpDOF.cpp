@@ -16,7 +16,6 @@ void RpDOF::Setup(RpBuilder &builder, const Ren::Camera *draw_cam, const ViewSta
                   const char output_tex_name[]) {
     draw_cam_ = draw_cam;
     view_state_ = view_state;
-    orphan_index_ = orphan_index;
     down_buf_4x_ = down_buf_4x;
 
     shared_data_buf_ = builder.ReadBuffer(shared_data_buf, *this);
@@ -119,8 +118,8 @@ void RpDOF::Execute(RpBuilder &builder) {
     { // downsample depth (once more)
         const PrimDraw::Binding bindings[] = {
             {Ren::eBindTarget::Tex2D, REN_BASE0_TEX_SLOT, down_depth_2x_tex.ref->handle()},
-            {Ren::eBindTarget::UBuf, REN_UB_SHARED_DATA_LOC, orphan_index_ * SharedDataBlockSize,
-             sizeof(SharedDataBlock), unif_shared_data_buf.ref->handle()}};
+            {Ren::eBindTarget::UBuf, REN_UB_SHARED_DATA_LOC, 0, sizeof(SharedDataBlock),
+             unif_shared_data_buf.ref->handle()}};
 
         const PrimDraw::Uniform uniforms[2] = {{0, Ren::Vec4f{0.0f, 0.0f, float(hres_w), float(hres_h)}}, {1, 0.0f}};
 
@@ -206,8 +205,8 @@ void RpDOF::Execute(RpBuilder &builder) {
 
         PrimDraw::Binding bindings[6];
 
-        bindings[0] = {Ren::eBindTarget::UBuf, REN_UB_SHARED_DATA_LOC, orphan_index_ * SharedDataBlockSize,
-                       sizeof(SharedDataBlock), unif_shared_data_buf.ref->handle()};
+        bindings[0] = {Ren::eBindTarget::UBuf, REN_UB_SHARED_DATA_LOC, 0, sizeof(SharedDataBlock),
+                       unif_shared_data_buf.ref->handle()};
         bindings[1] = {Ren::eBindTarget::Tex2D, REN_BASE0_TEX_SLOT, color_tex.ref->handle()};
 
         if (view_state_->is_multisampled) {

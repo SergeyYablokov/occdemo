@@ -548,6 +548,9 @@ void SceneManager::ClearScene() {
     scene_data_.update_counter = 0;
 
     scene_data_.materials_buf = {};
+    scene_data_.materials_stage_buf = {};
+    scene_data_.textures_buf = {};
+    scene_data_.textures_stage_buf = {};
 
     changed_objects_.clear();
     last_changed_objects_.clear();

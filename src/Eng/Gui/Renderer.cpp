@@ -35,21 +35,23 @@ const Gui::Vec2f *Gui::Renderer::GetClipArea() const {
 
 int Gui::Renderer::AcquireVertexData(vertex_t **vertex_data, int *vertex_avail, uint16_t **index_data,
                                      int *index_avail) {
-    (*vertex_data) = vtx_data_ + size_t(ctx_.frontend_frame) * MaxVerticesPerRange + vertex_count_[ctx_.frontend_frame];
-    (*vertex_avail) = MaxVerticesPerRange - vertex_count_[ctx_.frontend_frame];
+    (*vertex_data) =
+        vtx_stage_data_ + size_t(ctx_.frontend_frame) * MaxVerticesPerRange + vtx_count_[ctx_.frontend_frame];
+    (*vertex_avail) = MaxVerticesPerRange - vtx_count_[ctx_.frontend_frame];
 
-    (*index_data) = ndx_data_ + size_t(ctx_.frontend_frame) * MaxIndicesPerRange + index_count_[ctx_.frontend_frame];
-    (*index_avail) = MaxIndicesPerRange - index_count_[ctx_.frontend_frame];
+    (*index_data) =
+        ndx_stage_data_ + size_t(ctx_.frontend_frame) * MaxIndicesPerRange + ndx_count_[ctx_.frontend_frame];
+    (*index_avail) = MaxIndicesPerRange - ndx_count_[ctx_.frontend_frame];
 
-    return vertex_count_[ctx_.frontend_frame];
+    return vtx_count_[ctx_.frontend_frame];
 }
 
 void Gui::Renderer::SubmitVertexData(const int vertex_count, const int index_count) {
-    assert((vertex_count_[ctx_.frontend_frame] + vertex_count) <= MaxVerticesPerRange &&
-           (index_count_[ctx_.frontend_frame] + index_count) <= MaxIndicesPerRange);
+    assert((vtx_count_[ctx_.frontend_frame] + vertex_count) <= MaxVerticesPerRange &&
+           (ndx_count_[ctx_.frontend_frame] + index_count) <= MaxIndicesPerRange);
 
-    vertex_count_[ctx_.frontend_frame] += vertex_count;
-    index_count_[ctx_.frontend_frame] += index_count;
+    vtx_count_[ctx_.frontend_frame] += vertex_count;
+    ndx_count_[ctx_.frontend_frame] += index_count;
 }
 
 void Gui::Renderer::PushImageQuad(const eDrawMode draw_mode, const int tex_layer, const Vec2f pos[2],

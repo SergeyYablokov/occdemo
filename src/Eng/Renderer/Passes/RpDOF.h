@@ -18,7 +18,6 @@ class RpDOF : public RenderPassBase {
     const Ren::Camera *draw_cam_ = nullptr;
     Ren::TexHandle down_buf_4x_;
     const ViewState *view_state_ = nullptr;
-    int orphan_index_ = -1;
 
     RpResource shared_data_buf_;
     RpResource color_tex_;

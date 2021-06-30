@@ -6,10 +6,9 @@
 #include "../Renderer_Structs.h"
 
 void RpDepthFill::Setup(RpBuilder &builder, const DrawList &list, const ViewState *view_state,
-                        const PersistentBuffers *bufs, int orphan_index, const char instances_buf[],
+                        const PersistentBuffers *bufs, const char instances_buf[],
                         const char shared_data_buf[], const char main_depth_tex[], const char main_velocity_tex[],
                         Ren::TexHandle noise_tex) {
-    orphan_index_ = orphan_index;
     view_state_ = view_state;
 
     render_flags_ = list.render_flags;

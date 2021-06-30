@@ -9,10 +9,9 @@ namespace RpSkydomeInternal {
 #include "__skydome_mesh.inl"
 }
 
-void RpSkydome::Setup(RpBuilder &builder, const DrawList &list, const ViewState *view_state, const int orphan_index,
+void RpSkydome::Setup(RpBuilder &builder, const DrawList &list, const ViewState *view_state,
                       const char shared_data_buf[], const char color_tex[], const char spec_tex[],
                       const char depth_tex[]) {
-    orphan_index_ = orphan_index;
     view_state_ = view_state;
 
     env_ = &list.env;

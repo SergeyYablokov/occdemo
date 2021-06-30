@@ -23,7 +23,6 @@ class RpDebugTextures : public RenderPassBase {
     Ren::Tex1DRef nodes_tbo_;
 
     // temp data (valid only between Setup and Execute calls)
-    int orphan_index_ = -1;
     uint32_t render_flags_ = 0;
     Ren::TexHandle output_tex_;
     const ViewState *view_state_ = nullptr;
@@ -65,12 +64,11 @@ class RpDebugTextures : public RenderPassBase {
   public:
     RpDebugTextures(PrimDraw &prim_draw) : prim_draw_(prim_draw) {}
 
-    void Setup(RpBuilder &builder, const ViewState *view_state, const DrawList &list, int orphan_index,
-               const Ren::Tex2DRef &down_tex_4x, const char shared_data_buf_name[], const char cells_buf_name[],
-               const char items_buf_name[], const char shadow_map_name[], const char main_color_tex_name[],
-               const char main_normal_tex_name[], const char main_spec_tex_name[], const char main_depth_tex_name[],
-               const char ssao_tex_name[], const char blur_res_name[], const char reduced_tex_name[],
-               Ren::TexHandle output_tex);
+    void Setup(RpBuilder &builder, const ViewState *view_state, const DrawList &list, const Ren::Tex2DRef &down_tex_4x,
+               const char shared_data_buf_name[], const char cells_buf_name[], const char items_buf_name[],
+               const char shadow_map_name[], const char main_color_tex_name[], const char main_normal_tex_name[],
+               const char main_spec_tex_name[], const char main_depth_tex_name[], const char ssao_tex_name[],
+               const char blur_res_name[], const char reduced_tex_name[], Ren::TexHandle output_tex);
     void Execute(RpBuilder &builder) override;
 
     const char *name() const override { return "DEBUG TEXTURES"; }

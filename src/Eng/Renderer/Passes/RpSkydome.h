@@ -12,8 +12,6 @@ class RpSkydome : public RenderPassBase {
     bool initialized = false;
     Ren::ProgramRef skydome_prog_;
 
-    int orphan_index_ = 0;
-
     // temp data (valid only between Setup and Execute calls)
     const ViewState *view_state_ = nullptr;
     const EnvironmentWeak *env_ = nullptr;
@@ -40,7 +38,7 @@ class RpSkydome : public RenderPassBase {
   public:
     ~RpSkydome();
 
-    void Setup(RpBuilder &builder, const DrawList &list, const ViewState *view_state, int orphan_index,
+    void Setup(RpBuilder &builder, const DrawList &list, const ViewState *view_state,
                const char shared_data_buf[], const char color_tex[], const char spec_tex[], const char depth_tex[]);
     void Execute(RpBuilder &builder) override;
 

@@ -85,8 +85,8 @@ void RpReflections::Execute(RpBuilder &builder) {
             {Ren::eBindTarget::Tex2D, REN_REFL_DEPTH_TEX_SLOT, depth_down_2x_tex.ref->handle()},
             {clean_buf_bind_target, REN_REFL_NORM_TEX_SLOT, normal_tex.ref->handle()},
             {clean_buf_bind_target, REN_REFL_SPEC_TEX_SLOT, spec_tex.ref->handle()},
-            {Ren::eBindTarget::UBuf, REN_UB_SHARED_DATA_LOC, orphan_index_ * SharedDataBlockSize,
-             sizeof(SharedDataBlock), unif_sh_data_buf.ref->handle()}};
+            {Ren::eBindTarget::UBuf, REN_UB_SHARED_DATA_LOC, 0, sizeof(SharedDataBlock),
+             unif_sh_data_buf.ref->handle()}};
 
         const PrimDraw::Uniform uniforms[] = {
             {0, Ren::Vec4f{0.0f, 0.0f, float(view_state_->act_res[0]), float(view_state_->act_res[1])}}};
@@ -132,12 +132,12 @@ void RpReflections::Execute(RpBuilder &builder) {
             {Ren::eBindTarget::Tex2D, REN_REFL_PREV_TEX_SLOT, down_buf_4x_tex_},
             {Ren::eBindTarget::Tex2D, REN_REFL_BRDF_TEX_SLOT, brdf_lut_->handle()},
             //
-            {Ren::eBindTarget::TexBuf, REN_CELLS_BUF_SLOT, cells_buf.tbos[orphan_index_]->handle()},
-            {Ren::eBindTarget::TexBuf, REN_ITEMS_BUF_SLOT, items_buf.tbos[orphan_index_]->handle()},
+            {Ren::eBindTarget::TexBuf, REN_CELLS_BUF_SLOT, cells_buf.tbos[0]->handle()},
+            {Ren::eBindTarget::TexBuf, REN_ITEMS_BUF_SLOT, items_buf.tbos[0]->handle()},
             {Ren::eBindTarget::TexCubeArray, REN_ENV_TEX_SLOT,
              probe_storage_ ? probe_storage_->handle() : Ren::TexHandle{}},
-            {Ren::eBindTarget::UBuf, REN_UB_SHARED_DATA_LOC, orphan_index_ * SharedDataBlockSize,
-             sizeof(SharedDataBlock), unif_sh_data_buf.ref->handle()}};
+            {Ren::eBindTarget::UBuf, REN_UB_SHARED_DATA_LOC, 0, sizeof(SharedDataBlock),
+             unif_sh_data_buf.ref->handle()}};
 
         const PrimDraw::Uniform uniforms[] = {{0, Ren::Vec4f{0.0f, 0.0f, 1.0f, 1.0f}}};
 

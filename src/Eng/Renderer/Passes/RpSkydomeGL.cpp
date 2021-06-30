@@ -32,9 +32,7 @@ void RpSkydome::DrawSkydome(RpBuilder &builder) {
     rast_state.Apply();
 
     RpAllocBuf &unif_shared_data_buf = builder.GetReadBuffer(shared_data_buf_);
-    glBindBufferRange(GL_UNIFORM_BUFFER, REN_UB_SHARED_DATA_LOC, GLuint(unif_shared_data_buf.ref->id()),
-                      orphan_index_ * SharedDataBlockSize, sizeof(SharedDataBlock));
-    assert(orphan_index_ * SharedDataBlockSize % builder.ctx().capabilities.unif_buf_offset_alignment == 0);
+    glBindBufferBase(GL_UNIFORM_BUFFER, REN_UB_SHARED_DATA_LOC, GLuint(unif_shared_data_buf.ref->id()));
 
 #if defined(REN_DIRECT_DRAWING)
     glBindFramebuffer(GL_FRAMEBUFFER, 0);

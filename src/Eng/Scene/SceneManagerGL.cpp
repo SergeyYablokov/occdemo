@@ -37,12 +37,14 @@ void SceneManager::UpdateMaterialsBuffer() {
 
     if (!scene_data_.materials_buf) {
         scene_data_.materials_buf =
-            ren_ctx_.CreateBuffer("Materials Buffer", Ren::eBufType::Storage, Ren::eBufAccessType::Draw,
-                                  Ren::eBufAccessFreq::Dynamic, FrameSyncWindow * req_mat_buf_size);
+            ren_ctx_.CreateBuffer("Materials Buffer", Ren::eBufType::Storage, FrameSyncWindow * req_mat_buf_size);
+        scene_data_.materials_stage_buf =
+            ren_ctx_.CreateBuffer("Materials Stage Buffer", Ren::eBufType::Stage, FrameSyncWindow * req_mat_buf_size);
     }
 
     if (scene_data_.materials_buf->size() < FrameSyncWindow * req_mat_buf_size) {
         scene_data_.materials_buf->Resize(FrameSyncWindow * req_mat_buf_size);
+        scene_data_.materials_stage_buf->Resize(FrameSyncWindow * req_mat_buf_size);
     }
 
     const uint32_t max_tex_count = std::max(1u, REN_MAX_TEX_PER_MATERIAL * max_mat_count);
@@ -50,12 +52,14 @@ void SceneManager::UpdateMaterialsBuffer() {
 
     if (!scene_data_.textures_buf) {
         scene_data_.textures_buf =
-            ren_ctx_.CreateBuffer("Textures Buffer", Ren::eBufType::Storage, Ren::eBufAccessType::Draw,
-                                  Ren::eBufAccessFreq::Dynamic, FrameSyncWindow * req_tex_buf_size);
+            ren_ctx_.CreateBuffer("Textures Buffer", Ren::eBufType::Storage, FrameSyncWindow * req_tex_buf_size);
+        scene_data_.textures_stage_buf =
+            ren_ctx_.CreateBuffer("Textures Stage Buffer", Ren::eBufType::Stage, FrameSyncWindow * req_tex_buf_size);
     }
 
     if (scene_data_.textures_buf->size() < FrameSyncWindow * req_tex_buf_size) {
         scene_data_.textures_buf->Resize(FrameSyncWindow * req_tex_buf_size);
+        scene_data_.textures_stage_buf->Resize(FrameSyncWindow * req_tex_buf_size);
     }
 
     // propagate material changes
@@ -83,17 +87,19 @@ void SceneManager::UpdateMaterialsBuffer() {
         scene_data_.mat_buf_fences[scene_data_.mat_buf_index] = {};
     }
 
+    const size_t TexSizePerMaterial = REN_MAX_TEX_PER_MATERIAL * sizeof(GLuint64);
+
     const uint32_t mat_buf_offset = scene_data_.mat_buf_index * req_mat_buf_size;
     const uint32_t tex_buf_offset = scene_data_.mat_buf_index * req_tex_buf_size;
 
-    MaterialData *material_data = reinterpret_cast<MaterialData *>(scene_data_.materials_buf->MapRange(
+    MaterialData *material_data = reinterpret_cast<MaterialData *>(scene_data_.materials_stage_buf->MapRange(
         Ren::BufMapWrite, mat_buf_offset + cur_update_range.first * sizeof(MaterialData),
         (cur_update_range.second - cur_update_range.first) * sizeof(MaterialData)));
     GLuint64 *texture_data = nullptr;
     if (ren_ctx_.capabilities.bindless_texture) {
-        texture_data = reinterpret_cast<GLuint64 *>(scene_data_.textures_buf->MapRange(
-            Ren::BufMapWrite, tex_buf_offset + cur_update_range.first * REN_MAX_TEX_PER_MATERIAL * sizeof(GLuint64),
-            (cur_update_range.second - cur_update_range.first) * REN_MAX_TEX_PER_MATERIAL * sizeof(GLuint64)));
+        texture_data = reinterpret_cast<GLuint64 *>(scene_data_.textures_stage_buf->MapRange(
+            Ren::BufMapWrite, tex_buf_offset + cur_update_range.first * TexSizePerMaterial,
+            (cur_update_range.second - cur_update_range.first) * TexSizePerMaterial));
     }
 
     for (uint32_t i = cur_update_range.first; i < cur_update_range.second; ++i) {
@@ -118,12 +124,36 @@ void SceneManager::UpdateMaterialsBuffer() {
     }
 
     if (texture_data) {
-        scene_data_.textures_buf->FlushRange(0, (cur_update_range.second - cur_update_range.first) *
-                                                    REN_MAX_TEX_PER_MATERIAL * sizeof(GLuint64));
-        scene_data_.textures_buf->Unmap();
+        scene_data_.textures_stage_buf->FlushRange(0, (cur_update_range.second - cur_update_range.first) *
+                                                          TexSizePerMaterial);
+        scene_data_.textures_stage_buf->Unmap();
+
+        glBindBuffer(GL_COPY_READ_BUFFER, scene_data_.textures_stage_buf->id());
+        glBindBuffer(GL_COPY_WRITE_BUFFER, scene_data_.textures_buf->id());
+
+        glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER,
+                            GLintptr(tex_buf_offset + cur_update_range.first * TexSizePerMaterial) /* readOffset */,
+                            GLintptr(tex_buf_offset + cur_update_range.first * TexSizePerMaterial) /* writeOffset */,
+                            (cur_update_range.second - cur_update_range.first) * TexSizePerMaterial);
+
+        glBindBuffer(GL_COPY_READ_BUFFER, 0);
+        glBindBuffer(GL_COPY_WRITE_BUFFER, 0);
     }
-    scene_data_.materials_buf->FlushRange(0, (cur_update_range.second - cur_update_range.first) * sizeof(MaterialData));
-    scene_data_.materials_buf->Unmap();
+
+    scene_data_.materials_stage_buf->FlushRange(0, (cur_update_range.second - cur_update_range.first) *
+                                                       sizeof(MaterialData));
+    scene_data_.materials_stage_buf->Unmap();
+
+    glBindBuffer(GL_COPY_READ_BUFFER, scene_data_.materials_stage_buf->id());
+    glBindBuffer(GL_COPY_WRITE_BUFFER, scene_data_.materials_buf->id());
+
+    glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER,
+                        GLintptr(mat_buf_offset + cur_update_range.first * sizeof(MaterialData)) /* readOffset */,
+                        GLintptr(mat_buf_offset + cur_update_range.first * sizeof(MaterialData)) /* writeOffset */,
+                        (cur_update_range.second - cur_update_range.first) * sizeof(MaterialData));
+
+    glBindBuffer(GL_COPY_READ_BUFFER, 0);
+    glBindBuffer(GL_COPY_WRITE_BUFFER, 0);
 
     // reset just updated range
     cur_update_range.first = max_mat_count - 1;
