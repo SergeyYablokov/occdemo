@@ -156,7 +156,7 @@ void RpDebugTextures::Execute(RpBuilder &builder) {
 
         auto *stage_nodes = reinterpret_cast<bvh_node_t *>(temp_stage_buf->Map(Ren::BufMapWrite));
         memcpy(stage_nodes, nodes_, buf_size);
-        temp_stage_buf->FlushRange(0, buf_size);
+        temp_stage_buf->FlushMappedRange(0, buf_size);
         temp_stage_buf->Unmap();
 
         if (!nodes_buf_ || buf_size > nodes_buf_->size()) {

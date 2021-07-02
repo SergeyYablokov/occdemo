@@ -170,8 +170,7 @@ if(${RENDERER} STREQUAL "GL")
                         Renderer/Passes/RpShadowMapsGL.cpp
                         Renderer/Passes/RpSkinningGL.cpp
                         Renderer/Passes/RpSkydomeGL.cpp
-                        Renderer/Passes/RpTransparentGL.cpp
-                        Renderer/Passes/RpUpdateBuffersGL.cpp)
+                        Renderer/Passes/RpTransparentGL.cpp)
 elseif(${RENDERER} STREQUAL "VK")
     set(RENDERER_SOURCES ${RENDERER_SOURCES}
                         Renderer/FrameBufVK.cpp

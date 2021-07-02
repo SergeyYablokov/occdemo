@@ -363,7 +363,7 @@ uint8_t *Ren::Buffer::MapRange(const uint8_t dir, const uint32_t offset, const u
     return ret;
 }
 
-void Ren::Buffer::FlushRange(uint32_t offset, uint32_t size) {
+void Ren::Buffer::FlushMappedRange(uint32_t offset, uint32_t size) {
     assert(mapped_offset_ != 0xffffffff);
     glBindBuffer(g_gl_buf_targets[int(type_)], GLuint(handle_.id));
     glFlushMappedBufferRange(g_gl_buf_targets[int(type_)], GLintptr(offset), GLsizeiptr(size));
@@ -380,6 +380,16 @@ void Ren::Buffer::Unmap() {
     glUnmapBuffer(g_gl_buf_targets[int(type_)]);
     glBindBuffer(g_gl_buf_targets[int(type_)], GLuint(0));
     mapped_offset_ = 0xffffffff;
+}
+
+void Ren::CopyBufferToBuffer(Buffer &src, uint32_t src_offset, Buffer &dst, uint32_t dst_offset, uint32_t size,
+                             void *cmd_buf) {
+    glBindBuffer(GL_COPY_READ_BUFFER, GLuint(src.id()));
+    glBindBuffer(GL_COPY_WRITE_BUFFER, GLuint(dst.id()));
+    glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER, src_offset /* readOffset */,
+                        dst_offset /* writeOffset */, size);
+    glBindBuffer(GL_COPY_READ_BUFFER, 0);
+    glBindBuffer(GL_COPY_WRITE_BUFFER, 0);
 }
 
 void Ren::GLUnbindBufferUnits(int start, int count) {

@@ -124,14 +124,14 @@ Gui::Renderer::Renderer(Ren::Context &ctx, const JsObject &config) : ctx_(ctx) {
         pool_info.pPoolSizes = &pool_size;
         pool_info.maxSets = 1;
 
-        const VkResult res = vkCreateDescriptorPool(vk_ctx->device, &pool_info, nullptr, &descriptor_pool_);
+        const VkResult res = vkCreateDescriptorPool(vk_ctx->device, &pool_info, nullptr, &desc_pool_);
         assert(res == VK_SUCCESS && "Failed to create descriptor pool!");
     }
 
     { // create descriptor set
         VkDescriptorSetAllocateInfo alloc_info = {};
         alloc_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-        alloc_info.descriptorPool = descriptor_pool_;
+        alloc_info.descriptorPool = desc_pool_;
         alloc_info.descriptorSetCount = 1;
         alloc_info.pSetLayouts = &desc_set_layout_;
 
@@ -368,26 +368,18 @@ Gui::Renderer::Renderer(Ren::Context &ctx, const JsObject &config) : ctx_(ctx) {
 Gui::Renderer::~Renderer() {
     Ren::VkContext *vk_ctx = ctx_.vk_ctx();
 
-    for (int i = 0; i < Ren::MaxFramesInFlight; i++) {
-        if (buf_range_fences_[i]) {
-            buf_range_fences_[i].ClientWaitSync();
-            buf_range_fences_[i].Reset();
-        }
-    }
+    vkDeviceWaitIdle(vk_ctx->device);
 
-#if 0
-    for (int i = 0; i < FrameSyncWindow; i++) {
-        if (buf_range_fences_[i]) {
-            auto sync = reinterpret_cast<GLsync>(buf_range_fences_[i]);
-            const GLenum res = glClientWaitSync(sync, 0, 1000000000);
-            if (res != GL_ALREADY_SIGNALED && res != GL_CONDITION_SATISFIED) {
-                ctx_.log()->Error("[Gui::Renderer::~Renderer]: Wait failed!");
-            }
-            glDeleteSync(sync);
-            buf_range_fences_[i] = nullptr;
-        }
+    vkDestroyDescriptorSetLayout(vk_ctx->device, desc_set_layout_, nullptr);
+    vkDestroyDescriptorPool(vk_ctx->device, desc_pool_, nullptr);
+    
+    vkDestroyRenderPass(vk_ctx->device, render_pass_, nullptr);
+    vkDestroyPipelineLayout(vk_ctx->device, pipeline_layout_, nullptr);
+    vkDestroyPipeline(vk_ctx->device, pipeline_, nullptr);
+
+    for (VkFramebuffer fb : framebuffers_) {
+        vkDestroyFramebuffer(vk_ctx->device, fb, nullptr);
     }
-#endif
 }
 
 void Gui::Renderer::Draw(int w, int h) {
@@ -403,7 +395,7 @@ void Gui::Renderer::Draw(int w, int h) {
         const uint32_t data_offset = uint32_t(ctx_.backend_frame) * MaxVerticesPerRange * sizeof(vertex_t);
         const uint32_t data_size = uint32_t(vtx_count_[ctx_.backend_frame] * sizeof(vertex_t));
 
-        vertex_stage_buf_->FlushRange(data_offset, data_size);
+        vertex_stage_buf_->FlushMappedRange(data_offset, data_size);
 
         int barriers_count = 0;
         VkBufferMemoryBarrier barriers[2] = {};
@@ -450,7 +442,7 @@ void Gui::Renderer::Draw(int w, int h) {
         const uint32_t data_offset = uint32_t(ctx_.backend_frame) * MaxIndicesPerRange * sizeof(uint16_t);
         const uint32_t data_size = uint32_t(ndx_count_[ctx_.backend_frame] * sizeof(uint16_t));
 
-        index_stage_buf_->FlushRange(data_offset, data_size);
+        index_stage_buf_->FlushMappedRange(data_offset, data_size);
 
         int barriers_count = 0;
         VkBufferMemoryBarrier barriers[2] = {};

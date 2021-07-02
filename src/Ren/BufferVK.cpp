@@ -453,7 +453,7 @@ uint8_t *Ren::Buffer::MapRange(const uint8_t dir, const uint32_t offset, const u
     return reinterpret_cast<uint8_t *>(mapped) + (offset % align_to);
 }
 
-void Ren::Buffer::FlushRange(uint32_t offset, uint32_t size) {
+void Ren::Buffer::FlushMappedRange(uint32_t offset, uint32_t size) {
     const uint32_t align_to = uint32_t(ctx_->device_properties.limits.nonCoherentAtomSize);
     const uint32_t offset_aligned = offset - (offset % align_to);
     const uint32_t size_aligned = align_to * ((size + (offset % align_to) + align_to - 1) / align_to);

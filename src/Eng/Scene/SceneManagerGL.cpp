@@ -117,7 +117,7 @@ void SceneManager::UpdateMaterialsBuffer() {
     }
 
     if (texture_data) {
-        scene_data_.textures_stage_buf->FlushRange(0, (cur_update_range.second - cur_update_range.first) *
+        scene_data_.textures_stage_buf->FlushMappedRange(0, (cur_update_range.second - cur_update_range.first) *
                                                           TexSizePerMaterial);
         scene_data_.textures_stage_buf->Unmap();
 
@@ -133,7 +133,7 @@ void SceneManager::UpdateMaterialsBuffer() {
         glBindBuffer(GL_COPY_WRITE_BUFFER, 0);
     }
 
-    scene_data_.materials_stage_buf->FlushRange(0, (cur_update_range.second - cur_update_range.first) *
+    scene_data_.materials_stage_buf->FlushMappedRange(0, (cur_update_range.second - cur_update_range.first) *
                                                        sizeof(MaterialData));
     scene_data_.materials_stage_buf->Unmap();
 

@@ -259,7 +259,7 @@ void main() {
             for (int i = 0; i < 128; i++) {
                 data[i] = _data[i];
             }
-            stage_buf.FlushRange(0, sizeof(AttribData) * 128);
+            stage_buf.FlushMappedRange(0, sizeof(AttribData) * 128);
             stage_buf.Unmap();
         }
 

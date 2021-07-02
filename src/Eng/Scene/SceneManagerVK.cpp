@@ -135,12 +135,12 @@ void SceneManager::UpdateMaterialsBuffer() {
     }
 
     if (texture_data) {
-        scene_data_.textures_buf->FlushRange(
+        scene_data_.textures_buf->FlushMappedRange(
             0, (cur_update_range.second - cur_update_range.first + 1) *
                    REN_MAX_TEX_PER_MATERIAL * sizeof(GLuint64));
         scene_data_.textures_buf->Unmap();
     }
-    scene_data_.materials_buf->FlushRange(
+    scene_data_.materials_buf->FlushMappedRange(
         0, (cur_update_range.second - cur_update_range.first + 1) * sizeof(MaterialData));
     scene_data_.materials_buf->Unmap();
 

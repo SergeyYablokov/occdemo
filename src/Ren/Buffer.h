@@ -116,7 +116,7 @@ class Buffer : public RefCounter {
 
     uint8_t *Map(const uint8_t dir, const bool persistent = false) { return MapRange(dir, 0, size_, persistent); }
     uint8_t *MapRange(uint8_t dir, uint32_t offset, uint32_t size, bool persistent = false);
-    void FlushRange(uint32_t offset, uint32_t size);
+    void FlushMappedRange(uint32_t offset, uint32_t size);
     void Unmap();
 
     void Print(ILog *log);
@@ -126,6 +126,9 @@ class Buffer : public RefCounter {
     mutable VkPipelineStageFlags last_stage_mask = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
 #endif
 };
+
+void CopyBufferToBuffer(Buffer &src, uint32_t src_offset, Buffer &dst, uint32_t dst_offset, uint32_t size,
+                        void *cmd_buf = nullptr);
 
 #if defined(USE_GL_RENDER)
 void GLUnbindBufferUnits(int start, int count);

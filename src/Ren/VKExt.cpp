@@ -127,7 +127,9 @@ bool Ren::LoadVulkan(ILog *log) {
     LOAD_VK_FUN(vkAllocateMemory)
     LOAD_VK_FUN(vkFreeMemory)
     LOAD_VK_FUN(vkBindImageMemory)
+
     LOAD_VK_FUN(vkCreateRenderPass)
+    LOAD_VK_FUN(vkDestroyRenderPass)
 
     LOAD_VK_FUN(vkCreateFramebuffer)
     LOAD_VK_FUN(vkDestroyFramebuffer);

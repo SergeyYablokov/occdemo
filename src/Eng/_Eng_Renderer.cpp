@@ -45,7 +45,6 @@
 #include "Renderer/Passes/RpSkinningGL.cpp"
 #include "Renderer/Passes/RpSkydomeGL.cpp"
 #include "Renderer/Passes/RpTransparentGL.cpp"
-#include "Renderer/Passes/RpUpdateBuffersGL.cpp"
 #elif defined(USE_VK_RENDER)
 #include "Renderer/FrameBufVK.cpp"
 #include "Renderer/PrimDrawVK.cpp"

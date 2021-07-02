@@ -30,7 +30,7 @@ bool PrimDraw::LazyInit(Ren::Context &ctx) {
                 uint8_t *mapped_ptr = temp_stage_buf->Map(Ren::BufMapWrite);
                 memcpy(mapped_ptr, fs_quad_positions, sizeof(fs_quad_positions));
                 memcpy(mapped_ptr + sizeof(fs_quad_positions), fs_quad_norm_uvs, sizeof(fs_quad_norm_uvs));
-                temp_stage_buf->FlushRange(0, sizeof(fs_quad_positions) + sizeof(fs_quad_norm_uvs));
+                temp_stage_buf->FlushMappedRange(0, sizeof(fs_quad_positions) + sizeof(fs_quad_norm_uvs));
                 temp_stage_buf->Unmap();
             }
 
@@ -46,7 +46,7 @@ bool PrimDraw::LazyInit(Ren::Context &ctx) {
             { // copy quad indices
                 uint8_t *mapped_ptr = temp_stage_buf->Map(Ren::BufMapWrite);
                 memcpy(mapped_ptr, fs_quad_indices, 6 * sizeof(uint16_t));
-                temp_stage_buf->FlushRange(0, 6 * sizeof(uint16_t));
+                temp_stage_buf->FlushMappedRange(0, 6 * sizeof(uint16_t));
                 temp_stage_buf->Unmap();
             }
 
@@ -63,7 +63,7 @@ bool PrimDraw::LazyInit(Ren::Context &ctx) {
             { // copy sphere positions
                 uint8_t *mapped_ptr = temp_stage_buf->Map(Ren::BufMapWrite);
                 memcpy(mapped_ptr, __sphere_positions, sphere_vertices_size);
-                temp_stage_buf->FlushRange(0, sphere_vertices_size);
+                temp_stage_buf->FlushMappedRange(0, sphere_vertices_size);
                 temp_stage_buf->Unmap();
             }
 
@@ -80,7 +80,7 @@ bool PrimDraw::LazyInit(Ren::Context &ctx) {
             { // copy sphere indices
                 uint8_t *mapped_ptr = temp_stage_buf->Map(Ren::BufMapWrite);
                 memcpy(mapped_ptr, __sphere_indices, sizeof(__sphere_indices));
-                temp_stage_buf->FlushRange(0, sizeof(__sphere_indices));
+                temp_stage_buf->FlushMappedRange(0, sizeof(__sphere_indices));
                 temp_stage_buf->Unmap();
             }
             sphere_ndx_offset_ = ndx_buf->AllocRegion(sizeof(__sphere_indices), "sphere", temp_stage_buf.get());

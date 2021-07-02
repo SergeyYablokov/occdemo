@@ -277,7 +277,7 @@ void Ren::Mesh::Init(const float *positions, const int vtx_count, const uint32_t
     assert(uintptr_t(_ndx_data) % alignof(uint32_t) == 0);
     memcpy(_ndx_data, indices, indices_buf_.size);
 
-    stage_buf.FlushRange(0, total_mem_required);
+    stage_buf.FlushMappedRange(0, total_mem_required);
     stage_buf.Unmap();
 
     type_ = eMeshType::Simple;
@@ -423,7 +423,7 @@ void Ren::Mesh::InitMeshSimple(std::istream &data, const material_load_callback 
     }
     memcpy(index_data, indices_.get(), indices_buf_.size);
 
-    stage_buf.FlushRange(0, total_mem_required);
+    stage_buf.FlushMappedRange(0, total_mem_required);
     stage_buf.Unmap();
 
     attribs_buf1_.offset =
@@ -537,7 +537,7 @@ void Ren::Mesh::InitMeshColored(std::istream &data, const material_load_callback
     }
     memcpy(index_data, indices_.get(), indices_buf_.size);
 
-    stage_buf.FlushRange(0, total_mem_required);
+    stage_buf.FlushMappedRange(0, total_mem_required);
     stage_buf.Unmap();
 
     attribs_buf1_.offset =
@@ -755,7 +755,7 @@ void Ren::Mesh::InitMeshSkeletal(std::istream &data, const material_load_callbac
     stage_buf_off += indices_buf_.size;
     memcpy(index_data, indices_.get(), indices_buf_.size);
 
-    stage_buf.FlushRange(0, stage_buf_off);
+    stage_buf.FlushMappedRange(0, stage_buf_off);
     stage_buf.Unmap();
 
     if (shape_data_present) {
