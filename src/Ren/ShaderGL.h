@@ -22,10 +22,11 @@ class Shader : public RefCounter {
   public:
     SmallVector<Descr, 16> attr_bindings, unif_bindings, blck_bindings;
 
-    Shader(const char *name, const char *shader_src, eShaderType type, eShaderLoadStatus *status, ILog *log);
-#ifndef __ANDROID__
-    Shader(const char *name, const uint8_t *shader_code, int code_size, eShaderType type, eShaderLoadStatus *status,
+    Shader(const char *name, ApiContext *api_ctx, const char *shader_src, eShaderType type, eShaderLoadStatus *status,
            ILog *log);
+#ifndef __ANDROID__
+    Shader(const char *name, ApiContext *api_ctx, const uint8_t *shader_code, int code_size, eShaderType type,
+           eShaderLoadStatus *status, ILog *log);
 #endif
     Shader(const Shader &rhs) = delete;
     Shader(Shader &&rhs) noexcept { (*this) = std::move(rhs); }

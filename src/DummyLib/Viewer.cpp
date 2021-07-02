@@ -144,21 +144,20 @@ void Viewer::Resize(const int w, const int h) { GameBase::Resize(w, h); }
 
 void Viewer::Frame() {
     auto ctx = GetComponent<Ren::Context>(REN_CONTEXT_KEY);
-#if defined(USE_VK_RENDER)
-    Ren::VkContext *vk_ctx = ctx->vk_ctx();
+    Ren::ApiContext *api_ctx = ctx->api_ctx();
 
-    const int current_frame =  ctx->backend_frame;
-    vkWaitForFences(vk_ctx->device, 1, &vk_ctx->in_flight_fences[current_frame], VK_TRUE, UINT64_MAX);
+#if defined(USE_VK_RENDER)
+    vkWaitForFences(api_ctx->device, 1, &api_ctx->in_flight_fences[ctx->backend_frame], VK_TRUE, UINT64_MAX);
 
     uint32_t next_image_index = 0;
     VkResult res =
-        vkAcquireNextImageKHR(vk_ctx->device, vk_ctx->swapchain, UINT64_MAX,
-                              vk_ctx->image_avail_semaphores[current_frame], VK_NULL_HANDLE, &next_image_index);
+        vkAcquireNextImageKHR(api_ctx->device, api_ctx->swapchain, UINT64_MAX,
+                              api_ctx->image_avail_semaphores[ctx->backend_frame], VK_NULL_HANDLE, &next_image_index);
     if (res != VK_SUCCESS) {
         ctx->log()->Error("Failed to acquire next image!");
     };
 
-    vk_ctx->active_present_image = next_image_index;
+    api_ctx->active_present_image = next_image_index;
 
     ///////////////////////////////////////////////////////////////
 
@@ -166,7 +165,7 @@ void Viewer::Frame() {
     begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 
-    vkBeginCommandBuffer(vk_ctx->draw_cmd_buf[current_frame], &begin_info);
+    vkBeginCommandBuffer(api_ctx->draw_cmd_buf[ctx->backend_frame], &begin_info);
 
     { // change layout from present_src to attachment_optimal
         VkImageMemoryBarrier layout_transition_barrier = {};
@@ -178,20 +177,20 @@ void Viewer::Frame() {
         layout_transition_barrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
         layout_transition_barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
         layout_transition_barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        layout_transition_barrier.image = vk_ctx->present_images[next_image_index];
+        layout_transition_barrier.image = api_ctx->present_images[next_image_index];
         VkImageSubresourceRange resource_range = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
         layout_transition_barrier.subresourceRange = resource_range;
 
-        vkCmdPipelineBarrier(vk_ctx->draw_cmd_buf[current_frame], VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+        vkCmdPipelineBarrier(api_ctx->draw_cmd_buf[ctx->backend_frame], VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
                              VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, 0, 0, nullptr, 0, nullptr, 1,
                              &layout_transition_barrier);
     }
 
-    const VkViewport viewport = {0.0f, 0.0f, float(vk_ctx->res.width), float(vk_ctx->res.height), 0.0f, 1.0f};
-    vkCmdSetViewport(vk_ctx->draw_cmd_buf[current_frame], 0, 1, &viewport);
+    const VkViewport viewport = {0.0f, 0.0f, float(api_ctx->res.width), float(api_ctx->res.height), 0.0f, 1.0f};
+    vkCmdSetViewport(api_ctx->draw_cmd_buf[ctx->backend_frame], 0, 1, &viewport);
 
-    const VkRect2D scissor = {0, 0, vk_ctx->res.width, vk_ctx->res.height};
-    vkCmdSetScissor(vk_ctx->draw_cmd_buf[current_frame], 0, 1, &scissor);
+    const VkRect2D scissor = {0, 0, api_ctx->res.width, api_ctx->res.height};
+    vkCmdSetScissor(api_ctx->draw_cmd_buf[ctx->backend_frame], 0, 1, &scissor);
 
     {     // clear image (for testing)
         { // change layout to transfer_dst
@@ -203,11 +202,11 @@ void Viewer::Frame() {
             layout_transition_barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
             layout_transition_barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
             layout_transition_barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-            layout_transition_barrier.image = vk_ctx->present_images[next_image_index];
+            layout_transition_barrier.image = api_ctx->present_images[next_image_index];
             VkImageSubresourceRange resource_range = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
             layout_transition_barrier.subresourceRange = resource_range;
 
-            vkCmdPipelineBarrier(vk_ctx->draw_cmd_buf[current_frame], VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+            vkCmdPipelineBarrier(api_ctx->draw_cmd_buf[ctx->backend_frame], VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
                                  VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0, nullptr, 1,
                                  &layout_transition_barrier);
         }
@@ -231,7 +230,7 @@ void Viewer::Frame() {
         sub_range.levelCount = 1;
         sub_range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 
-        vkCmdClearColorImage(vk_ctx->draw_cmd_buf[current_frame], vk_ctx->present_images[next_image_index],
+        vkCmdClearColorImage(api_ctx->draw_cmd_buf[ctx->backend_frame], api_ctx->present_images[next_image_index],
                              VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, &clear_val, 1, &sub_range);
 
         { // change layout back
@@ -244,21 +243,19 @@ void Viewer::Frame() {
             layout_transition_barrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
             layout_transition_barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
             layout_transition_barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-            layout_transition_barrier.image = vk_ctx->present_images[next_image_index];
+            layout_transition_barrier.image = api_ctx->present_images[next_image_index];
             VkImageSubresourceRange resource_range = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
             layout_transition_barrier.subresourceRange = resource_range;
 
-            vkCmdPipelineBarrier(vk_ctx->draw_cmd_buf[current_frame], VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+            vkCmdPipelineBarrier(api_ctx->draw_cmd_buf[ctx->backend_frame], VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
                                  VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, 0, 0, nullptr, 0, nullptr, 1,
                                  &layout_transition_barrier);
         }
     }
 #elif defined(USE_GL_RENDER)
-    Ren::GLContext *gl_ctx = ctx->gl_ctx();
-
     // Make sure all operations have finished
-    gl_ctx->in_flight_fences[ctx->backend_frame].ClientWaitSync();
-    gl_ctx->in_flight_fences[ctx->backend_frame] = {};
+    api_ctx->in_flight_fences[ctx->backend_frame].ClientWaitSync();
+    api_ctx->in_flight_fences[ctx->backend_frame] = {};
 #endif
 
     auto state_manager = GetComponent<GameStateManager>(STATE_MANAGER_KEY);
@@ -275,23 +272,23 @@ void Viewer::Frame() {
         layout_transition_barrier.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
         layout_transition_barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
         layout_transition_barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        layout_transition_barrier.image = vk_ctx->present_images[next_image_index];
+        layout_transition_barrier.image = api_ctx->present_images[next_image_index];
         VkImageSubresourceRange resource_range = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
         layout_transition_barrier.subresourceRange = resource_range;
 
-        vkCmdPipelineBarrier(vk_ctx->draw_cmd_buf[current_frame], VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+        vkCmdPipelineBarrier(api_ctx->draw_cmd_buf[ctx->backend_frame], VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
                              VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, 0, 0, nullptr, 0, nullptr, 1,
                              &layout_transition_barrier);
     }
 
-    vkEndCommandBuffer(vk_ctx->draw_cmd_buf[current_frame]);
+    vkEndCommandBuffer(api_ctx->draw_cmd_buf[ctx->backend_frame]);
 
     //////////////////////////////////////////////////////////////////////////////////////////////////
 
     VkSubmitInfo submit_info = {};
     submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
-    VkSemaphore wait_semaphores[] = {vk_ctx->image_avail_semaphores[current_frame]};
+    VkSemaphore wait_semaphores[] = {api_ctx->image_avail_semaphores[ctx->backend_frame]};
     VkPipelineStageFlags wait_stages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
 
     submit_info.waitSemaphoreCount = 1;
@@ -299,15 +296,15 @@ void Viewer::Frame() {
     submit_info.pWaitDstStageMask = wait_stages;
 
     submit_info.commandBufferCount = 1;
-    submit_info.pCommandBuffers = &vk_ctx->draw_cmd_buf[current_frame];
+    submit_info.pCommandBuffers = &api_ctx->draw_cmd_buf[ctx->backend_frame];
 
-    VkSemaphore signal_semaphores[] = {vk_ctx->render_finished_semaphores[current_frame]};
+    VkSemaphore signal_semaphores[] = {api_ctx->render_finished_semaphores[ctx->backend_frame]};
     submit_info.signalSemaphoreCount = 1;
     submit_info.pSignalSemaphores = signal_semaphores;
 
-    vkResetFences(vk_ctx->device, 1, &vk_ctx->in_flight_fences[current_frame]);
+    vkResetFences(api_ctx->device, 1, &api_ctx->in_flight_fences[ctx->backend_frame]);
 
-    res = vkQueueSubmit(vk_ctx->graphics_queue, 1, &submit_info, vk_ctx->in_flight_fences[current_frame]);
+    res = vkQueueSubmit(api_ctx->graphics_queue, 1, &submit_info, api_ctx->in_flight_fences[ctx->backend_frame]);
     if (res != VK_SUCCESS) {
         ctx->log()->Error("Failed to submit into a queue!");
     }
@@ -319,16 +316,16 @@ void Viewer::Frame() {
     present_info.pWaitSemaphores = signal_semaphores;
 
     present_info.swapchainCount = 1;
-    present_info.pSwapchains = &vk_ctx->swapchain;
+    present_info.pSwapchains = &api_ctx->swapchain;
 
     present_info.pImageIndices = &next_image_index;
 
-    res = vkQueuePresentKHR(vk_ctx->present_queue, &present_info);
+    res = vkQueuePresentKHR(api_ctx->present_queue, &present_info);
     if (res != VK_SUCCESS) {
         ctx->log()->Error("Failed to present queue!");
     }
 #elif defined(USE_GL_RENDER)
-    gl_ctx->in_flight_fences[ctx->backend_frame] = Ren::MakeFence();
+    api_ctx->in_flight_fences[ctx->backend_frame] = Ren::MakeFence();
 #endif
     ctx->backend_frame = (ctx->backend_frame + 1) % Ren::MaxFramesInFlight;
 }

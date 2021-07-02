@@ -34,9 +34,9 @@ bool Ren::Context::Init(int w, int h, ILog *log, const char *) {
     h_ = h;
     log_ = log;
 
-    ctx_.reset(new GLContext);
+    api_ctx_.reset(new ApiContext);
     for (int i = 0; i < MaxFramesInFlight; i++) {
-        ctx_->in_flight_fences.emplace_back(MakeFence());
+        api_ctx_->in_flight_fences.emplace_back(MakeFence());
     }
 
     log_->Info("===========================================");
@@ -101,7 +101,7 @@ bool Ren::Context::Init(int w, int h, ILog *log, const char *) {
 #endif
 
     capabilities.spirv = IsExtensionSupported("GL_ARB_gl_spirv");
-    capabilities.persistent_buf_mapping = false;//IsExtensionSupported("GL_ARB_buffer_storage");
+    capabilities.persistent_buf_mapping = false; // IsExtensionSupported("GL_ARB_buffer_storage");
 
     const bool bindless_texture_arb = IsExtensionSupported("GL_ARB_bindless_texture");
     const bool bindless_texture_nv = IsExtensionSupported("GL_NV_bindless_texture");
@@ -121,8 +121,8 @@ bool Ren::Context::Init(int w, int h, ILog *log, const char *) {
 
     InitDefaultBuffers();
 
-    texture_atlas_ = TextureAtlasArray{TextureAtlasWidth, TextureAtlasHeight, TextureAtlasLayers,
-                                       eTexFormat::RawRGBA8888, eTexFilter::BilinearNoMipmap};
+    texture_atlas_ = TextureAtlasArray{api_ctx_.get(),     TextureAtlasWidth,       TextureAtlasHeight,
+                                       TextureAtlasLayers, eTexFormat::RawRGBA8888, eTexFilter::BilinearNoMipmap};
 
     return true;
 }

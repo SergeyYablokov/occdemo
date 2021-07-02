@@ -16,16 +16,16 @@ class Shader : public RefCounter {
     eShaderType type_ = eShaderType::None;
     String name_;
 
-    void InitFromSPIRV(const uint8_t *shader_code, int code_size, eShaderType type,
-                       eShaderLoadStatus *status, ILog *log);
+    void InitFromSPIRV(const uint8_t *shader_code, int code_size, eShaderType type, eShaderLoadStatus *status,
+                       ILog *log);
 
   public:
     SmallVector<Descr, 16> attr_bindings, unif_bindings, blck_bindings;
 
-    Shader(const char *name, VkDevice device, const char *shader_src, eShaderType type,
+    Shader(const char *name, ApiContext *api_ctx, const char *shader_src, eShaderType type, eShaderLoadStatus *status,
+           ILog *log);
+    Shader(const char *name, ApiContext *api_ctx, const uint8_t *shader_code, int code_size, eShaderType type,
            eShaderLoadStatus *status, ILog *log);
-    Shader(const char *name, VkDevice device, const uint8_t *shader_code, int code_size,
-           eShaderType type, eShaderLoadStatus *status, ILog *log);
 
     Shader(const Shader &rhs) = delete;
     Shader(Shader &&rhs) noexcept { (*this) = std::move(rhs); }
@@ -39,10 +39,8 @@ class Shader : public RefCounter {
     eShaderType type() const { return type_; }
     const String &name() const { return name_; }
 
-    void Init(const char *shader_src, eShaderType type,
-              eShaderLoadStatus *status, ILog *log);
-    void Init(const uint8_t *shader_code, int code_size,
-              eShaderType type, eShaderLoadStatus *status, ILog *log);
+    void Init(const char *shader_src, eShaderType type, eShaderLoadStatus *status, ILog *log);
+    void Init(const uint8_t *shader_code, int code_size, eShaderType type, eShaderLoadStatus *status, ILog *log);
 };
 
 typedef StrongRef<Shader> ShaderRef;

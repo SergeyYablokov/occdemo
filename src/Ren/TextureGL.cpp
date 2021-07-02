@@ -980,7 +980,7 @@ void Ren::Texture2D::SetSubImage(const int level, const int offsetx, const int o
 }
 
 Ren::SyncFence Ren::Texture2D::SetSubImage(const int level, const int offsetx, const int offsety, const int sizex,
-                                           const int sizey, const Ren::eTexFormat format, const TextureStageBuf &sbuf,
+                                           const int sizey, const Ren::eTexFormat format, const Buffer &sbuf,
                                            const int data_off, const int data_len) {
     assert(format == params_.format);
     assert(params_.samples == 1);
@@ -1023,75 +1023,6 @@ void Ren::Texture2D::DownloadTextureData(const eTexFormat format, void *out_data
 
     glBindTexture(GL_TEXTURE_2D, 0);
 #endif
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-
-void Ren::TextureStageBuf::Alloc(const uint32_t new_size, const bool persistantly_mapped) {
-    assert(Ren::IsMainThread());
-    assert(id_ == 0xffffffff);
-
-    GLuint pbo_id;
-    glGenBuffers(1, &pbo_id);
-
-    glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pbo_id);
-    glBufferStorage(GL_PIXEL_UNPACK_BUFFER, new_size, nullptr,
-                    persistantly_mapped ? GLbitfield(GL_MAP_WRITE_BIT) | GLbitfield(GL_MAP_PERSISTENT_BIT)
-                                        : GLbitfield(GL_MAP_WRITE_BIT));
-
-    if (persistantly_mapped) {
-        assert(!mapped_ptr_);
-        const GLbitfield BufferRangeMapFlags =
-            GLbitfield(GL_MAP_WRITE_BIT) | GLbitfield(GL_MAP_PERSISTENT_BIT) | GLbitfield(GL_MAP_INVALIDATE_RANGE_BIT) |
-            GLbitfield(GL_MAP_UNSYNCHRONIZED_BIT) | GLbitfield(GL_MAP_FLUSH_EXPLICIT_BIT);
-        mapped_ptr_ = (uint8_t *)glMapBufferRange(GL_PIXEL_UNPACK_BUFFER, 0, new_size, BufferRangeMapFlags);
-        glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
-    }
-
-    id_ = uint32_t(pbo_id);
-    size_ = new_size;
-}
-
-void Ren::TextureStageBuf::Free() {
-    assert(Ren::IsMainThread());
-    if (id_ != 0xffffffff) {
-        auto pbo_id = GLuint(id_);
-        glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pbo_id);
-        if (mapped_ptr_) {
-            glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER);
-            mapped_ptr_ = nullptr;
-        }
-        glDeleteBuffers(1, &pbo_id);
-        id_ = 0xffffffff;
-    }
-}
-
-uint8_t *Ren::TextureStageBuf::MapRange(const uint32_t offset, const uint32_t size) {
-    const GLbitfield BufferRangeMapFlags = GLbitfield(GL_MAP_WRITE_BIT) | GLbitfield(GL_MAP_INVALIDATE_RANGE_BIT) |
-                                           GLbitfield(GL_MAP_UNSYNCHRONIZED_BIT) |
-                                           GLbitfield(GL_MAP_FLUSH_EXPLICIT_BIT);
-    assert(!mapped_ptr_);
-
-    glBindBuffer(GL_PIXEL_UNPACK_BUFFER, GLuint(id_));
-    auto *pinned_mem =
-        (uint8_t *)glMapBufferRange(GL_PIXEL_UNPACK_BUFFER, GLintptr(offset), GLsizeiptr(size), BufferRangeMapFlags);
-    glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
-
-    return pinned_mem;
-}
-
-void Ren::TextureStageBuf::Unmap() {
-    assert(!mapped_ptr_);
-
-    glBindBuffer(GL_PIXEL_UNPACK_BUFFER, GLuint(id_));
-    glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER);
-    glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
-}
-
-void Ren::TextureStageBuf::FlushMapped(const uint32_t offset, const uint32_t size) {
-    glBindBuffer(GL_PIXEL_UNPACK_BUFFER, GLuint(id_));
-    glFlushMappedBufferRange(GL_PIXEL_UNPACK_BUFFER, offset, GLsizeiptr(size ? size : size_));
-    glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////

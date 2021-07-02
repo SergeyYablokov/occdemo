@@ -77,9 +77,12 @@ void GSVideoTest::InitVideoTextures() {
         { // init PBOs
             const uint32_t y_buf_size = TextureSyncWindow * vp.w() * vp.h(),
                            uv_buf_size = TextureSyncWindow * 2 * (vp.w() / 2) * (vp.h() / 2);
-
-            y_sbuf_[tx].Alloc(y_buf_size, ren_ctx_->capabilities.persistent_buf_mapping);
-            uv_sbuf_[tx].Alloc(uv_buf_size, ren_ctx_->capabilities.persistent_buf_mapping);
+            y_sbuf_[tx].Resize(y_buf_size);
+            uv_sbuf_[tx].Resize(uv_buf_size);
+            if (ren_ctx_->capabilities.persistent_buf_mapping) {
+                y_sbuf_[tx].Map(Ren::BufMapWrite, true /* persistent */);
+                uv_sbuf_[tx].Map(Ren::BufMapWrite, true /* persistent */);
+            }
         }
 #endif
     }

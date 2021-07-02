@@ -5,7 +5,7 @@
 
 namespace Ren {
 class Sampler : public RefCounter {
-    VkContext *ctx_ = nullptr;
+    ApiContext *api_ctx_ = nullptr;
     VkSampler handle_ = VK_NULL_HANDLE;
     SamplingParams params_;
 
@@ -23,7 +23,7 @@ class Sampler : public RefCounter {
     Sampler &operator=(const Sampler &rhs) = delete;
     Sampler &operator=(Sampler &&rhs) noexcept;
 
-    void Init(VkContext *ctx, SamplingParams params);
+    void Init(ApiContext *api_ctx, SamplingParams params);
 };
 
 } // namespace Ren

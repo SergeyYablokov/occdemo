@@ -21,15 +21,15 @@ const GLenum GLShaderTypes[] = {
 static_assert(sizeof(GLShaderTypes) / sizeof(GLShaderTypes[0]) == int(Ren::eShaderType::_Count), "!");
 } // namespace Ren
 
-Ren::Shader::Shader(const char *name, const char *shader_src, const eShaderType type, eShaderLoadStatus *status,
-                    ILog *log) {
+Ren::Shader::Shader(const char *name, ApiContext *api_ctx, const char *shader_src, const eShaderType type,
+                    eShaderLoadStatus *status, ILog *log) {
     name_ = String{name};
     Init(shader_src, type, status, log);
 }
 
 #ifndef __ANDROID__
-Ren::Shader::Shader(const char *name, const uint8_t *shader_code, const int code_size, const eShaderType type,
-                    eShaderLoadStatus *status, ILog *log) {
+Ren::Shader::Shader(const char *name, ApiContext *api_ctx, const uint8_t *shader_code, const int code_size,
+                    const eShaderType type, eShaderLoadStatus *status, ILog *log) {
     name_ = String{name};
     Init(shader_code, code_size, type, status, log);
 }

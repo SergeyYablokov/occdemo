@@ -19,8 +19,7 @@ namespace Ren {
 const int TextureAtlasWidth = 1024, TextureAtlasHeight = 512, TextureAtlasLayers = 4;
 const int StageBufferCount = 4;
 
-struct VkContext;
-struct GLContext;
+struct ApiContext;
 
 struct StageBufs {
     BufferRef bufs[StageBufferCount];
@@ -51,10 +50,8 @@ class Context : public TaskExecutor {
 
     TextureAtlasArray texture_atlas_;
 
-#if defined(USE_VK_RENDER)
-    std::unique_ptr<VkContext> ctx_;
-#elif defined(USE_GL_RENDER)
-    std::unique_ptr<GLContext> ctx_;
+#if defined(USE_VK_RENDER) || defined(USE_GL_RENDER)
+    std::unique_ptr<ApiContext> api_ctx_;
 #elif defined(USE_SW_RENDER)
     SWcontext *sw_ctx_;
 #endif
@@ -69,10 +66,8 @@ class Context : public TaskExecutor {
     int w() const { return w_; }
     int h() const { return h_; }
 
-#if defined(USE_VK_RENDER)
-    VkContext *vk_ctx() { return ctx_.get(); }
-#elif defined(USE_GL_RENDER)
-    GLContext *gl_ctx() { return ctx_.get(); }
+#if defined(USE_VK_RENDER) || defined(USE_GL_RENDER)
+    ApiContext *api_ctx() { return api_ctx_.get(); }
 #elif defined(USE_SW_RENDER)
 
 #endif
@@ -151,9 +146,11 @@ class Context : public TaskExecutor {
     Tex1DRef CreateTexture1D(const char *name, BufferRef buf, eTexFormat format, uint32_t offset, uint32_t size);
     void Release1DTextures();
 
-    /** Texture regions **/
+    /** Texture regions (placed on default atlas) **/
     TextureRegionRef LoadTextureRegion(const char *name, const void *data, int size, const Tex2DParams &p,
                                        eTexLoadStatus *load_status);
+    TextureRegionRef LoadTextureRegion(const char *name, const Buffer &sbuf, int data_off, int data_len,
+                                       const Tex2DParams &p, eTexLoadStatus *load_status);
 
     void ReleaseTextureRegions();
 

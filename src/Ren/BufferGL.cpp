@@ -42,8 +42,8 @@ GLbitfield GetGLBufStorageFlags(const eBufType type) {
 
 int Ren::Buffer::g_GenCounter = 0;
 
-Ren::Buffer::Buffer(const char *name, const eBufType type, const uint32_t initial_size)
-    : name_(name), type_(type), size_(0) {
+Ren::Buffer::Buffer(const char *name, ApiContext *api_ctx, const eBufType type, const uint32_t initial_size)
+    : name_(name), api_ctx_(api_ctx), type_(type), size_(0) {
     nodes_.reserve(1024);
 
     nodes_.emplace();
@@ -52,23 +52,17 @@ Ren::Buffer::Buffer(const char *name, const eBufType type, const uint32_t initia
     Resize(initial_size);
 }
 
-Ren::Buffer::~Buffer() {
-    if (handle_.id) {
-        auto gl_buf = GLuint(handle_.id);
-        glDeleteBuffers(1, &gl_buf);
-    }
-}
+Ren::Buffer::~Buffer() { Free(); }
 
 Ren::Buffer &Ren::Buffer::operator=(Buffer &&rhs) noexcept {
     RefCounter::operator=(std::move((RefCounter &)rhs));
 
-    if (handle_.id) {
-        auto buf = GLuint(handle_.id);
-        glDeleteBuffers(1, &buf);
-    }
+    Free();
 
     assert(mapped_offset_ == 0xffffffff);
+    assert(mapped_ptr_ == nullptr);
 
+    api_ctx_ = exchange(rhs.api_ctx_, nullptr);
     handle_ = exchange(rhs.handle_, {});
     name_ = std::move(rhs.name_);
 
@@ -76,6 +70,7 @@ Ren::Buffer &Ren::Buffer::operator=(Buffer &&rhs) noexcept {
 
     size_ = exchange(rhs.size_, 0);
     nodes_ = std::move(rhs.nodes_);
+    mapped_ptr_ = exchange(rhs.mapped_ptr_, nullptr);
     mapped_offset_ = exchange(rhs.mapped_offset_, 0xffffffff);
 
 #ifndef NDEBUG
@@ -320,8 +315,19 @@ void Ren::Buffer::Resize(uint32_t new_size) {
     handle_.generation = g_GenCounter++;
 }
 
+void Ren::Buffer::Free() {
+    assert(mapped_offset_ == 0xffffffff && !mapped_ptr_);
+    if (handle_.id) {
+        auto gl_buf = GLuint(handle_.id);
+        glDeleteBuffers(1, &gl_buf);
+        handle_ = {};
+        size_ = 0;
+        nodes_.clear();
+    }
+}
+
 uint8_t *Ren::Buffer::MapRange(const uint8_t dir, const uint32_t offset, const uint32_t size, const bool persistent) {
-    assert(mapped_offset_ == 0xffffffff);
+    assert(mapped_offset_ == 0xffffffff && !mapped_ptr_);
     assert(offset + size <= size_);
 
 #ifndef NDEBUG
@@ -350,7 +356,7 @@ uint8_t *Ren::Buffer::MapRange(const uint8_t dir, const uint32_t offset, const u
         buf_map_range_flags |= GLbitfield(GL_MAP_WRITE_BIT);
         if ((dir & BufMapRead) == 0) {
             // write only case
-            // buf_map_range_flags |= GLbitfield(GL_MAP_INVALIDATE_RANGE_BIT);
+            buf_map_range_flags |= GLbitfield(GL_MAP_INVALIDATE_RANGE_BIT);
         }
     }
 
@@ -360,11 +366,13 @@ uint8_t *Ren::Buffer::MapRange(const uint8_t dir, const uint32_t offset, const u
     glBindBuffer(g_gl_buf_targets[int(type_)], GLuint(0));
 
     mapped_offset_ = offset;
+    mapped_ptr_ = ret;
+
     return ret;
 }
 
 void Ren::Buffer::FlushMappedRange(uint32_t offset, uint32_t size) {
-    assert(mapped_offset_ != 0xffffffff);
+    assert(mapped_offset_ != 0xffffffff && mapped_ptr_);
     glBindBuffer(g_gl_buf_targets[int(type_)], GLuint(handle_.id));
     glFlushMappedBufferRange(g_gl_buf_targets[int(type_)], GLintptr(offset), GLsizeiptr(size));
 #ifndef NDEBUG
@@ -375,11 +383,12 @@ void Ren::Buffer::FlushMappedRange(uint32_t offset, uint32_t size) {
 }
 
 void Ren::Buffer::Unmap() {
-    assert(mapped_offset_ != 0xffffffff);
+    assert(mapped_offset_ != 0xffffffff && mapped_ptr_);
     glBindBuffer(g_gl_buf_targets[int(type_)], GLuint(handle_.id));
     glUnmapBuffer(g_gl_buf_targets[int(type_)]);
     glBindBuffer(g_gl_buf_targets[int(type_)], GLuint(0));
     mapped_offset_ = 0xffffffff;
+    mapped_ptr_ = nullptr;
 }
 
 void Ren::CopyBufferToBuffer(Buffer &src, uint32_t src_offset, Buffer &dst, uint32_t dst_offset, uint32_t size,

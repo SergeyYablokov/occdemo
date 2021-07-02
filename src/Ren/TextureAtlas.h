@@ -53,11 +53,7 @@ class TextureAtlasArray {
     static const int MaxTextureCount = 8;
 
     TextureAtlasArray() = default;
-    TextureAtlasArray(
-#if defined(USE_VK_RENDER)
-        VkContext *ctx,
-#endif
-        int w, int h, int layer_count, eTexFormat format, eTexFilter filter);
+    TextureAtlasArray(ApiContext *api_ctx, int w, int h, int layer_count, eTexFormat format, eTexFilter filter);
     ~TextureAtlasArray();
 
     TextureAtlasArray(const TextureAtlasArray &rhs) = delete;
@@ -80,6 +76,8 @@ class TextureAtlasArray {
 #endif
 
     int Allocate(const void *data, eTexFormat format, const int res[2], int out_pos[3], int border);
+    int Allocate(const Buffer &sbuf, int data_off, int data_len, eTexFormat format, const int res[2], int out_pos[3],
+                 int border);
     bool Free(const int pos[3]);
 
 #if defined(USE_VK_RENDER)
@@ -88,12 +86,12 @@ class TextureAtlasArray {
     VkPipelineStageFlags last_stage_mask = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
 #endif
   private:
+    ApiContext *api_ctx_ = nullptr;
     int mip_count_ = 0;
     int layer_count_ = 0;
     eTexFormat format_ = eTexFormat::Undefined;
     eTexFilter filter_ = eTexFilter::NoFilter;
 #if defined(USE_VK_RENDER)
-    VkContext *ctx_ = nullptr;
     VkImage img_ = VK_NULL_HANDLE;
     VkDeviceMemory mem_ = VK_NULL_HANDLE;
     VkImageView img_view_ = VK_NULL_HANDLE;

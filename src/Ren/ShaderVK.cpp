@@ -12,18 +12,18 @@ void ParseGLSLBindings(const char *shader_str, SmallVectorImpl<Descr> &attr_bind
 bool IsMainThread();
 } // namespace Ren
 
-Ren::Shader::Shader(const char *name, VkDevice device, const char *shader_src,
+Ren::Shader::Shader(const char *name, ApiContext *api_ctx, const char *shader_src,
                     eShaderType type, eShaderLoadStatus *status, ILog *log) {
     name_ = String{name};
-    device_ = device;
+    device_ = api_ctx->device;
     Init(shader_src, type, status, log);
 }
 
-Ren::Shader::Shader(const char *name, VkDevice device, const uint8_t *shader_code,
+Ren::Shader::Shader(const char *name, ApiContext *api_ctx, const uint8_t *shader_code,
                     const int code_size, const eShaderType type,
                     eShaderLoadStatus *status, ILog *log) {
     name_ = String{name};
-    device_ = device;
+    device_ = api_ctx->device;
     Init(shader_code, code_size, type, status, log);
 }
 

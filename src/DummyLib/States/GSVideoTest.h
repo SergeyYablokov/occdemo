@@ -71,7 +71,7 @@ class GSVideoTest final : public GSBaseState {
     // constant that controls maximum number of allowed in-flight frames
     static const int TextureSyncWindow = 2;
 
-    Ren::TextureStageBuf y_sbuf_[5], uv_sbuf_[5];
+    Ren::Buffer y_sbuf_[5], uv_sbuf_[5];
     int cur_frame_index_[5] = {};
     Ren::Tex2DRef y_tex_[5][TextureSyncWindow], uv_tex_[5][TextureSyncWindow];
     Ren::SyncFence after_tex_update_fences_[5][TextureSyncWindow];

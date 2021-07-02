@@ -36,7 +36,7 @@ Ren::Sampler &Ren::Sampler::operator=(Sampler &&rhs) noexcept {
 
     RefCounter::operator=(std::move(rhs));
 
-    ctx_ = exchange(rhs.ctx_, nullptr);
+    api_ctx_ = exchange(rhs.api_ctx_, nullptr);
     handle_ = exchange(rhs.handle_, {});
     params_ = exchange(rhs.params_, {});
 
@@ -45,11 +45,11 @@ Ren::Sampler &Ren::Sampler::operator=(Sampler &&rhs) noexcept {
 
 void Ren::Sampler::Destroy() {
     if (handle_) {
-        vkDestroySampler(ctx_->device, handle_, nullptr);
+        vkDestroySampler(api_ctx_->device, handle_, nullptr);
     }
 }
 
-void Ren::Sampler::Init(VkContext *ctx, const SamplingParams params) {
+void Ren::Sampler::Init(ApiContext *api_ctx, const SamplingParams params) {
     Destroy();
 
     VkSamplerCreateInfo sampler_info = {};
@@ -70,9 +70,9 @@ void Ren::Sampler::Init(VkContext *ctx, const SamplingParams params) {
     sampler_info.minLod = params.min_lod.to_float();
     sampler_info.maxLod = params.max_lod.to_float();
 
-    const VkResult res = vkCreateSampler(ctx->device, &sampler_info, nullptr, &handle_);
+    const VkResult res = vkCreateSampler(api_ctx->device, &sampler_info, nullptr, &handle_);
     assert(res == VK_SUCCESS && "Failed to create sampler!");
 
-    ctx_ = ctx;
+    api_ctx_ = api_ctx;
     params_ = params;
 }

@@ -121,7 +121,7 @@ class Texture2D : public RefCounter {
     void SetSubImage(int level, int offsetx, int offsety, int sizex, int sizey, Ren::eTexFormat format,
                      const void *data, int data_len);
     SyncFence SetSubImage(int level, int offsetx, int offsety, int sizex, int sizey, Ren::eTexFormat format,
-                          const TextureStageBuf &sbuf, int data_off, int data_len);
+                          const Buffer &sbuf, int data_off, int data_len);
 
     void DownloadTextureData(eTexFormat format, void *out_data) const;
 };

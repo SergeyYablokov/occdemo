@@ -550,12 +550,12 @@ void GSVideoTest::UpdateVideoTextureData(const int tex_index, const int frame_in
 
     const uint32_t y_buf_chunk_size = tex_w * tex_h, uv_buf_chunk_size = 2 * (tex_w / 2) * (tex_h / 2);
 
-    y_sbuf_[tex_index].FlushMapped(frame_index * y_buf_chunk_size, y_buf_chunk_size);
+    y_sbuf_[tex_index].FlushMappedRange(frame_index * y_buf_chunk_size, y_buf_chunk_size);
     y_tex_[tex_index][frame_index]->SetSubImage(0, 0 /* offsetx */, 0 /* offsety */, tex_w, tex_h,
                                                 Ren::eTexFormat::RawR8, y_sbuf_[tex_index],
                                                 frame_index * y_buf_chunk_size, y_buf_chunk_size);
 
-    uv_sbuf_[tex_index].FlushMapped(frame_index * uv_buf_chunk_size, uv_buf_chunk_size);
+    uv_sbuf_[tex_index].FlushMappedRange(frame_index * uv_buf_chunk_size, uv_buf_chunk_size);
     uv_tex_[tex_index][frame_index]->SetSubImage(0, 0 /* offsetx */, 0 /* offsety */, tex_w / 2, tex_h / 2,
                                                  Ren::eTexFormat::RawRG88, uv_sbuf_[tex_index],
                                                  frame_index * uv_buf_chunk_size, uv_buf_chunk_size);
@@ -578,14 +578,14 @@ void GSVideoTest::UpdateStageBufWithDecodedFrame(const int tex_index, const int 
                 for (int y = 0; y < h; y++) {
                     memcpy(y_sbuf_[tex_index].mapped_ptr() + (range_offset + y * w), &y_img[y * stride], w);
                 }
-                y_sbuf_[tex_index].FlushMapped(range_offset, w * h);
+                y_sbuf_[tex_index].FlushMappedRange(range_offset, w * h);
             } else { // non-persistent mapping case
-                uint8_t *pinned_mem = y_sbuf_[tex_index].MapRange(frame_index * w * h, w * h);
+                uint8_t *pinned_mem = y_sbuf_[tex_index].MapRange(Ren::BufMapWrite, frame_index * w * h, w * h);
                 if (pinned_mem) {
                     for (int y = 0; y < h; y++) {
                         memcpy(&pinned_mem[y * w], &y_img[y * stride], w);
                     }
-                    y_sbuf_[tex_index].FlushMapped(0, w * h);
+                    y_sbuf_[tex_index].FlushMappedRange(0, w * h);
                     y_sbuf_[tex_index].Unmap();
                 }
             }
@@ -605,13 +605,13 @@ void GSVideoTest::UpdateStageBufWithDecodedFrame(const int tex_index, const int 
 
                 Ren::InterleaveUVChannels_16px(u_img, v_img, u_stride, v_stride, u_w, u_h, uv_dst);
 
-                uv_sbuf_[tex_index].FlushMapped(range_offset, u_w * u_h);
+                uv_sbuf_[tex_index].FlushMappedRange(range_offset, u_w * u_h);
             } else { // non-persistent mapping case
-                uint8_t *pinned_mem = uv_sbuf_[tex_index].MapRange(range_offset, 2 * u_w * u_h);
+                uint8_t *pinned_mem = uv_sbuf_[tex_index].MapRange(Ren::BufMapWrite, range_offset, 2 * u_w * u_h);
                 if (pinned_mem) {
                     Ren::InterleaveUVChannels_16px(u_img, v_img, u_stride, v_stride, u_w, u_h, pinned_mem);
 
-                    uv_sbuf_[tex_index].FlushMapped(0, 2 * u_w * u_h);
+                    uv_sbuf_[tex_index].FlushMappedRange(0, 2 * u_w * u_h);
                     uv_sbuf_[tex_index].Unmap();
                 }
             }

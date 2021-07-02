@@ -49,7 +49,7 @@ void Ren::Sampler::Destroy() {
     }
 }
 
-void Ren::Sampler::Init(const SamplingParams params) {
+void Ren::Sampler::Init(ApiContext *api_ctx, const SamplingParams params) {
     Destroy();
 
     GLuint new_sampler;

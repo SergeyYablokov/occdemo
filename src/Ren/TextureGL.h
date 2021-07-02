@@ -120,33 +120,9 @@ class Texture2D : public RefCounter {
     void SetSubImage(int level, int offsetx, int offsety, int sizex, int sizey, Ren::eTexFormat format,
                      const void *data, int data_len);
     SyncFence SetSubImage(int level, int offsetx, int offsety, int sizex, int sizey, Ren::eTexFormat format,
-                          const TextureStageBuf &sbuf, int data_off, int data_len);
+                          const Buffer &sbuf, int data_off, int data_len);
 
     void DownloadTextureData(eTexFormat format, void *out_data) const;
-};
-
-class TextureStageBuf {
-    uint32_t id_ = 0xffffffff;
-    uint32_t size_ = 0;
-    uint8_t *mapped_ptr_ = nullptr;
-
-  public:
-    TextureStageBuf() = default;
-    TextureStageBuf(const TextureStageBuf &rhs) = delete;
-    TextureStageBuf(TextureStageBuf &&rhs) = delete;
-    ~TextureStageBuf() { Free(); }
-
-    uint32_t id() const { return id_; }
-    uint32_t size() const { return size_; }
-    uint8_t *mapped_ptr() const { return mapped_ptr_; }
-
-    void Alloc(uint32_t size, bool persistantly_mapped = true);
-    void Free();
-
-    uint8_t *MapRange(uint32_t offset, uint32_t size);
-    void Unmap();
-
-    void FlushMapped(uint32_t offset = 0, uint32_t size = 0);
 };
 
 struct Texture1DParams {

@@ -311,7 +311,7 @@ void SceneManager::ProcessPendingTextures(const int portion_size) {
                 assert(dynamic_cast<TextureUpdateFileBuf *>(req->buf.get()));
                 auto *stage_buf = static_cast<TextureUpdateFileBuf *>(req->buf.get());
 
-                stage_buf->stage_buf().FlushMapped(0, uint32_t(bytes_read));
+                stage_buf->stage_buf().FlushMappedRange(0, uint32_t(bytes_read));
 
                 const uint64_t t1_us = Sys::GetTimeUs();
 

@@ -15,6 +15,12 @@ Ren::TextureRegion::TextureRegion(const char *name, const void *data, int size, 
     Init(data, size, p, atlas, load_status);
 }
 
+Ren::TextureRegion::TextureRegion(const char *name, const Buffer &sbuf, int data_off, int data_len,
+                                  const Tex2DParams &p, TextureAtlasArray *atlas, eTexLoadStatus *load_status)
+    : name_(name) {
+    Init(sbuf, data_off, data_len, p, atlas, load_status);
+}
+
 Ren::TextureRegion::~TextureRegion() {
     if (atlas_) {
         atlas_->Free(texture_pos_);
@@ -69,6 +75,20 @@ void Ren::TextureRegion::Init(const void *data, const int size, const Tex2DParam
     }
 }
 
+void Ren::TextureRegion::Init(const Buffer &sbuf, int data_off, int data_len, const Tex2DParams &p,
+                              Ren::TextureAtlasArray *atlas, eTexLoadStatus *load_status) {
+    if (atlas_) {
+        atlas_->Free(texture_pos_);
+    }
+
+    InitFromRAWData(sbuf, data_off, data_len, p, atlas);
+
+    ready_ = true;
+    if (load_status) {
+        (*load_status) = eTexLoadStatus::CreatedFromData;
+    }
+}
+
 void Ren::TextureRegion::InitFromRAWData(const void *data, const int /*size*/, const Tex2DParams &p,
                                          TextureAtlasArray *atlas) {
     const int res[2] = {p.w, p.h};
@@ -106,5 +126,15 @@ void Ren::TextureRegion::InitFromPNGFile(const void *data, const int size, const
         InitFromRAWData(image_data, 0, _p, atlas);
 
         free(image_data);
+    }
+}
+
+void Ren::TextureRegion::InitFromRAWData(const Buffer &sbuf, int data_off, int data_len, const Tex2DParams &p,
+                                         TextureAtlasArray *atlas) {
+    const int res[2] = {p.w, p.h};
+    const int node = atlas->Allocate(sbuf, data_off, data_len, p.format, res, texture_pos_, 1);
+    if (node != -1) {
+        atlas_ = atlas;
+        params_ = p;
     }
 }

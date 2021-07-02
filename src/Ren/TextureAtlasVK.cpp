@@ -233,9 +233,9 @@ void Ren::TextureAtlas::Finalize() {
 
 ////////////////////////////////////////////////////////////////////////////////////////////
 
-Ren::TextureAtlasArray::TextureAtlasArray(VkContext *ctx, const int w, const int h, const int layer_count,
+Ren::TextureAtlasArray::TextureAtlasArray(ApiContext *api_ctx, const int w, const int h, const int layer_count,
                                           const eTexFormat format, eTexFilter filter)
-    : layer_count_(layer_count), format_(format), filter_(filter), ctx_(ctx) {
+    : layer_count_(layer_count), format_(format), filter_(filter), api_ctx_(api_ctx) {
 
     mip_count_ = Ren::CalcMipCount(w, h, 1, filter);
 
@@ -256,13 +256,13 @@ Ren::TextureAtlasArray::TextureAtlasArray(VkContext *ctx, const int w, const int
         img_info.samples = VK_SAMPLE_COUNT_1_BIT;
         img_info.flags = 0;
 
-        VkResult res = vkCreateImage(ctx_->device, &img_info, nullptr, &img_);
+        VkResult res = vkCreateImage(api_ctx_->device, &img_info, nullptr, &img_);
         if (res != VK_SUCCESS) {
             throw std::runtime_error("Failed to create image!");
         }
 
         VkMemoryRequirements img_tex_mem_req = {};
-        vkGetImageMemoryRequirements(ctx_->device, img_, &img_tex_mem_req);
+        vkGetImageMemoryRequirements(api_ctx_->device, img_, &img_tex_mem_req);
 
         VkMemoryAllocateInfo img_alloc_info = {};
         img_alloc_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
@@ -271,7 +271,7 @@ Ren::TextureAtlasArray::TextureAtlasArray(VkContext *ctx, const int w, const int
         uint32_t img_tex_type_bits = img_tex_mem_req.memoryTypeBits;
         const VkMemoryPropertyFlags img_tex_desired_mem_flags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
         for (uint32_t i = 0; i < 32; i++) {
-            VkMemoryType mem_type = ctx_->mem_properties.memoryTypes[i];
+            VkMemoryType mem_type = api_ctx_->mem_properties.memoryTypes[i];
             if (img_tex_type_bits & 1u) {
                 if ((mem_type.propertyFlags & img_tex_desired_mem_flags) == img_tex_desired_mem_flags) {
                     img_alloc_info.memoryTypeIndex = i;
@@ -281,12 +281,12 @@ Ren::TextureAtlasArray::TextureAtlasArray(VkContext *ctx, const int w, const int
             img_tex_type_bits = img_tex_type_bits >> 1u;
         }
 
-        res = vkAllocateMemory(ctx_->device, &img_alloc_info, nullptr, &mem_);
+        res = vkAllocateMemory(api_ctx_->device, &img_alloc_info, nullptr, &mem_);
         if (res != VK_SUCCESS) {
             throw std::runtime_error("Failed to allocate memory!");
         }
 
-        res = vkBindImageMemory(ctx_->device, img_, mem_, 0);
+        res = vkBindImageMemory(api_ctx_->device, img_, mem_, 0);
         if (res != VK_SUCCESS) {
             throw std::runtime_error("Failed to bind memory!");
         }
@@ -304,7 +304,7 @@ Ren::TextureAtlasArray::TextureAtlasArray(VkContext *ctx, const int w, const int
         view_info.subresourceRange.baseArrayLayer = 0;
         view_info.subresourceRange.layerCount = mip_count_;
 
-        const VkResult res = vkCreateImageView(ctx_->device, &view_info, nullptr, &img_view_);
+        const VkResult res = vkCreateImageView(api_ctx_->device, &view_info, nullptr, &img_view_);
         if (res != VK_SUCCESS) {
             throw std::runtime_error("Failed to create image view!");
         }
@@ -313,7 +313,7 @@ Ren::TextureAtlasArray::TextureAtlasArray(VkContext *ctx, const int w, const int
     SamplingParams params;
     params.filter = filter;
 
-    sampler_.Init(ctx_, params);
+    sampler_.Init(api_ctx_, params);
 
     for (int i = 0; i < layer_count; i++) {
         splitters_[i] = TextureSplitter{w, h};
@@ -322,9 +322,9 @@ Ren::TextureAtlasArray::TextureAtlasArray(VkContext *ctx, const int w, const int
 
 Ren::TextureAtlasArray::~TextureAtlasArray() {
     if (img_ != VK_NULL_HANDLE) {
-        vkDestroyImageView(ctx_->device, img_view_, nullptr);
-        vkDestroyImage(ctx_->device, img_, nullptr);
-        vkFreeMemory(ctx_->device, mem_, nullptr);
+        vkDestroyImageView(api_ctx_->device, img_view_, nullptr);
+        vkDestroyImage(api_ctx_->device, img_, nullptr);
+        vkFreeMemory(api_ctx_->device, mem_, nullptr);
     }
 }
 
@@ -335,12 +335,12 @@ Ren::TextureAtlasArray &Ren::TextureAtlasArray::operator=(TextureAtlasArray &&rh
     filter_ = exchange(rhs.filter_, eTexFilter::NoFilter);
 
     if (img_ != VK_NULL_HANDLE) {
-        vkDestroyImageView(ctx_->device, img_view_, nullptr);
-        vkDestroyImage(ctx_->device, img_, nullptr);
-        vkFreeMemory(ctx_->device, mem_, nullptr);
+        vkDestroyImageView(api_ctx_->device, img_view_, nullptr);
+        vkDestroyImage(api_ctx_->device, img_, nullptr);
+        vkFreeMemory(api_ctx_->device, mem_, nullptr);
     }
 
-    ctx_ = exchange(rhs.ctx_, nullptr);
+    api_ctx_ = exchange(rhs.api_ctx_, nullptr);
     img_ = exchange(rhs.img_, {});
     mem_ = exchange(rhs.mem_, {});
     img_view_ = exchange(rhs.img_view_, {});
@@ -371,6 +371,31 @@ int Ren::TextureAtlasArray::Allocate(const void *data, const eTexFormat format, 
             //                             out_pos[0], out_pos[1], out_pos[2], res[0],
             //                             res[1], 1, GLFormatFromTexFormat(format),
             //                             GLTypeFromTexFormat(format), data);
+            return index;
+        }
+    }
+
+    return -1;
+}
+
+int Ren::TextureAtlasArray::Allocate(const Buffer &sbuf, int data_off, int data_len, eTexFormat format,
+                                     const int res[2], int out_pos[3], int border) {
+    const int alloc_res[] = {res[0] < splitters_[0].resx() ? res[0] + border : res[0],
+                             res[1] < splitters_[1].resy() ? res[1] + border : res[1]};
+
+    for (int i = 0; i < layer_count_; i++) {
+        const int index = splitters_[i].Allocate(alloc_res, out_pos);
+        if (index != -1) {
+            out_pos[2] = i;
+
+            /*glBindBuffer(GL_PIXEL_UNPACK_BUFFER, sbuf.id());
+
+            ren_glTextureSubImage3D_Comp(GL_TEXTURE_2D_ARRAY, GLuint(tex_id_), 0, out_pos[0], out_pos[1], out_pos[2],
+                                         res[0], res[1], 1, GLFormatFromTexFormat(format), GLTypeFromTexFormat(format),
+                                         reinterpret_cast<const void *>(uintptr_t(data_off)));
+
+            glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);*/
+
             return index;
         }
     }

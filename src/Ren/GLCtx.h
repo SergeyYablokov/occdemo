@@ -4,7 +4,7 @@
 #include "Fence.h"
 
 namespace Ren {
-struct GLContext {
+struct ApiContext {
     SmallVector<SyncFence, 4> in_flight_fences;
 };
 

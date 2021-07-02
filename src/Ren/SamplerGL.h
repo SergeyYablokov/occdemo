@@ -22,7 +22,7 @@ class Sampler : public RefCounter {
     Sampler &operator=(const Sampler &rhs) = delete;
     Sampler &operator=(Sampler &&rhs);
 
-    void Init(SamplingParams params);
+    void Init(ApiContext *api_ctx, SamplingParams params);
 };
 
 void GLUnbindSamplers(int start, int count);

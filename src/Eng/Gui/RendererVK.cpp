@@ -79,19 +79,19 @@ Gui::Renderer::Renderer(Ren::Context &ctx, const JsObject &config) : ctx_(ctx) {
         ndx_count_[i] = 0;
     }
 
-    Ren::VkContext *vk_ctx = ctx_.vk_ctx();
+    Ren::ApiContext *api_ctx = ctx_.api_ctx();
 
     for (int i = 0; i < Ren::MaxFramesInFlight; ++i) {
         VkFenceCreateInfo fence_info = {};
         fence_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
         fence_info.flags = VK_FENCE_CREATE_SIGNALED_BIT;
         VkFence new_fence;
-        const VkResult res = vkCreateFence(vk_ctx->device, &fence_info, nullptr, &new_fence);
+        const VkResult res = vkCreateFence(api_ctx->device, &fence_info, nullptr, &new_fence);
         if (res != VK_SUCCESS) {
             ctx_.log()->Error("Failed to create fence!");
         }
 
-        buf_range_fences_[i] = Ren::SyncFence{vk_ctx->device, new_fence};
+        buf_range_fences_[i] = Ren::SyncFence{api_ctx->device, new_fence};
     }
 
     { // create descriptor set layout
@@ -109,7 +109,7 @@ Gui::Renderer::Renderer(Ren::Context &ctx, const JsObject &config) : ctx_(ctx) {
         layout_info.bindingCount = 1;
         layout_info.pBindings = &layout_binding;
 
-        const VkResult res = vkCreateDescriptorSetLayout(vk_ctx->device, &layout_info, nullptr, &desc_set_layout_);
+        const VkResult res = vkCreateDescriptorSetLayout(api_ctx->device, &layout_info, nullptr, &desc_set_layout_);
         assert(res == VK_SUCCESS && "Failed to create descriptor set layout!");
     }
 
@@ -124,7 +124,7 @@ Gui::Renderer::Renderer(Ren::Context &ctx, const JsObject &config) : ctx_(ctx) {
         pool_info.pPoolSizes = &pool_size;
         pool_info.maxSets = 1;
 
-        const VkResult res = vkCreateDescriptorPool(vk_ctx->device, &pool_info, nullptr, &desc_pool_);
+        const VkResult res = vkCreateDescriptorPool(api_ctx->device, &pool_info, nullptr, &desc_pool_);
         assert(res == VK_SUCCESS && "Failed to create descriptor pool!");
     }
 
@@ -135,7 +135,7 @@ Gui::Renderer::Renderer(Ren::Context &ctx, const JsObject &config) : ctx_(ctx) {
         alloc_info.descriptorSetCount = 1;
         alloc_info.pSetLayouts = &desc_set_layout_;
 
-        const VkResult res = vkAllocateDescriptorSets(vk_ctx->device, &alloc_info, &desc_set_);
+        const VkResult res = vkAllocateDescriptorSets(api_ctx->device, &alloc_info, &desc_set_);
         assert(res == VK_SUCCESS && "Failed to allocate descriptor sets!");
     }
 
@@ -157,7 +157,7 @@ Gui::Renderer::Renderer(Ren::Context &ctx, const JsObject &config) : ctx_(ctx) {
         descr_write.pTexelBufferView = nullptr;
         descr_write.pNext = nullptr;
 
-        vkUpdateDescriptorSets(vk_ctx->device, 1, &descr_write, 0, nullptr);
+        vkUpdateDescriptorSets(api_ctx->device, 1, &descr_write, 0, nullptr);
     }
 
     { // create pipeline layout
@@ -166,13 +166,13 @@ Gui::Renderer::Renderer(Ren::Context &ctx, const JsObject &config) : ctx_(ctx) {
         layout_create_info.setLayoutCount = 1;
         layout_create_info.pSetLayouts = &desc_set_layout_;
 
-        const VkResult res = vkCreatePipelineLayout(vk_ctx->device, &layout_create_info, nullptr, &pipeline_layout_);
+        const VkResult res = vkCreatePipelineLayout(api_ctx->device, &layout_create_info, nullptr, &pipeline_layout_);
         assert(res == VK_SUCCESS && "Failed to create pipeline layout!");
     }
 
     { // create renderpass
         VkAttachmentDescription pass_attachment = {};
-        pass_attachment.format = vk_ctx->surface_format.format;
+        pass_attachment.format = api_ctx->surface_format.format;
         pass_attachment.samples = VK_SAMPLE_COUNT_1_BIT;
         pass_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
         pass_attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -197,7 +197,7 @@ Gui::Renderer::Renderer(Ren::Context &ctx, const JsObject &config) : ctx_(ctx) {
         render_pass_create_info.subpassCount = 1;
         render_pass_create_info.pSubpasses = &subpass;
 
-        const VkResult res = vkCreateRenderPass(vk_ctx->device, &render_pass_create_info, nullptr, &render_pass_);
+        const VkResult res = vkCreateRenderPass(api_ctx->device, &render_pass_create_info, nullptr, &render_pass_);
         assert(res == VK_SUCCESS && "Failed to create render pass!");
     }
 
@@ -357,36 +357,39 @@ Gui::Renderer::Renderer(Ren::Context &ctx, const JsObject &config) : ctx_(ctx) {
         pipeline_create_info.basePipelineIndex = 0;
 
         const VkResult result =
-            vkCreateGraphicsPipelines(vk_ctx->device, VK_NULL_HANDLE, 1, &pipeline_create_info, nullptr, &pipeline_);
+            vkCreateGraphicsPipelines(api_ctx->device, VK_NULL_HANDLE, 1, &pipeline_create_info, nullptr, &pipeline_);
         assert(result == VK_SUCCESS && "Failed to create graphics pipeline!");
     }
 
-    framebuffers_.resize(vk_ctx->present_images.size(), VK_NULL_HANDLE);
-    present_image_views_.resize(vk_ctx->present_images.size(), VK_NULL_HANDLE);
+    framebuffers_.resize(api_ctx->present_images.size(), VK_NULL_HANDLE);
+    present_image_views_.resize(api_ctx->present_images.size(), VK_NULL_HANDLE);
 }
 
 Gui::Renderer::~Renderer() {
-    Ren::VkContext *vk_ctx = ctx_.vk_ctx();
+    Ren::ApiContext *api_ctx = ctx_.api_ctx();
 
-    vkDeviceWaitIdle(vk_ctx->device);
+    vkDeviceWaitIdle(api_ctx->device);
 
-    vkDestroyDescriptorSetLayout(vk_ctx->device, desc_set_layout_, nullptr);
-    vkDestroyDescriptorPool(vk_ctx->device, desc_pool_, nullptr);
-    
-    vkDestroyRenderPass(vk_ctx->device, render_pass_, nullptr);
-    vkDestroyPipelineLayout(vk_ctx->device, pipeline_layout_, nullptr);
-    vkDestroyPipeline(vk_ctx->device, pipeline_, nullptr);
+    vertex_stage_buf_->Unmap();
+    index_stage_buf_->Unmap();
+
+    vkDestroyDescriptorSetLayout(api_ctx->device, desc_set_layout_, nullptr);
+    vkDestroyDescriptorPool(api_ctx->device, desc_pool_, nullptr);
+
+    vkDestroyRenderPass(api_ctx->device, render_pass_, nullptr);
+    vkDestroyPipelineLayout(api_ctx->device, pipeline_layout_, nullptr);
+    vkDestroyPipeline(api_ctx->device, pipeline_, nullptr);
 
     for (VkFramebuffer fb : framebuffers_) {
-        vkDestroyFramebuffer(vk_ctx->device, fb, nullptr);
+        vkDestroyFramebuffer(api_ctx->device, fb, nullptr);
     }
 }
 
 void Gui::Renderer::Draw(int w, int h) {
     using namespace UIRendererConstants;
 
-    Ren::VkContext *vk_ctx = ctx_.vk_ctx();
-    VkCommandBuffer cmd_buf = vk_ctx->draw_cmd_buf[ctx_.backend_frame];
+    Ren::ApiContext *api_ctx = ctx_.api_ctx();
+    VkCommandBuffer cmd_buf = api_ctx->draw_cmd_buf[ctx_.backend_frame];
 
     //
     // Update buffers
@@ -521,25 +524,26 @@ void Gui::Renderer::Draw(int w, int h) {
     // (Re)create framebuffer
     //
 
-    if (present_image_views_[vk_ctx->active_present_image] !=
-        vk_ctx->present_image_views[vk_ctx->active_present_image]) { // create framebuffer
-        if (framebuffers_[vk_ctx->active_present_image]) {
-            vkDestroyFramebuffer(vk_ctx->device, framebuffers_[vk_ctx->active_present_image], nullptr);
+    if (present_image_views_[api_ctx->active_present_image] !=
+        api_ctx->present_image_views[api_ctx->active_present_image]) { // create framebuffer
+        if (framebuffers_[api_ctx->active_present_image]) {
+            vkDestroyFramebuffer(api_ctx->device, framebuffers_[api_ctx->active_present_image], nullptr);
         }
 
-        present_image_views_[vk_ctx->active_present_image] = vk_ctx->present_image_views[vk_ctx->active_present_image];
+        present_image_views_[api_ctx->active_present_image] =
+            api_ctx->present_image_views[api_ctx->active_present_image];
 
         VkFramebufferCreateInfo framebuf_create_info = {};
         framebuf_create_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
         framebuf_create_info.renderPass = render_pass_;
         framebuf_create_info.attachmentCount = 1;
-        framebuf_create_info.pAttachments = &present_image_views_[vk_ctx->active_present_image];
+        framebuf_create_info.pAttachments = &present_image_views_[api_ctx->active_present_image];
         framebuf_create_info.width = ctx_.w();
         framebuf_create_info.height = ctx_.h();
         framebuf_create_info.layers = 1;
 
-        const VkResult res = vkCreateFramebuffer(vk_ctx->device, &framebuf_create_info, nullptr,
-                                                 &framebuffers_[vk_ctx->active_present_image]);
+        const VkResult res = vkCreateFramebuffer(api_ctx->device, &framebuf_create_info, nullptr,
+                                                 &framebuffers_[api_ctx->active_present_image]);
         if (res != VK_SUCCESS) {
             ctx_.log()->Error("Failed to create framebuffer!");
         }
@@ -552,7 +556,7 @@ void Gui::Renderer::Draw(int w, int h) {
     VkRenderPassBeginInfo render_pass_begin_info = {};
     render_pass_begin_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
     render_pass_begin_info.renderPass = render_pass_;
-    render_pass_begin_info.framebuffer = framebuffers_[vk_ctx->active_present_image];
+    render_pass_begin_info.framebuffer = framebuffers_[api_ctx->active_present_image];
     render_pass_begin_info.renderArea = {0, 0, uint32_t(w), uint32_t(h)};
 
     vkCmdBeginRenderPass(cmd_buf, &render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);

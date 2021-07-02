@@ -5,7 +5,7 @@
 #include "VK.h"
 
 namespace Ren {
-struct VkContext {
+struct ApiContext {
     VkInstance instance = {};
 #ifndef NDEBUG
     VkDebugReportCallbackEXT debug_callback = {};

@@ -66,6 +66,36 @@ GSBaseState::GSBaseState(GameBase *game) : game_(game) {
     // Prepare cam for probes updating
     temp_probe_cam_.Perspective(90.0f, 1.0f, 0.1f, 10000.0f);
     temp_probe_cam_.set_render_mask(uint32_t(Drawable::eDrVisibility::VisProbes));
+
+    //
+    // Create required staging buffers
+    //
+    Ren::BufferRef instances_stage_buf = ren_ctx_->CreateBuffer("Instances (Stage)", Ren::eBufType::Stage,
+                                                                InstanceDataBufChunkSize * Ren::MaxFramesInFlight);
+    Ren::BufferRef skin_transforms_stage_buf = ren_ctx_->CreateBuffer(
+        "Skin Transforms (Stage)", Ren::eBufType::Stage, SkinTransformsBufChunkSize * Ren::MaxFramesInFlight);
+    Ren::BufferRef shape_keys_stage_buf = ren_ctx_->CreateBuffer("Shape Keys (Stage)", Ren::eBufType::Stage,
+                                                                 ShapeKeysBufChunkSize * Ren::MaxFramesInFlight);
+    Ren::BufferRef cells_stage_buf =
+        ren_ctx_->CreateBuffer("Cells (Stage)", Ren::eBufType::Stage, CellsBufChunkSize * Ren::MaxFramesInFlight);
+    Ren::BufferRef items_stage_buf =
+        ren_ctx_->CreateBuffer("Items (Stage)", Ren::eBufType::Stage, ItemsBufChunkSize * Ren::MaxFramesInFlight);
+    Ren::BufferRef lights_stage_buf =
+        ren_ctx_->CreateBuffer("Lights (Stage)", Ren::eBufType::Stage, LightsBufChunkSize * Ren::MaxFramesInFlight);
+    Ren::BufferRef decals_stage_buf =
+        ren_ctx_->CreateBuffer("Decals (Stage)", Ren::eBufType::Stage, DecalsBufChunkSize * Ren::MaxFramesInFlight);
+
+    Ren::BufferRef shared_data_stage_buf = ren_ctx_->CreateBuffer("Shared Data (Stage)", Ren::eBufType::Stage,
+                                                                  SharedDataBlockSize * Ren::MaxFramesInFlight);
+
+    //
+    // Initialize draw lists
+    //
+    for (int i = 0; i < 2; i++) {
+        main_view_lists_[i].Init(shared_data_stage_buf, instances_stage_buf, skin_transforms_stage_buf,
+                                 shape_keys_stage_buf, cells_stage_buf, items_stage_buf, lights_stage_buf,
+                                 decals_stage_buf);
+    }
 }
 
 GSBaseState::~GSBaseState() = default;

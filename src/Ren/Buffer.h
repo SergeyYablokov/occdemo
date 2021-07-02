@@ -13,7 +13,7 @@
 
 namespace Ren {
 class ILog;
-struct VkContext;
+struct ApiContext;
 
 enum class eType : uint8_t { Float16, Float32, Uint32, Uint16UNorm, Int16SNorm, Uint8UNorm, Int32, _Count };
 enum class eBufType : uint8_t { Undefined, VertexAttribs, VertexIndices, Texture, Uniform, Storage, Stage, _Count };
@@ -60,15 +60,16 @@ class Buffer : public RefCounter {
         bool has_children() const { return child[0] != -1 || child[1] != -1; }
     };
 
+    ApiContext *api_ctx_ = nullptr;
     BufHandle handle_;
     String name_;
 #if defined(USE_VK_RENDER)
-    VkContext *ctx_ = nullptr;
     VkDeviceMemory mem_ = VK_NULL_HANDLE;
 #endif
     eBufType type_ = eBufType::Undefined;
     uint32_t size_ = 0;
     SparseArray<Node> nodes_;
+    uint8_t *mapped_ptr_ = nullptr;
     uint32_t mapped_offset_ = 0xffffffff;
 #ifndef NDEBUG
     SmallVector<RangeFence, 4> flushed_ranges_;
@@ -84,11 +85,7 @@ class Buffer : public RefCounter {
 
   public:
     Buffer() = default;
-#if defined(USE_VK_RENDER)
-    explicit Buffer(const char *name, VkContext *ctx, eBufType type, uint32_t initial_size);
-#else
-    explicit Buffer(const char *name, eBufType type, uint32_t initial_size);
-#endif
+    explicit Buffer(const char *name, ApiContext *api_ctx, eBufType type, uint32_t initial_size);
     Buffer(const Buffer &rhs) = delete;
     Buffer(Buffer &&rhs) noexcept { (*this) = std::move(rhs); }
     ~Buffer();
@@ -108,11 +105,15 @@ class Buffer : public RefCounter {
 #endif
     uint32_t generation() const { return handle_.generation; }
 
+    bool is_mapped() const { return mapped_ptr_ != nullptr; }
+    uint8_t *mapped_ptr() const { return mapped_ptr_; }
+
     uint32_t AllocRegion(uint32_t size, const char *tag, const Buffer *init_buf = nullptr, void *cmd_buf = nullptr,
                          uint32_t init_off = 0);
     bool FreeRegion(uint32_t offset);
 
     void Resize(uint32_t new_size);
+    void Free();
 
     uint8_t *Map(const uint8_t dir, const bool persistent = false) { return MapRange(dir, 0, size_, persistent); }
     uint8_t *MapRange(uint8_t dir, uint32_t offset, uint32_t size, bool persistent = false);

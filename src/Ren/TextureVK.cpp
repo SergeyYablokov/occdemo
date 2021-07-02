@@ -1106,7 +1106,7 @@ void Ren::Texture2D::SetSubImage(const int level, const int offsetx, const int o
 }
 
 Ren::SyncFence Ren::Texture2D::SetSubImage(const int level, const int offsetx, const int offsety, const int sizex,
-                                           const int sizey, const Ren::eTexFormat format, const TextureStageBuf &sbuf,
+                                           const int sizey, const Ren::eTexFormat format, const Buffer &sbuf,
                                            const int data_off, const int data_len) {
     assert(format == params_.format);
     assert(params_.samples == 1);

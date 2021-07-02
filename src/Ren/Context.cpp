@@ -110,11 +110,7 @@ Ren::ShaderRef Ren::Context::LoadShaderGLSL(const char *name, const char *shader
     ShaderRef ref = shaders_.FindByName(name);
 
     if (!ref) {
-        ref = shaders_.Add(name,
-#if defined(USE_VK_RENDER)
-                           ctx_->device,
-#endif
-                           shader_src, type, load_status, log_);
+        ref = shaders_.Add(name, api_ctx_.get(), shader_src, type, load_status, log_);
     } else {
         if (ref->ready()) {
             if (load_status) {
@@ -134,11 +130,7 @@ Ren::ShaderRef Ren::Context::LoadShaderSPIRV(const char *name, const uint8_t *sh
     ShaderRef ref = shaders_.FindByName(name);
 
     if (!ref) {
-        ref = shaders_.Add(name,
-#if defined(USE_VK_RENDER)
-                           ctx_->device,
-#endif
-                           shader_data, data_size, type, load_status, log_);
+        ref = shaders_.Add(name, api_ctx_.get(), shader_data, data_size, type, load_status, log_);
     } else {
         if (ref->ready()) {
             if (load_status) {
@@ -319,6 +311,21 @@ Ren::TextureRegionRef Ren::Context::LoadTextureRegion(const char *name, const vo
     return ref;
 }
 
+Ren::TextureRegionRef Ren::Context::LoadTextureRegion(const char *name, const Buffer &sbuf, int data_off, int data_len,
+                                                      const Tex2DParams &p, eTexLoadStatus *load_status) {
+    TextureRegionRef ref = texture_regions_.FindByName(name);
+    if (!ref) {
+        ref = texture_regions_.Add(name, sbuf, data_off, data_len, p, &texture_atlas_, load_status);
+    } else {
+        if (ref->ready()) {
+            (*load_status) = eTexLoadStatus::Found;
+        } else {
+            ref->Init(sbuf, data_off, data_len, p, &texture_atlas_, load_status);
+        }
+    }
+    return ref;
+}
+
 void Ren::Context::ReleaseTextureRegions() {
     if (texture_regions_.empty()) {
         return;
@@ -339,11 +346,7 @@ Ren::SamplerRef Ren::Context::LoadSampler(SamplingParams params, eSamplerLoadSta
         return SamplerRef{&samplers_, it.index()};
     } else {
         const uint32_t new_index = samplers_.emplace();
-        samplers_.at(new_index).Init(
-#if defined(USE_VK_RENDER)
-            ctx_.get(),
-#endif
-            params);
+        samplers_.at(new_index).Init(api_ctx_.get(), params);
         (*load_status) = eSamplerLoadStatus::Created;
         return SamplerRef{&samplers_, new_index};
     }
@@ -392,11 +395,7 @@ void Ren::Context::ReleaseAnims() {
 }
 
 Ren::BufferRef Ren::Context::CreateBuffer(const char *name, const eBufType type, const uint32_t initial_size) {
-    return buffers_.Add(name,
-#if defined(USE_VK_RENDER)
-                        ctx_.get(),
-#endif
-                        type, initial_size);
+    return buffers_.Add(name, api_ctx_.get(), type, initial_size);
 }
 
 void Ren::Context::ReleaseBuffers() {
@@ -412,58 +411,35 @@ void Ren::Context::ReleaseBuffers() {
 }
 
 void Ren::Context::InitDefaultBuffers() {
-    default_vertex_buf1_ = buffers_.Add("default_vtx_buf1",
-#if defined(USE_VK_RENDER)
-                                        ctx_.get(),
-#endif
-                                        eBufType::VertexAttribs, 64 * 1024 * 1024);
-    default_vertex_buf2_ = buffers_.Add("default_vtx_buf2",
-#if defined(USE_VK_RENDER)
-                                        ctx_.get(),
-#endif
-                                        eBufType::VertexAttribs, 64 * 1024 * 1024);
-    default_skin_vertex_buf_ = buffers_.Add("default_skin_vtx_buf",
-#if defined(USE_VK_RENDER)
-                                            ctx_.get(),
-#endif
-                                            eBufType::VertexAttribs, 64 * 1024 * 1024);
-    default_delta_buf_ = buffers_.Add("default_delta_buf",
-#if defined(USE_VK_RENDER)
-                                      ctx_.get(),
-#endif
-                                      eBufType::VertexAttribs, 64 * 1024 * 1024);
-    default_indices_buf_ = buffers_.Add("default_ndx_buf2",
-#if defined(USE_VK_RENDER)
-                                        ctx_.get(),
-#endif
-                                        eBufType::VertexIndices, 64 * 1024 * 1024);
+    default_vertex_buf1_ = buffers_.Add("default_vtx_buf1", api_ctx_.get(), eBufType::VertexAttribs, 64 * 1024 * 1024);
+    default_vertex_buf2_ = buffers_.Add("default_vtx_buf2", api_ctx_.get(), eBufType::VertexAttribs, 64 * 1024 * 1024);
+    default_skin_vertex_buf_ =
+        buffers_.Add("default_skin_vtx_buf", api_ctx_.get(), eBufType::VertexAttribs, 64 * 1024 * 1024);
+    default_delta_buf_ = buffers_.Add("default_delta_buf", api_ctx_.get(), eBufType::VertexAttribs, 64 * 1024 * 1024);
+    default_indices_buf_ = buffers_.Add("default_ndx_buf2", api_ctx_.get(), eBufType::VertexIndices, 64 * 1024 * 1024);
 
     for (int i = 0; i < StageBufferCount; ++i) {
         char name_buf[32];
         sprintf(name_buf, "default_stage_buf_%i", i);
-        default_stage_bufs_.bufs[i] = buffers_.Add(name_buf,
-#if defined(USE_VK_RENDER)
-                                                   ctx_.get(),
-#endif
-                                                   eBufType::Stage, 32 * 1024 * 1024);
+        default_stage_bufs_.bufs[i] = buffers_.Add(name_buf, api_ctx_.get(), eBufType::Stage, 32 * 1024 * 1024);
 #if defined(USE_VK_RENDER)
         VkFenceCreateInfo fence_info = {};
         fence_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
         fence_info.flags = VK_FENCE_CREATE_SIGNALED_BIT;
         VkFence new_fence;
-        VkResult res = vkCreateFence(ctx_->device, &fence_info, nullptr, &new_fence);
+        VkResult res = vkCreateFence(api_ctx_->device, &fence_info, nullptr, &new_fence);
         assert(res == VK_SUCCESS);
 
-        default_stage_bufs_.fences[i] = SyncFence{ctx_->device, new_fence};
+        default_stage_bufs_.fences[i] = SyncFence{api_ctx_->device, new_fence};
 
         VkCommandBufferAllocateInfo alloc_info = {};
         alloc_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
         alloc_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-        alloc_info.commandPool = ctx_->command_pool;
+        alloc_info.commandPool = api_ctx_->command_pool;
         alloc_info.commandBufferCount = 1;
 
         VkCommandBuffer command_buf = {};
-        res = vkAllocateCommandBuffers(ctx_->device, &alloc_info, &command_buf);
+        res = vkAllocateCommandBuffers(api_ctx_->device, &alloc_info, &command_buf);
         assert(res == VK_SUCCESS);
 
         default_stage_bufs_.cmd_bufs[i] = command_buf;

@@ -199,7 +199,7 @@ SceneManager::SceneManager(Ren::Context &ren_ctx, ShaderLoader &sh, Snd::Context
 
     for (int i = 0; i < MaxSimultaneousRequests; i++) {
         // io_pending_tex_[i].buf.reset(new Sys::DefaultFileReadBuf);
-        io_pending_tex_[i].buf.reset(new TextureUpdateFileBuf);
+        io_pending_tex_[i].buf.reset(new TextureUpdateFileBuf(ren_ctx_.api_ctx()));
     }
 
     const float pos[] = {0.0f, 0.0f, 0.0f};
