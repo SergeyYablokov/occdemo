@@ -300,9 +300,9 @@ Ren::TextureAtlasArray::TextureAtlasArray(ApiContext *api_ctx, const int w, cons
         view_info.format = g_vk_formats[size_t(format)];
         view_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
         view_info.subresourceRange.baseMipLevel = 0;
-        view_info.subresourceRange.levelCount = 1;
+        view_info.subresourceRange.levelCount = mip_count_;
         view_info.subresourceRange.baseArrayLayer = 0;
-        view_info.subresourceRange.layerCount = mip_count_;
+        view_info.subresourceRange.layerCount = layer_count_;
 
         const VkResult res = vkCreateImageView(api_ctx_->device, &view_info, nullptr, &img_view_);
         if (res != VK_SUCCESS) {
@@ -378,7 +378,7 @@ int Ren::TextureAtlasArray::Allocate(const void *data, const eTexFormat format, 
     return -1;
 }
 
-int Ren::TextureAtlasArray::Allocate(const Buffer &sbuf, int data_off, int data_len, eTexFormat format,
+int Ren::TextureAtlasArray::Allocate(const Buffer &sbuf, int data_off, int data_len, void *_cmd_buf, eTexFormat format,
                                      const int res[2], int out_pos[3], int border) {
     const int alloc_res[] = {res[0] < splitters_[0].resx() ? res[0] + border : res[0],
                              res[1] < splitters_[1].resy() ? res[1] + border : res[1]};
@@ -388,13 +388,62 @@ int Ren::TextureAtlasArray::Allocate(const Buffer &sbuf, int data_off, int data_
         if (index != -1) {
             out_pos[2] = i;
 
-            /*glBindBuffer(GL_PIXEL_UNPACK_BUFFER, sbuf.id());
+            assert(sbuf.type() == eBufType::Stage);
+            VkCommandBuffer cmd_buf = reinterpret_cast<VkCommandBuffer>(_cmd_buf);
 
-            ren_glTextureSubImage3D_Comp(GL_TEXTURE_2D_ARRAY, GLuint(tex_id_), 0, out_pos[0], out_pos[1], out_pos[2],
-                                         res[0], res[1], 1, GLFormatFromTexFormat(format), GLTypeFromTexFormat(format),
-                                         reinterpret_cast<const void *>(uintptr_t(data_off)));
+            VkBufferMemoryBarrier buf_barrier = {};
+            buf_barrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+            buf_barrier.srcAccessMask = sbuf.last_access_mask;
+            buf_barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+            buf_barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            buf_barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            buf_barrier.buffer = sbuf.handle().buf;
+            buf_barrier.offset = VkDeviceSize(data_off);
+            buf_barrier.size = VkDeviceSize(data_len);
 
-            glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);*/
+            VkImageMemoryBarrier img_barrier = {};
+            int img_barriers_count = 0;
+            if (last_access_mask || layout != VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
+                img_barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+                img_barrier.srcAccessMask = this->last_access_mask;
+                img_barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+                img_barrier.oldLayout = this->layout;
+                img_barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+                img_barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+                img_barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+                img_barrier.image = img_;
+                img_barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+                img_barrier.subresourceRange.baseMipLevel = 0;
+                img_barrier.subresourceRange.levelCount = 1;
+                img_barrier.subresourceRange.baseArrayLayer = 0;
+                img_barrier.subresourceRange.layerCount = uint32_t(layer_count_); // transition whole image
+                ++img_barriers_count;
+            }
+
+            vkCmdPipelineBarrier(cmd_buf, sbuf.last_stage_mask | this->last_stage_mask, VK_PIPELINE_STAGE_TRANSFER_BIT,
+                                 0, 0, nullptr, 1, &buf_barrier, img_barriers_count, &img_barrier);
+
+            VkBufferImageCopy region = {};
+            region.bufferOffset = 0;
+            region.bufferRowLength = 0;
+            region.bufferImageHeight = 0;
+
+            region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+            region.imageSubresource.mipLevel = 0;
+            region.imageSubresource.baseArrayLayer = uint32_t(i);
+            region.imageSubresource.layerCount = 1;
+
+            region.imageOffset = {int32_t(out_pos[0]), int32_t(out_pos[1]), 0};
+            region.imageExtent = {uint32_t(res[0]), uint32_t(res[1]), 1};
+
+            vkCmdCopyBufferToImage(cmd_buf, sbuf.handle().buf, img_, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+
+            sbuf.last_access_mask = VK_ACCESS_TRANSFER_READ_BIT;
+            sbuf.last_stage_mask = VK_PIPELINE_STAGE_TRANSFER_BIT;
+
+            this->layout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+            this->last_access_mask = VK_ACCESS_TRANSFER_WRITE_BIT;
+            this->last_stage_mask = VK_PIPELINE_STAGE_TRANSFER_BIT;
 
             return index;
         }

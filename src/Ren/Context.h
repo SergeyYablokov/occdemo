@@ -147,9 +147,9 @@ class Context : public TaskExecutor {
     void Release1DTextures();
 
     /** Texture regions (placed on default atlas) **/
-    TextureRegionRef LoadTextureRegion(const char *name, const void *data, int size, const Tex2DParams &p,
-                                       eTexLoadStatus *load_status);
-    TextureRegionRef LoadTextureRegion(const char *name, const Buffer &sbuf, int data_off, int data_len,
+    TextureRegionRef LoadTextureRegion(const char *name, const void *data, int size, StageBufs &stage_bufs,
+                                       const Tex2DParams &p, eTexLoadStatus *load_status);
+    TextureRegionRef LoadTextureRegion(const char *name, const Buffer &sbuf, int data_off, int data_len, void *cmd_buf,
                                        const Tex2DParams &p, eTexLoadStatus *load_status);
 
     void ReleaseTextureRegions();

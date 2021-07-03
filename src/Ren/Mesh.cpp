@@ -674,6 +674,8 @@ void Ren::Mesh::InitMeshSkeletal(std::istream &data, const material_load_callbac
     uint8_t *stage_buf_ptr = stage_buf.Map(BufMapWrite);
     uint32_t stage_buf_off = 0;
 
+    uint32_t delta_buf_off = 0;
+
     const bool shape_data_present = (file_header.num_chunks > 6);
     if (shape_data_present) {
         uint32_t shape_keyed_vertices_start, shape_keyed_vertices_count;
@@ -702,6 +704,7 @@ void Ren::Mesh::InitMeshSkeletal(std::istream &data, const material_load_callbac
 
         assert(stage_buf.size() - stage_buf_off >= sk_deltas_buf_.size);
         auto *packed_deltas = reinterpret_cast<packed_vertex_delta_t *>(stage_buf_ptr + stage_buf_off);
+        delta_buf_off = stage_buf_off;
         stage_buf_off += sk_deltas_buf_.size;
 
         for (uint32_t i = 0; i < skel_.shapes_count * shape_keyed_vertices_count; i++) {
@@ -759,7 +762,8 @@ void Ren::Mesh::InitMeshSkeletal(std::istream &data, const material_load_callbac
     stage_buf.Unmap();
 
     if (shape_data_present) {
-        sk_deltas_buf_.offset = delta_buf->AllocRegion(sk_deltas_buf_.size, name_.c_str(), &stage_buf);
+        sk_deltas_buf_.offset =
+            delta_buf->AllocRegion(sk_deltas_buf_.size, name_.c_str(), &stage_buf, cmd_buf, delta_buf_off);
         sk_deltas_buf_.buf = std::move(delta_buf);
     }
 

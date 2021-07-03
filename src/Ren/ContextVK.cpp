@@ -213,7 +213,7 @@ Ren::SyncFence Ren::Context::EndSingleTimeCommands(void *cmd_buf) {
     VkFenceCreateInfo fence_info = {};
     fence_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
     VkFence new_fence;
-    VkResult res = vkCreateFence(api_ctx_->device, &fence_info, nullptr, &new_fence);
+    const VkResult res = vkCreateFence(api_ctx_->device, &fence_info, nullptr, &new_fence);
     if (res != VK_SUCCESS) {
         log_->Error("Failed to create fence!");
         return {};

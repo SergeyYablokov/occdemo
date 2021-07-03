@@ -297,30 +297,42 @@ void Ren::Context::Release1DTextures() {
 }
 
 Ren::TextureRegionRef Ren::Context::LoadTextureRegion(const char *name, const void *data, const int size,
-                                                      const Tex2DParams &p, eTexLoadStatus *load_status) {
+                                                      StageBufs &stage_bufs, const Tex2DParams &p,
+                                                      eTexLoadStatus *load_status) {
     TextureRegionRef ref = texture_regions_.FindByName(name);
     if (!ref) {
-        ref = texture_regions_.Add(name, data, size, p, &texture_atlas_, load_status);
+        stage_bufs.fences[stage_bufs.cur].ClientWaitSync();
+        BegSingleTimeCommands(stage_bufs.cmd_bufs[stage_bufs.cur]);
+        ref = texture_regions_.Add(name, data, size, *stage_bufs.bufs[stage_bufs.cur],
+                                   stage_bufs.cmd_bufs[stage_bufs.cur], p, &texture_atlas_, load_status);
+        stage_bufs.fences[stage_bufs.cur] = EndSingleTimeCommands(stage_bufs.cmd_bufs[stage_bufs.cur]);
+        stage_bufs.cur = (stage_bufs.cur + 1) % StageBufferCount;
     } else {
         if (ref->ready()) {
             (*load_status) = eTexLoadStatus::Found;
         } else {
-            ref->Init(data, size, p, &texture_atlas_, load_status);
+            stage_bufs.fences[stage_bufs.cur].ClientWaitSync();
+            BegSingleTimeCommands(stage_bufs.cmd_bufs[stage_bufs.cur]);
+            ref->Init(data, size, *stage_bufs.bufs[stage_bufs.cur], stage_bufs.cmd_bufs[stage_bufs.cur], p,
+                      &texture_atlas_, load_status);
+            stage_bufs.fences[stage_bufs.cur] = EndSingleTimeCommands(stage_bufs.cmd_bufs[stage_bufs.cur]);
+            stage_bufs.cur = (stage_bufs.cur + 1) % StageBufferCount;
         }
     }
     return ref;
 }
 
 Ren::TextureRegionRef Ren::Context::LoadTextureRegion(const char *name, const Buffer &sbuf, int data_off, int data_len,
-                                                      const Tex2DParams &p, eTexLoadStatus *load_status) {
+                                                      void *cmd_buf, const Tex2DParams &p,
+                                                      eTexLoadStatus *load_status) {
     TextureRegionRef ref = texture_regions_.FindByName(name);
     if (!ref) {
-        ref = texture_regions_.Add(name, sbuf, data_off, data_len, p, &texture_atlas_, load_status);
+        ref = texture_regions_.Add(name, sbuf, data_off, data_len, cmd_buf, p, &texture_atlas_, load_status);
     } else {
         if (ref->ready()) {
             (*load_status) = eTexLoadStatus::Found;
         } else {
-            ref->Init(sbuf, data_off, data_len, p, &texture_atlas_, load_status);
+            ref->Init(sbuf, data_off, data_len, cmd_buf, p, &texture_atlas_, load_status);
         }
     }
     return ref;

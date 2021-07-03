@@ -21,14 +21,14 @@ Gui::Image::Image(Ren::Context &ctx, const char *tex_name, const Vec2f &pos, con
     uvs_px_[1] = Vec2f{0.0f, 0.0f};
 
     Ren::eTexLoadStatus status;
-    tex_ = ctx.LoadTextureRegion(tex_name, nullptr, 0, {}, &status);
+    tex_ = ctx.LoadTextureRegion(tex_name, nullptr, 0, ctx.default_stage_bufs(), {}, &status);
     if (status == Ren::eTexLoadStatus::CreatedDefault) {
         Sys::AssetFile in_file(tex_name, Sys::eOpenMode::In);
         size_t in_file_size = in_file.size();
         std::unique_ptr<char[]> data(new char[in_file_size]);
         in_file.Read(data.get(), in_file_size);
 
-        tex_ = ctx.LoadTextureRegion(tex_name, data.get(), (int)in_file_size, {}, &status);
+        tex_ = ctx.LoadTextureRegion(tex_name, data.get(), int(in_file_size), ctx.default_stage_bufs(), {}, &status);
         assert(status == Ren::eTexLoadStatus::CreatedFromData);
 
         const Ren::Tex2DParams &p = tex_->params();

@@ -76,8 +76,8 @@ class TextureAtlasArray {
 #endif
 
     int Allocate(const void *data, eTexFormat format, const int res[2], int out_pos[3], int border);
-    int Allocate(const Buffer &sbuf, int data_off, int data_len, eTexFormat format, const int res[2], int out_pos[3],
-                 int border);
+    int Allocate(const Buffer &sbuf, int data_off, int data_len, void *cmd_buf, eTexFormat format, const int res[2],
+                 int out_pos[3], int border);
     bool Free(const int pos[3]);
 
 #if defined(USE_VK_RENDER)

@@ -85,7 +85,7 @@ Gui::Renderer::Renderer(Ren::Context &ctx, const JsObject &config) : ctx_(ctx) {
 
 Gui::Renderer::~Renderer() = default;
 
-void Gui::Renderer::Draw(int w, int h) {
+void Gui::Renderer::Draw(const int w, const int h) {
 #ifndef NDEBUG
     if (buf_range_fences_[ctx_.backend_frame]) {
         const Ren::WaitResult res = buf_range_fences_[ctx_.backend_frame].ClientWaitSync(0);

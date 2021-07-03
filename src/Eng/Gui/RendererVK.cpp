@@ -223,7 +223,7 @@ Gui::Renderer::Renderer(Ren::Context &ctx, const JsObject &config) : ctx_(ctx) {
         VkVertexInputAttributeDescription vtx_attrib_desc[3] = {};
         vtx_attrib_desc[0].binding = 0;
         vtx_attrib_desc[0].location = VTX_POS_LOC;
-        vtx_attrib_desc[0].format = VK_FORMAT_R32G32B32A32_SFLOAT;
+        vtx_attrib_desc[0].format = VK_FORMAT_R32G32B32_SFLOAT;
         vtx_attrib_desc[0].offset = 0;
 
         vtx_attrib_desc[1].binding = 0;
@@ -233,7 +233,7 @@ Gui::Renderer::Renderer(Ren::Context &ctx, const JsObject &config) : ctx_(ctx) {
 
         vtx_attrib_desc[2].binding = 0;
         vtx_attrib_desc[2].location = VTX_UVS_LOC;
-        vtx_attrib_desc[2].format = VK_FORMAT_R16G16_UNORM;
+        vtx_attrib_desc[2].format = VK_FORMAT_R16G16B16A16_UNORM;
         vtx_attrib_desc[2].offset = offsetof(vertex_t, uvs);
 
         VkPipelineVertexInputStateCreateInfo vtx_input_state_create_info = {};
@@ -273,7 +273,7 @@ Gui::Renderer::Renderer(Ren::Context &ctx, const JsObject &config) : ctx_(ctx) {
         rasterization_state_ci.rasterizerDiscardEnable = VK_FALSE;
         rasterization_state_ci.polygonMode = VK_POLYGON_MODE_FILL;
         rasterization_state_ci.cullMode = VK_CULL_MODE_BACK_BIT;
-        rasterization_state_ci.frontFace = VK_FRONT_FACE_CLOCKWISE;
+        rasterization_state_ci.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
         rasterization_state_ci.depthBiasEnable = VK_FALSE;
         rasterization_state_ci.depthBiasConstantFactor = 0.0f;
         rasterization_state_ci.depthBiasClamp = 0.0f;
@@ -331,11 +331,11 @@ Gui::Renderer::Renderer(Ren::Context &ctx, const JsObject &config) : ctx_(ctx) {
         color_blend_state_ci.blendConstants[2] = 0.0f;
         color_blend_state_ci.blendConstants[3] = 0.0f;
 
-        VkDynamicState dynamic_state = VK_DYNAMIC_STATE_VIEWPORT;
+        VkDynamicState dynamic_states[2] = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
         VkPipelineDynamicStateCreateInfo dynamic_state_ci = {};
         dynamic_state_ci.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-        dynamic_state_ci.dynamicStateCount = 1;
-        dynamic_state_ci.pDynamicStates = &dynamic_state;
+        dynamic_state_ci.dynamicStateCount = 2;
+        dynamic_state_ci.pDynamicStates = dynamic_states;
 
         VkGraphicsPipelineCreateInfo pipeline_create_info = {};
         pipeline_create_info.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
@@ -385,7 +385,7 @@ Gui::Renderer::~Renderer() {
     }
 }
 
-void Gui::Renderer::Draw(int w, int h) {
+void Gui::Renderer::Draw(const int w, const int h) {
     using namespace UIRendererConstants;
 
     Ren::ApiContext *api_ctx = ctx_.api_ctx();
@@ -538,8 +538,8 @@ void Gui::Renderer::Draw(int w, int h) {
         framebuf_create_info.renderPass = render_pass_;
         framebuf_create_info.attachmentCount = 1;
         framebuf_create_info.pAttachments = &present_image_views_[api_ctx->active_present_image];
-        framebuf_create_info.width = ctx_.w();
-        framebuf_create_info.height = ctx_.h();
+        framebuf_create_info.width = w;
+        framebuf_create_info.height = h;
         framebuf_create_info.layers = 1;
 
         const VkResult res = vkCreateFramebuffer(api_ctx->device, &framebuf_create_info, nullptr,
@@ -565,6 +565,9 @@ void Gui::Renderer::Draw(int w, int h) {
 
     const VkViewport viewport = {0.0f, 0.0f, float(w), float(h), 0.0f, 1.0f};
     vkCmdSetViewport(cmd_buf, 0, 1, &viewport);
+
+    const VkRect2D scissor = {0, 0, uint32_t(w), uint32_t(h)};
+    vkCmdSetScissor(cmd_buf, 0, 1, &scissor);
 
     vkCmdBindDescriptorSets(cmd_buf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_layout_, 0, 1, &desc_set_, 0, nullptr);
 

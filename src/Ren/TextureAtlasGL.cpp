@@ -244,7 +244,7 @@ int Ren::TextureAtlasArray::Allocate(const void *data, const eTexFormat format, 
     return -1;
 }
 
-int Ren::TextureAtlasArray::Allocate(const Buffer &sbuf, int data_off, int data_len, eTexFormat format,
+int Ren::TextureAtlasArray::Allocate(const Buffer &sbuf, int data_off, int data_len, void *, eTexFormat format,
                                      const int res[2], int out_pos[3], int border) {
     const int alloc_res[] = {res[0] < splitters_[0].resx() ? res[0] + border : res[0],
                              res[1] < splitters_[1].resy() ? res[1] + border : res[1]};
