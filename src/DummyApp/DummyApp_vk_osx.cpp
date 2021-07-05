@@ -112,12 +112,12 @@ int DummyApp::Init(const int w, const int h, const char *) {
     // [app setActivationPolicy:NSApplicationActivationPolicyRegular];
     msg(app, sel("setActivationPolicy:"), NSApplicationActivationPolicyRegular);
     
-    struct CGRect frameRect = { { 0.0, 0.0 }, { double(w), double(h) } };
+    struct CGRect frame_rect = { { 0.0, 0.0 }, { double(w), double(h) } };
     
     // id window = [[NSWindow alloc] initWithContentRect:frameRect styleMask:NSWindowStyleMaskTitled|NSWindowStyleMaskClosable|NSWindowStyleMaskResizable backing:NSBackingStoreBuffered defer:NO];
     id window = msg(cls_msg(cls("NSWindow"), sel("alloc")),
                     sel("initWithContentRect:styleMask:backing:defer:"),
-                    frameRect,
+                    frame_rect,
                     NSWindowStyleMaskTitled|NSWindowStyleMaskClosable|NSWindowStyleMaskResizable,
                     NSBackingStoreBuffered,
                     false);
@@ -130,14 +130,10 @@ int DummyApp::Init(const int w, const int h, const char *) {
     
     msg(metal_layer, sel("setDevice:"), metal_device);
     msg(metal_layer, sel("setPixelFormat:"), MTLPixelFormatBGRA8Unorm);
-    msg(metal_layer, sel("setFrame:"), frameRect);
+    msg(metal_layer, sel("setFrame:"), frame_rect);
+    //msg(metal_layer, sel("contentsScale:"), 1.0f);
     
-    //g_context.app = app;
-    //g_context.metal_layer = metal_layer;
     Ren::g_metal_layer = metal_layer;
-
-    //Ren::g_dpy = dpy_;
-    //Ren::g_win = win_;
 
     try {
         Viewer::PrepareAssets("pc");
@@ -163,7 +159,7 @@ int DummyApp::Init(const int w, const int h, const char *) {
         
         id view = msg(window, sel("contentView"));
         printf("view: %lx\n", (uintptr_t)view);
-        msg(view, sel("setFrame:"), frameRect);
+        msg(view, sel("setFrame:"), frame_rect);
         
         msg(view, sel("setWantsLayer:"), YES); // otherwise there will be no layer!
         id viewLayer = msg(view, sel("layer"));
