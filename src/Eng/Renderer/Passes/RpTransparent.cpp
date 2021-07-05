@@ -6,13 +6,12 @@
 #include "../Renderer_Structs.h"
 
 void RpTransparent::Setup(RpBuilder &builder, const DrawList &list, const int *alpha_blend_start_index,
-                          const ViewState *view_state, const PersistentBuffers *bufs,
-                          Ren::Tex2DRef brdf_lut, Ren::Tex2DRef noise_tex, Ren::Tex2DRef cone_rt_lut,
-                          const char instances_buf[], const char shared_data_buf[], const char cells_buf[],
-                          const char items_buf[], const char lights_buf[], const char decals_buf[],
-                          const char shadowmap_tex[], const char ssao_tex[], const char color_tex[],
-                          const char normal_tex[], const char spec_tex[], const char depth_tex[],
-                          const char transparent_tex_name[]) {
+                          const ViewState *view_state, const PersistentBuffers *bufs, Ren::Tex2DRef brdf_lut,
+                          Ren::Tex2DRef noise_tex, Ren::Tex2DRef cone_rt_lut, const char instances_buf[],
+                          const char shared_data_buf[], const char cells_buf[], const char items_buf[],
+                          const char lights_buf[], const char decals_buf[], const char shadowmap_tex[],
+                          const char ssao_tex[], const char color_tex[], const char normal_tex[], const char spec_tex[],
+                          const char depth_tex[], const char transparent_tex_name[]) {
     view_state_ = view_state;
 
     brdf_lut_ = std::move(brdf_lut);
@@ -138,18 +137,20 @@ void RpTransparent::LazyInit(Ren::Context &ctx, ShaderLoader &sh, RpAllocTex &co
     {
         const Ren::TexHandle attachments[] = {color_tex.ref->handle(), normal_tex.ref->handle(),
                                               spec_tex.ref->handle()};
-        if (!transparent_draw_fb_.Setup(attachments, 3, depth_tex.ref->handle(), depth_tex.ref->handle(),
+        if (!transparent_draw_fb_.Setup(ctx.api_ctx(), nullptr, color_tex.desc.w, color_tex.desc.h, attachments, 3,
+                                        depth_tex.ref->handle(), depth_tex.ref->handle(),
                                         view_state_->is_multisampled)) {
             ctx.log()->Error("RpTransparent: transparent_draw_fb_ init failed!");
         }
     }
 
-    if (!color_only_fb_.Setup(color_tex.ref->handle(), depth_tex.ref->handle(), depth_tex.ref->handle(),
-                              view_state_->is_multisampled)) {
+    if (!color_only_fb_.Setup(ctx.api_ctx(), nullptr, color_tex.desc.w, color_tex.desc.h, color_tex.ref->handle(),
+                              depth_tex.ref->handle(), depth_tex.ref->handle(), view_state_->is_multisampled)) {
         ctx.log()->Error("RpTransparent: color_only_fb_ init failed!");
     }
 
-    if (!resolved_fb_.Setup(transparent_tex.ref->handle(), {}, {}, false)) {
+    if (!resolved_fb_.Setup(ctx.api_ctx(), nullptr, transparent_tex.desc.w, transparent_tex.desc.h,
+                            transparent_tex.ref->handle(), {}, {}, false)) {
         ctx.log()->Error("RpTransparent: resolved_fb_ init failed!");
     }
 

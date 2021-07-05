@@ -245,14 +245,14 @@ void main() {
             Ren::Vec4f p, c;
         };
 
-        auto buf = Ren::Buffer{"buf", Ren::eBufType::VertexAttribs, sizeof(AttribData) * 128};
+        auto buf = Ren::Buffer{"buf", test.api_ctx(), Ren::eBufType::VertexAttribs, sizeof(AttribData) * 128};
 
         std::vector<AttribData> _data;
         for (int i = 0; i < 128; i++) {
             _data.push_back({Ren::Vec4f{0.0f, float(i), 0.0f, 0.0f}, Ren::Vec4f{0.0f}});
         }
 
-        auto stage_buf = Ren::Buffer{"stage_buf", Ren::eBufType::Stage, sizeof(AttribData) * 128};
+        auto stage_buf = Ren::Buffer{"stage_buf", test.api_ctx(), Ren::eBufType::Stage, sizeof(AttribData) * 128};
 
         {
             auto *data = reinterpret_cast<AttribData *>(stage_buf.Map(Ren::BufMapWrite));

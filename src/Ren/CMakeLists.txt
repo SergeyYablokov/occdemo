@@ -38,10 +38,14 @@ set(SOURCE_FILES Anim.h
                  Context.cpp
                  CPUFeatures.h
                  CPUFeatures.cpp
+                 MemoryAllocator.h
                  Fence.h
                  Fixed.h
+                 Framebuffer.h
                  Fwd.h
                  HashMap32.h
+                 LinearAlloc.h
+                 LinearAlloc.cpp
                  Log.h
                  Material.h
                  Material.cpp
@@ -80,6 +84,7 @@ if(${RENDERER} STREQUAL "GL")
     set(SOURCE_FILES ${SOURCE_FILES}
                      BufferGL.cpp
                      ContextGL.cpp
+                     FramebufferGL.cpp
                      GL.h
                      GLCtx.h
                      GLExt.cpp
@@ -118,10 +123,8 @@ elseif(${RENDERER} STREQUAL "VK")
                      BufferVK.cpp
                      ContextVK.cpp
                      FenceVK.cpp
-                     VK.h
-                     VKCtx.h
-                     VKCtx.cpp
-                     VKExt.cpp
+                     FramebufferVK.cpp
+                     MemoryAllocatorVK.cpp
                      ProgramVK.h
                      ProgramVK.cpp
                      RastStateVK.cpp
@@ -131,7 +134,11 @@ elseif(${RENDERER} STREQUAL "VK")
                      ShaderVK.cpp
                      TextureVK.h
                      TextureVK.cpp
-                     TextureAtlasVK.cpp)
+                     TextureAtlasVK.cpp
+                     VK.h
+                     VKCtx.h
+                     VKCtx.cpp
+                     VKExt.cpp)
 
     set(VULKAN_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/vk_layer.h
                        ${CMAKE_CURRENT_SOURCE_DIR}/vulkan/vk_platform.h

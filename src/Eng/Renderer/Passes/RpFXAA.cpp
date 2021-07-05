@@ -63,7 +63,8 @@ void RpFXAA::LazyInit(Ren::Context &ctx, ShaderLoader &sh, RpAllocTex *output_te
     }
 
     Ren::TexHandle output = output_tex ? output_tex->ref->handle() : Ren::TexHandle{};
-    if (!output_fb_.Setup(&output, 1, {}, {}, false)) {
+    if (!output_fb_.Setup(ctx.api_ctx(), nullptr, view_state_->act_res[0], view_state_->act_res[1], &output, 1, {}, {},
+                          false)) {
         ctx.log()->Error("RpFXAA: output_fb_ init failed!");
     }
 }

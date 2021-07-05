@@ -7,6 +7,7 @@
 #include <Ren/Fwd.h>
 
 #include <Ren/Buffer.h>
+#include <Ren/Framebuffer.h>
 #include <Ren/HashMap32.h>
 #include <Ren/Log.h>
 #include <Ren/SmallVector.h>

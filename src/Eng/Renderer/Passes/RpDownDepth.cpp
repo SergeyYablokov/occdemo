@@ -8,8 +8,8 @@
 #include "../PrimDraw.h"
 #include "../Renderer_Structs.h"
 
-void RpDownDepth::Setup(RpBuilder &builder, const ViewState *view_state,
-                        const char shared_data_buf[], const char depth_tex[], const char output_tex[]) {
+void RpDownDepth::Setup(RpBuilder &builder, const ViewState *view_state, const char shared_data_buf[],
+                        const char depth_tex[], const char output_tex[]) {
     view_state_ = view_state;
 
     shared_data_buf_ = builder.ReadBuffer(shared_data_buf, *this);
@@ -68,7 +68,8 @@ void RpDownDepth::LazyInit(Ren::Context &ctx, ShaderLoader &sh, RpAllocTex &down
         initialized = true;
     }
 
-    if (!depth_down_fb_.Setup(down_depth_2x_tex.ref->handle(), {}, {}, false)) {
+    if (!depth_down_fb_.Setup(ctx.api_ctx(), nullptr, down_depth_2x_tex.desc.w, down_depth_2x_tex.desc.h,
+                              down_depth_2x_tex.ref->handle(), {}, {}, false)) {
         ctx.log()->Error("RpDownDepth: depth_down_fb_ init failed!");
     }
 }

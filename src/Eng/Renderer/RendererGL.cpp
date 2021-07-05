@@ -28,37 +28,29 @@ void Renderer::InitRendererInternal() {
     using namespace RendererInternal;
     using namespace Ren;
 
-    blit_prog_ = sh_.LoadProgram(ctx_, "blit", "internal/blit.vert.glsl",
-                                 "internal/blit.frag.glsl");
+    blit_prog_ = sh_.LoadProgram(ctx_, "blit", "internal/blit.vert.glsl", "internal/blit.frag.glsl");
     assert(blit_prog_->ready());
-    blit_combine_prog_ = sh_.LoadProgram(ctx_, "blit_combine", "internal/blit.vert.glsl",
-                                         "internal/blit_combine.frag.glsl");
+    blit_combine_prog_ =
+        sh_.LoadProgram(ctx_, "blit_combine", "internal/blit.vert.glsl", "internal/blit_combine.frag.glsl");
     assert(blit_combine_prog_->ready());
-    blit_ms_prog_ = sh_.LoadProgram(ctx_, "blit_ms", "internal/blit.vert.glsl",
-                                    "internal/blit_ms.frag.glsl");
+    blit_ms_prog_ = sh_.LoadProgram(ctx_, "blit_ms", "internal/blit.vert.glsl", "internal/blit_ms.frag.glsl");
     assert(blit_ms_prog_->ready());
-    blit_down_prog_ = sh_.LoadProgram(ctx_, "blit_down", "internal/blit.vert.glsl",
-                                      "internal/blit_down.frag.glsl");
+    blit_down_prog_ = sh_.LoadProgram(ctx_, "blit_down", "internal/blit.vert.glsl", "internal/blit_down.frag.glsl");
     assert(blit_down_prog_->ready());
-    blit_gauss_prog_ = sh_.LoadProgram(ctx_, "blit_gauss", "internal/blit.vert.glsl",
-                                       "internal/blit_gauss.frag.glsl");
+    blit_gauss_prog_ = sh_.LoadProgram(ctx_, "blit_gauss", "internal/blit.vert.glsl", "internal/blit_gauss.frag.glsl");
     assert(blit_gauss_prog_->ready());
-    blit_depth_prog_ = sh_.LoadProgram(ctx_, "blit_depth", "internal/blit.vert.glsl",
-                                       "internal/blit_depth.frag.glsl");
+    blit_depth_prog_ = sh_.LoadProgram(ctx_, "blit_depth", "internal/blit.vert.glsl", "internal/blit_depth.frag.glsl");
     assert(blit_depth_prog_->ready());
-    blit_rgbm_prog_ = sh_.LoadProgram(ctx_, "blit_rgbm", "internal/blit.vert.glsl",
-                                      "internal/blit_rgbm.frag.glsl");
+    blit_rgbm_prog_ = sh_.LoadProgram(ctx_, "blit_rgbm", "internal/blit.vert.glsl", "internal/blit_rgbm.frag.glsl");
     assert(blit_rgbm_prog_->ready());
-    blit_mipmap_prog_ = sh_.LoadProgram(ctx_, "blit_mipmap", "internal/blit.vert.glsl",
-                                        "internal/blit_mipmap.frag.glsl");
+    blit_mipmap_prog_ =
+        sh_.LoadProgram(ctx_, "blit_mipmap", "internal/blit.vert.glsl", "internal/blit_mipmap.frag.glsl");
     assert(blit_mipmap_prog_->ready());
     blit_prefilter_prog_ =
-        sh_.LoadProgram(ctx_, "blit_prefilter", "internal/blit.vert.glsl",
-                        "internal/blit_prefilter.frag.glsl");
+        sh_.LoadProgram(ctx_, "blit_prefilter", "internal/blit.vert.glsl", "internal/blit_prefilter.frag.glsl");
     assert(blit_prefilter_prog_->ready());
     blit_project_sh_prog_ =
-        sh_.LoadProgram(ctx_, "blit_project_sh_prog", "internal/blit.vert.glsl",
-                        "internal/blit_project_sh.frag.glsl");
+        sh_.LoadProgram(ctx_, "blit_project_sh_prog", "internal/blit.vert.glsl", "internal/blit_project_sh.frag.glsl");
     assert(blit_project_sh_prog_->ready());
 
     Ren::CheckError("[InitRendererInternal]: UBO creation", ctx_.log());
@@ -67,10 +59,8 @@ void Renderer::InitRendererInternal() {
         GLuint probe_sample_pbo;
         glGenBuffers(1, &probe_sample_pbo);
         glBindBuffer(GL_PIXEL_PACK_BUFFER, probe_sample_pbo);
-        glBufferData(
-            GL_PIXEL_PACK_BUFFER,
-            GLsizeiptr(4 * probe_sample_buf_.w * probe_sample_buf_.h * sizeof(float)),
-            nullptr, GL_DYNAMIC_READ);
+        glBufferData(GL_PIXEL_PACK_BUFFER, GLsizeiptr(4 * probe_sample_buf_.w * probe_sample_buf_.h * sizeof(float)),
+                     nullptr, GL_DYNAMIC_READ);
 
         glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
         probe_sample_pbo_ = uint32_t(probe_sample_pbo);
@@ -87,7 +77,7 @@ void Renderer::InitRendererInternal() {
 
     Ren::CheckError("[InitRendererInternal]: temp framebuffer", ctx_.log());
 
-    {                                               // Create timer queries
+    {                                                      // Create timer queries
         for (int i = 0; i < Ren::MaxFramesInFlight; i++) { // NOLINT
             glGenQueries(TimersCount, queries_[i]);
 
@@ -100,8 +90,7 @@ void Renderer::InitRendererInternal() {
     Ren::CheckError("[InitRendererInternal]: timer queries", ctx_.log());
 
     {
-        Ren::BufferRef vtx_buf1 = ctx_.default_vertex_buf1(),
-                       vtx_buf2 = ctx_.default_vertex_buf2(),
+        Ren::BufferRef vtx_buf1 = ctx_.default_vertex_buf1(), vtx_buf2 = ctx_.default_vertex_buf2(),
                        ndx_buf = ctx_.default_indices_buf();
 
         // Allocate temporary buffer
@@ -112,12 +101,9 @@ void Renderer::InitRendererInternal() {
 
         // Allocate buffer for skinned vertices
         // TODO: fix this. do not allocate twice more memory in buf2
-        skinned_buf1_vtx_offset_ =
-            vtx_buf1->AllocRegion(REN_MAX_SKIN_VERTICES_TOTAL * 16 * 2, "skinned");
-        skinned_buf2_vtx_offset_ =
-            vtx_buf2->AllocRegion(REN_MAX_SKIN_VERTICES_TOTAL * 16 * 2, "skinned");
-        assert(skinned_buf1_vtx_offset_ == skinned_buf2_vtx_offset_ &&
-               "Offsets do not match!");
+        skinned_buf1_vtx_offset_ = vtx_buf1->AllocRegion(REN_MAX_SKIN_VERTICES_TOTAL * 16 * 2, "skinned");
+        skinned_buf2_vtx_offset_ = vtx_buf2->AllocRegion(REN_MAX_SKIN_VERTICES_TOTAL * 16 * 2, "skinned");
+        assert(skinned_buf1_vtx_offset_ == skinned_buf2_vtx_offset_ && "Offsets do not match!");
     }
 
     Ren::CheckError("[InitRendererInternal]: additional data allocation", ctx_.log());
@@ -128,8 +114,7 @@ void Renderer::DestroyRendererInternal() {
 
     log->Info("DestroyRendererInternal");
 
-    Ren::BufferRef vtx_buf1 = ctx_.default_vertex_buf1(),
-                   vtx_buf2 = ctx_.default_vertex_buf2(),
+    Ren::BufferRef vtx_buf1 = ctx_.default_vertex_buf1(), vtx_buf2 = ctx_.default_vertex_buf2(),
                    ndx_buf = ctx_.default_indices_buf();
 
     static_assert(sizeof(GLuint) == sizeof(uint32_t), "!");
@@ -1057,8 +1042,7 @@ uint64_t Renderer::GetGpuTimeBlockingUs() {
     return (uint64_t)(time / 1000);
 }
 
-void Renderer::BlitPixels(const void *data, const int w, const int h,
-                          const Ren::eTexFormat format) {
+void Renderer::BlitPixels(const void *data, const int w, const int h, const Ren::eTexFormat format) {
     using namespace RendererInternal;
 
     if (!temp_tex_ || temp_tex_->params().w != w || temp_tex_->params().h != h ||
@@ -1098,8 +1082,7 @@ void Renderer::BlitPixels(const void *data, const int w, const int h,
     glBindVertexArray(0);
 }
 
-void Renderer::BlitPixelsTonemap(const void *data, const int w, const int h,
-                                 const Ren::eTexFormat format) {
+void Renderer::BlitPixelsTonemap(const void *data, const int w, const int h, const Ren::eTexFormat format) {
     using namespace RendererInternal;
 
     if (!temp_tex_ || temp_tex_->params().w != w || temp_tex_->params().h != h ||
@@ -1172,18 +1155,17 @@ void Renderer::BlitPixelsTonemap(const void *data, const int w, const int h,
         glBindBufferBase(GL_UNIFORM_BUFFER, REN_UB_SHARED_DATA_LOC,
                          (GLuint)unif_shared_data_buf.ref->id());*/
 
-        const PrimDraw::Binding binding = {Ren::eBindTarget::Tex2D, REN_BASE0_TEX_SLOT,
-                                           temp_tex_->handle()};
+        const PrimDraw::Binding binding = {Ren::eBindTarget::Tex2D, REN_BASE0_TEX_SLOT, temp_tex_->handle()};
 
         const PrimDraw::Uniform uniforms[] = {{0, Ren::Vec4f{0.0f, 0.0f, 1.0f, 1.0f}}};
 
         const Ren::TexHandle down_tex_handle = down_tex_4x_->handle();
-        if (!down_tex_4x_fb_.Setup(&down_tex_handle, 1, {}, {}, false)) {
+        if (!down_tex_4x_fb_.Setup(ctx_.api_ctx(), nullptr, down_tex_4x_->params().w, down_tex_4x_->params().h,
+                                   &down_tex_handle, 1, {}, {}, false)) {
             ctx_.log()->Error("Failed to init down_tex_4x_fb_");
         }
 
-        prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, {down_tex_4x_fb_.id(), 0}, cur_program,
-                            &binding, 1, uniforms, 1);
+        prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, {down_tex_4x_fb_.id(), 0}, cur_program, &binding, 1, uniforms, 1);
     }
 
     { // prepare blurred buffer
@@ -1279,13 +1261,11 @@ void Renderer::BlitPixelsTonemap(const void *data, const int w, const int h,
     glBindVertexArray(0);
 }
 
-void Renderer::BlitBuffer(const float px, const float py, const float sx, const float sy,
-                          const FrameBuf &buf, const int first_att, const int att_count,
-                          const float multiplier) {
+void Renderer::BlitBuffer(const float px, const float py, const float sx, const float sy, const FrameBuf &buf,
+                          const int first_att, const int att_count, const float multiplier) {
     using namespace RendererInternal;
 
-    Ren::BufferRef vtx_buf1 = ctx_.default_vertex_buf1(),
-                   vtx_buf2 = ctx_.default_vertex_buf2(),
+    Ren::BufferRef vtx_buf1 = ctx_.default_vertex_buf1(), vtx_buf2 = ctx_.default_vertex_buf2(),
                    ndx_buf = ctx_.default_indices_buf();
 
     glBindVertexArray(temp_vao_.id());
@@ -1302,64 +1282,53 @@ void Renderer::BlitBuffer(const float px, const float py, const float sx, const 
     glUniform4f(0, 0.0f, 0.0f, 1.0f, 1.0f);
 
     for (int i = first_att; i < first_att + att_count; i++) {
-        const float positions[] = {px + float(i - first_att) * sx,     py,
-                                   px + float(i - first_att + 1) * sx, py,
-                                   px + float(i - first_att + 1) * sx, py + sy,
-                                   px + float(i - first_att) * sx,     py + sy};
+        const float positions[] = {
+            px + float(i - first_att) * sx,     py,      px + float(i - first_att + 1) * sx, py,
+            px + float(i - first_att + 1) * sx, py + sy, px + float(i - first_att) * sx,     py + sy};
 
         if (i == first_att) {
-            const float uvs[] = {0.0f,         0.0f,         float(buf.w), 0.0f,
-                                 float(buf.w), float(buf.h), 0.0f,         float(buf.h)};
+            const float uvs[] = {0.0f, 0.0f, float(buf.w), 0.0f, float(buf.w), float(buf.h), 0.0f, float(buf.h)};
 
             glBindBuffer(GL_ARRAY_BUFFER, vtx_buf1->id());
             glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ndx_buf->id());
 
-            glBufferSubData(GL_ARRAY_BUFFER,
-                            GLintptr(temp_buf1_vtx_offset_ + sizeof(positions)),
-                            sizeof(uvs), uvs);
-            glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, GLintptr(temp_buf_ndx_offset_),
-                            6 * sizeof(uint16_t), PrimDrawInternal::fs_quad_indices);
+            glBufferSubData(GL_ARRAY_BUFFER, GLintptr(temp_buf1_vtx_offset_ + sizeof(positions)), sizeof(uvs), uvs);
+            glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, GLintptr(temp_buf_ndx_offset_), 6 * sizeof(uint16_t),
+                            PrimDrawInternal::fs_quad_indices);
 
             glEnableVertexAttribArray(REN_VTX_POS_LOC);
             glVertexAttribPointer(REN_VTX_POS_LOC, 2, GL_FLOAT, GL_FALSE, 0,
                                   (const GLvoid *)uintptr_t(temp_buf1_vtx_offset_));
 
             glEnableVertexAttribArray(REN_VTX_UV1_LOC);
-            glVertexAttribPointer(
-                REN_VTX_UV1_LOC, 2, GL_FLOAT, GL_FALSE, 0,
-                (const GLvoid *)uintptr_t(temp_buf1_vtx_offset_ + sizeof(positions)));
+            glVertexAttribPointer(REN_VTX_UV1_LOC, 2, GL_FLOAT, GL_FALSE, 0,
+                                  (const GLvoid *)uintptr_t(temp_buf1_vtx_offset_ + sizeof(positions)));
 
             glUniform1f(4, multiplier);
         }
 
-        glBufferSubData(GL_ARRAY_BUFFER, GLintptr(temp_buf1_vtx_offset_),
-                        sizeof(positions), positions);
+        glBufferSubData(GL_ARRAY_BUFFER, GLintptr(temp_buf1_vtx_offset_), sizeof(positions), positions);
 
         if (buf.sample_count > 1) {
-            ren_glBindTextureUnit_Comp(GL_TEXTURE_2D_MULTISAMPLE, REN_BASE0_TEX_SLOT,
-                                       buf.attachments[i].tex->id());
+            ren_glBindTextureUnit_Comp(GL_TEXTURE_2D_MULTISAMPLE, REN_BASE0_TEX_SLOT, buf.attachments[i].tex->id());
         } else {
-            ren_glBindTextureUnit_Comp(GL_TEXTURE_2D, REN_BASE0_TEX_SLOT,
-                                       buf.attachments[i].tex->id());
+            ren_glBindTextureUnit_Comp(GL_TEXTURE_2D, REN_BASE0_TEX_SLOT, buf.attachments[i].tex->id());
         }
 
         glBindVertexArray(temp_vao_.id());
 
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT,
-                       (const GLvoid *)uintptr_t(temp_buf_ndx_offset_));
+        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, (const GLvoid *)uintptr_t(temp_buf_ndx_offset_));
     }
 
     glDisableVertexAttribArray(REN_VTX_POS_LOC);
     glDisableVertexAttribArray(REN_VTX_UV1_LOC);
 }
 
-void Renderer::BlitTexture(const float px, const float py, const float sx, const float sy,
-                           const Ren::Tex2DRef &tex, const float multiplier,
-                           const bool is_ms) {
+void Renderer::BlitTexture(const float px, const float py, const float sx, const float sy, const Ren::Tex2DRef &tex,
+                           const float multiplier, const bool is_ms) {
     using namespace RendererInternal;
 
-    Ren::BufferRef vtx_buf1 = ctx_.default_vertex_buf1(),
-                   vtx_buf2 = ctx_.default_vertex_buf2(),
+    Ren::BufferRef vtx_buf1 = ctx_.default_vertex_buf1(), vtx_buf2 = ctx_.default_vertex_buf2(),
                    ndx_buf = ctx_.default_indices_buf();
 
     Ren::Program *cur_program = nullptr;
@@ -1378,8 +1347,7 @@ void Renderer::BlitTexture(const float px, const float py, const float sx, const
 
         const float positions[] = {px, py, px + sx, py, px + sx, py + sy, px, py + sy};
 
-        const float uvs[] = {0.0f,       0.0f,       float(p.w), 0.0f,
-                             float(p.w), float(p.h), 0.0f,       float(p.h)};
+        const float uvs[] = {0.0f, 0.0f, float(p.w), 0.0f, float(p.w), float(p.h), 0.0f, float(p.h)};
 
         uint16_t indices[] = {0, 1, 2, 0, 2, 3};
 
@@ -1392,46 +1360,37 @@ void Renderer::BlitTexture(const float px, const float py, const float sx, const
         glBindBuffer(GL_ARRAY_BUFFER, vtx_buf1->id());
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ndx_buf->id());
 
-        glBufferSubData(GL_ARRAY_BUFFER, GLintptr(temp_buf1_vtx_offset_),
-                        sizeof(positions), positions);
-        glBufferSubData(GL_ARRAY_BUFFER,
-                        GLintptr(temp_buf1_vtx_offset_ + sizeof(positions)), sizeof(uvs),
-                        uvs);
-        glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, GLintptr(temp_buf_ndx_offset_),
-                        sizeof(indices), indices);
+        glBufferSubData(GL_ARRAY_BUFFER, GLintptr(temp_buf1_vtx_offset_), sizeof(positions), positions);
+        glBufferSubData(GL_ARRAY_BUFFER, GLintptr(temp_buf1_vtx_offset_ + sizeof(positions)), sizeof(uvs), uvs);
+        glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, GLintptr(temp_buf_ndx_offset_), sizeof(indices), indices);
 
         glEnableVertexAttribArray(REN_VTX_POS_LOC);
         glVertexAttribPointer(REN_VTX_POS_LOC, 2, GL_FLOAT, GL_FALSE, 0,
                               (const GLvoid *)uintptr_t(temp_buf1_vtx_offset_));
 
         glEnableVertexAttribArray(REN_VTX_UV1_LOC);
-        glVertexAttribPointer(
-            REN_VTX_UV1_LOC, 2, GL_FLOAT, GL_FALSE, 0,
-            (const GLvoid *)uintptr_t(temp_buf1_vtx_offset_ + sizeof(positions)));
+        glVertexAttribPointer(REN_VTX_UV1_LOC, 2, GL_FLOAT, GL_FALSE, 0,
+                              (const GLvoid *)uintptr_t(temp_buf1_vtx_offset_ + sizeof(positions)));
 
         glUniform1f(4, multiplier);
 
         if (is_ms) {
-            ren_glBindTextureUnit_Comp(GL_TEXTURE_2D_MULTISAMPLE, REN_BASE0_TEX_SLOT,
-                                       tex->id());
+            ren_glBindTextureUnit_Comp(GL_TEXTURE_2D_MULTISAMPLE, REN_BASE0_TEX_SLOT, tex->id());
         } else {
             ren_glBindTextureUnit_Comp(GL_TEXTURE_2D, REN_BASE0_TEX_SLOT, tex->id());
         }
 
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT,
-                       (const GLvoid *)uintptr_t(temp_buf_ndx_offset_));
+        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, (const GLvoid *)uintptr_t(temp_buf_ndx_offset_));
     }
 
     glDisableVertexAttribArray(REN_VTX_POS_LOC);
     glDisableVertexAttribArray(REN_VTX_UV1_LOC);
 }
 
-void Renderer::BlitToTempProbeFace(const FrameBuf &src_buf, const ProbeStorage &dst_store,
-                                   const int face) {
+void Renderer::BlitToTempProbeFace(const FrameBuf &src_buf, const ProbeStorage &dst_store, const int face) {
     using namespace RendererInternal;
 
-    Ren::BufferRef vtx_buf1 = ctx_.default_vertex_buf1(),
-                   vtx_buf2 = ctx_.default_vertex_buf2(),
+    Ren::BufferRef vtx_buf1 = ctx_.default_vertex_buf1(), vtx_buf2 = ctx_.default_vertex_buf2(),
                    ndx_buf = ctx_.default_indices_buf();
 
     GLint framebuf_before;
@@ -1446,8 +1405,7 @@ void Renderer::BlitToTempProbeFace(const FrameBuf &src_buf, const ProbeStorage &
     int temp_probe_index = dst_store.reserved_temp_layer();
 
     auto cube_array = GLuint(dst_store.handle().id);
-    glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, cube_array, 0,
-                              GLint(temp_probe_index * 6 + face));
+    glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, cube_array, 0, GLint(temp_probe_index * 6 + face));
     assert(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
 
     glViewport(0, 0, GLint(dst_store.res()), GLint(dst_store.res()));
@@ -1460,18 +1418,16 @@ void Renderer::BlitToTempProbeFace(const FrameBuf &src_buf, const ProbeStorage &
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ndx_buf->id());
 
     glEnableVertexAttribArray(REN_VTX_POS_LOC);
-    glVertexAttribPointer(REN_VTX_POS_LOC, 2, GL_FLOAT, GL_FALSE, 0,
-                          (const GLvoid *)uintptr_t(temp_buf1_vtx_offset_));
+    glVertexAttribPointer(REN_VTX_POS_LOC, 2, GL_FLOAT, GL_FALSE, 0, (const GLvoid *)uintptr_t(temp_buf1_vtx_offset_));
 
     glEnableVertexAttribArray(REN_VTX_UV1_LOC);
-    glVertexAttribPointer(
-        REN_VTX_UV1_LOC, 2, GL_FLOAT, GL_FALSE, 0,
-        (const GLvoid *)uintptr_t(temp_buf1_vtx_offset_ + 8 * sizeof(float)));
+    glVertexAttribPointer(REN_VTX_UV1_LOC, 2, GL_FLOAT, GL_FALSE, 0,
+                          (const GLvoid *)uintptr_t(temp_buf1_vtx_offset_ + 8 * sizeof(float)));
 
     glBufferSubData(GL_ARRAY_BUFFER, GLintptr(temp_buf1_vtx_offset_), 8 * sizeof(float),
                     PrimDrawInternal::fs_quad_positions);
-    glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, GLintptr(temp_buf_ndx_offset_),
-                    6 * sizeof(uint16_t), PrimDrawInternal::fs_quad_indices);
+    glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, GLintptr(temp_buf_ndx_offset_), 6 * sizeof(uint16_t),
+                    PrimDrawInternal::fs_quad_indices);
 
     { // Update first mip level of a cubemap
         Ren::Program *prog = blit_rgbm_prog_.get();
@@ -1479,23 +1435,14 @@ void Renderer::BlitToTempProbeFace(const FrameBuf &src_buf, const ProbeStorage &
 
         glUniform4f(0, 0.0f, 0.0f, 1.0f, 1.0f);
 
-        const float uvs[] = {0.0f,
-                             0.0f,
-                             (float)src_buf.w,
-                             0.0f,
-                             (float)src_buf.w,
-                             (float)src_buf.h,
-                             0.0f,
-                             (float)src_buf.h};
+        const float uvs[] = {
+            0.0f, 0.0f, (float)src_buf.w, 0.0f, (float)src_buf.w, (float)src_buf.h, 0.0f, (float)src_buf.h};
 
-        glBufferSubData(GL_ARRAY_BUFFER,
-                        GLintptr(temp_buf1_vtx_offset_ + 8 * sizeof(float)), sizeof(uvs),
-                        uvs);
+        glBufferSubData(GL_ARRAY_BUFFER, GLintptr(temp_buf1_vtx_offset_ + 8 * sizeof(float)), sizeof(uvs), uvs);
 
         ren_glBindTextureUnit_Comp(GL_TEXTURE_2D, 0, src_buf.attachments[0].tex->id());
 
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT,
-                       (const GLvoid *)uintptr_t(temp_buf_ndx_offset_));
+        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, (const GLvoid *)uintptr_t(temp_buf_ndx_offset_));
     }
 
     { // Update rest of mipmaps
@@ -1509,9 +1456,7 @@ void Renderer::BlitToTempProbeFace(const FrameBuf &src_buf, const ProbeStorage &
 
         const float uvs[] = {-1.0f, 1.0f, -1.0, -1.0f, 1.0f, -1.0f, 1.0f, 1.0f};
 
-        glBufferSubData(GL_ARRAY_BUFFER,
-                        GLintptr(temp_buf1_vtx_offset_ + 8 * sizeof(float)), sizeof(uvs),
-                        uvs);
+        glBufferSubData(GL_ARRAY_BUFFER, GLintptr(temp_buf1_vtx_offset_ + 8 * sizeof(float)), sizeof(uvs), uvs);
 
         ren_glBindTextureUnit_Comp(GL_TEXTURE_CUBE_MAP_ARRAY, 0, cube_array);
 
@@ -1519,16 +1464,15 @@ void Renderer::BlitToTempProbeFace(const FrameBuf &src_buf, const ProbeStorage &
         int level = 1;
 
         while (level <= dst_store.max_level()) {
-            glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, cube_array,
-                                      level, GLint(temp_probe_index * 6 + face));
+            glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, cube_array, level,
+                                      GLint(temp_probe_index * 6 + face));
             assert(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
 
             glViewport(0, 0, res, res);
 
             glUniform1f(3, float(level - 1));
 
-            glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT,
-                           (const GLvoid *)uintptr_t(temp_buf_ndx_offset_));
+            glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, (const GLvoid *)uintptr_t(temp_buf_ndx_offset_));
 
             res /= 2;
             level++;
@@ -1541,16 +1485,13 @@ void Renderer::BlitToTempProbeFace(const FrameBuf &src_buf, const ProbeStorage &
     glBindVertexArray(0);
 
     glBindFramebuffer(GL_FRAMEBUFFER, framebuf_before);
-    glViewport(viewport_before[0], viewport_before[1], viewport_before[2],
-               viewport_before[3]);
+    glViewport(viewport_before[0], viewport_before[1], viewport_before[2], viewport_before[3]);
 }
 
-void Renderer::BlitPrefilterFromTemp(const ProbeStorage &dst_store,
-                                     const int probe_index) {
+void Renderer::BlitPrefilterFromTemp(const ProbeStorage &dst_store, const int probe_index) {
     using namespace RendererInternal;
 
-    Ren::BufferRef vtx_buf1 = ctx_.default_vertex_buf1(),
-                   vtx_buf2 = ctx_.default_vertex_buf2(),
+    Ren::BufferRef vtx_buf1 = ctx_.default_vertex_buf1(), vtx_buf2 = ctx_.default_vertex_buf2(),
                    ndx_buf = ctx_.default_indices_buf();
 
     GLint framebuf_before;
@@ -1574,23 +1515,20 @@ void Renderer::BlitPrefilterFromTemp(const ProbeStorage &dst_store,
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ndx_buf->id());
 
     glEnableVertexAttribArray(REN_VTX_POS_LOC);
-    glVertexAttribPointer(REN_VTX_POS_LOC, 2, GL_FLOAT, GL_FALSE, 0,
-                          (const GLvoid *)uintptr_t(temp_buf1_vtx_offset_));
+    glVertexAttribPointer(REN_VTX_POS_LOC, 2, GL_FLOAT, GL_FALSE, 0, (const GLvoid *)uintptr_t(temp_buf1_vtx_offset_));
 
     glEnableVertexAttribArray(REN_VTX_UV1_LOC);
-    glVertexAttribPointer(
-        REN_VTX_UV1_LOC, 2, GL_FLOAT, GL_FALSE, 0,
-        (const GLvoid *)uintptr_t(temp_buf1_vtx_offset_ + 8 * sizeof(float)));
+    glVertexAttribPointer(REN_VTX_UV1_LOC, 2, GL_FLOAT, GL_FALSE, 0,
+                          (const GLvoid *)uintptr_t(temp_buf1_vtx_offset_ + 8 * sizeof(float)));
 
     glBufferSubData(GL_ARRAY_BUFFER, GLintptr(temp_buf1_vtx_offset_), 8 * sizeof(float),
                     PrimDrawInternal::fs_quad_positions);
-    glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, GLintptr(temp_buf_ndx_offset_),
-                    6 * sizeof(uint16_t), PrimDrawInternal::fs_quad_indices);
+    glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, GLintptr(temp_buf_ndx_offset_), 6 * sizeof(uint16_t),
+                    PrimDrawInternal::fs_quad_indices);
 
     const float uvs[] = {-1.0f, 1.0f, -1.0, -1.0f, 1.0f, -1.0f, 1.0f, 1.0f};
 
-    glBufferSubData(GL_ARRAY_BUFFER, GLintptr(temp_buf1_vtx_offset_ + 8 * sizeof(float)),
-                    sizeof(uvs), uvs);
+    glBufferSubData(GL_ARRAY_BUFFER, GLintptr(temp_buf1_vtx_offset_ + 8 * sizeof(float)), sizeof(uvs), uvs);
 
     Ren::Program *prog = blit_prefilter_prog_.get();
     glUseProgram(prog->id());
@@ -1612,12 +1550,11 @@ void Renderer::BlitPrefilterFromTemp(const ProbeStorage &dst_store,
         for (int face = 0; face < 6; face++) {
             glUniform1i(2, face);
 
-            glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, cube_array,
-                                      level, GLint(probe_index * 6 + face));
+            glFramebufferTextureLayer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, cube_array, level,
+                                      GLint(probe_index * 6 + face));
             assert(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE);
 
-            glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT,
-                           (const GLvoid *)uintptr_t(temp_buf_ndx_offset_));
+            glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, (const GLvoid *)uintptr_t(temp_buf_ndx_offset_));
         }
 
         res /= 2;
@@ -1630,16 +1567,13 @@ void Renderer::BlitPrefilterFromTemp(const ProbeStorage &dst_store,
     glBindVertexArray(0);
 
     glBindFramebuffer(GL_FRAMEBUFFER, framebuf_before);
-    glViewport(viewport_before[0], viewport_before[1], viewport_before[2],
-               viewport_before[3]);
+    glViewport(viewport_before[0], viewport_before[1], viewport_before[2], viewport_before[3]);
 }
 
-bool Renderer::BlitProjectSH(const ProbeStorage &store, const int probe_index,
-                             const int iteration, LightProbe &probe) {
+bool Renderer::BlitProjectSH(const ProbeStorage &store, const int probe_index, const int iteration, LightProbe &probe) {
     using namespace RendererInternal;
 
-    Ren::BufferRef vtx_buf1 = ctx_.default_vertex_buf1(),
-                   vtx_buf2 = ctx_.default_vertex_buf2(),
+    Ren::BufferRef vtx_buf1 = ctx_.default_vertex_buf1(), vtx_buf2 = ctx_.default_vertex_buf2(),
                    ndx_buf = ctx_.default_indices_buf();
 
     GLint framebuf_before;
@@ -1660,13 +1594,11 @@ bool Renderer::BlitProjectSH(const ProbeStorage &store, const int probe_index,
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ndx_buf->id());
 
     glEnableVertexAttribArray(REN_VTX_POS_LOC);
-    glVertexAttribPointer(REN_VTX_POS_LOC, 2, GL_FLOAT, GL_FALSE, 0,
-                          (const GLvoid *)uintptr_t(temp_buf1_vtx_offset_));
+    glVertexAttribPointer(REN_VTX_POS_LOC, 2, GL_FLOAT, GL_FALSE, 0, (const GLvoid *)uintptr_t(temp_buf1_vtx_offset_));
 
     glEnableVertexAttribArray(REN_VTX_UV1_LOC);
-    glVertexAttribPointer(
-        REN_VTX_UV1_LOC, 2, GL_FLOAT, GL_FALSE, 0,
-        (const GLvoid *)uintptr_t(temp_buf1_vtx_offset_ + 8 * sizeof(float)));
+    glVertexAttribPointer(REN_VTX_UV1_LOC, 2, GL_FLOAT, GL_FALSE, 0,
+                          (const GLvoid *)uintptr_t(temp_buf1_vtx_offset_ + 8 * sizeof(float)));
 
     const float uvs[] = {0.0f,
                          0.0f,
@@ -1679,10 +1611,9 @@ bool Renderer::BlitProjectSH(const ProbeStorage &store, const int probe_index,
 
     glBufferSubData(GL_ARRAY_BUFFER, GLintptr(temp_buf1_vtx_offset_), 8 * sizeof(float),
                     PrimDrawInternal::fs_quad_positions);
-    glBufferSubData(GL_ARRAY_BUFFER, GLintptr(temp_buf1_vtx_offset_ + 8 * sizeof(float)),
-                    sizeof(uvs), uvs);
-    glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, GLintptr(temp_buf_ndx_offset_),
-                    6 * sizeof(uint16_t), PrimDrawInternal::fs_quad_indices);
+    glBufferSubData(GL_ARRAY_BUFFER, GLintptr(temp_buf1_vtx_offset_ + 8 * sizeof(float)), sizeof(uvs), uvs);
+    glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, GLintptr(temp_buf_ndx_offset_), 6 * sizeof(uint16_t),
+                    PrimDrawInternal::fs_quad_indices);
 
     if (iteration != 0) {
         // Retrieve result of previous read
@@ -1690,10 +1621,9 @@ bool Renderer::BlitProjectSH(const ProbeStorage &store, const int probe_index,
 
         Ren::Vec3f sh_coeffs[4];
 
-        auto *pixels = (float *)glMapBufferRange(GL_PIXEL_PACK_BUFFER, 0,
-                                                 GLsizeiptr(4) * probe_sample_buf_.w *
-                                                     probe_sample_buf_.h * sizeof(float),
-                                                 GL_MAP_READ_BIT);
+        auto *pixels = (float *)glMapBufferRange(
+            GL_PIXEL_PACK_BUFFER, 0, GLsizeiptr(4) * probe_sample_buf_.w * probe_sample_buf_.h * sizeof(float),
+            GL_MAP_READ_BIT);
         if (pixels) {
             for (int y = 0; y < probe_sample_buf_.h; y++) {
                 for (int x = 0; x < probe_sample_buf_.w; x++) {
@@ -1735,8 +1665,7 @@ bool Renderer::BlitProjectSH(const ProbeStorage &store, const int probe_index,
             glUniform1f(1, float(probe_index));
             glUniform1i(2, iteration);
 
-            glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT,
-                           (const GLvoid *)uintptr_t(temp_buf_ndx_offset_));
+            glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, (const GLvoid *)uintptr_t(temp_buf_ndx_offset_));
         }
 
         { // Start readback from buffer (result will be retrieved at the start of next
@@ -1744,8 +1673,7 @@ bool Renderer::BlitProjectSH(const ProbeStorage &store, const int probe_index,
             glReadBuffer(GL_COLOR_ATTACHMENT0);
             glBindBuffer(GL_PIXEL_PACK_BUFFER, GLuint(probe_sample_pbo_));
 
-            glReadPixels(0, 0, probe_sample_buf_.w, probe_sample_buf_.h, GL_RGBA,
-                         GL_FLOAT, nullptr);
+            glReadPixels(0, 0, probe_sample_buf_.w, probe_sample_buf_.h, GL_RGBA, GL_FLOAT, nullptr);
 
             glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
         }
@@ -1757,8 +1685,7 @@ bool Renderer::BlitProjectSH(const ProbeStorage &store, const int probe_index,
     glBindVertexArray(0);
 
     glBindFramebuffer(GL_FRAMEBUFFER, framebuf_before);
-    glViewport(viewport_before[0], viewport_before[1], viewport_before[2],
-               viewport_before[3]);
+    glViewport(viewport_before[0], viewport_before[1], viewport_before[2], viewport_before[3]);
 
     return iteration == 64;
 }

@@ -28,8 +28,8 @@ enum eTexFlags {
 };
 
 struct TexHandle {
-    // uint32_t id = 0;         // native gl name
-    // uint32_t generation = 0; // used to identify unique texture (name can be reused)
+    VkImageView view = VK_NULL_HANDLE;
+    uint32_t generation = 0; // used to identify unique texture (name can be reused)
 
     TexHandle() = default;
     // TexHandle(const uint32_t _id, const uint32_t _gen) : id(_id), generation(_gen) {}
@@ -37,18 +37,16 @@ struct TexHandle {
     explicit operator bool() const { return false; }
 };
 inline bool operator==(const TexHandle lhs, const TexHandle rhs) {
-    return true;
-    /// lhs.id == rhs.id &&lhs.generation == rhs.generation;
+    lhs.view == rhs.view &&lhs.generation == rhs.generation;
 }
 inline bool operator!=(const TexHandle lhs, const TexHandle rhs) { return !operator==(lhs, rhs); }
 inline bool operator<(const TexHandle lhs, const TexHandle rhs) {
-    /*if (lhs.id < rhs.id) {
+    if (lhs.view < rhs.view) {
         return true;
-    } else if (lhs.id == rhs.id) {
+    } else if (lhs.view == rhs.view) {
         return lhs.generation < rhs.generation;
     }
-    return false;*/
-    return true;
+    return false;
 }
 
 class TextureStageBuf;
@@ -183,31 +181,6 @@ class Texture1D : public RefCounter {
     const String &name() const { return name_; }
 
     void Init(BufferRef buf, eTexFormat format, uint32_t offset, uint32_t size, ILog *log);
-};
-
-const int MaxColorAttachments = 4;
-
-class Framebuffer {
-    // uint32_t id_ = 0;
-    int color_attachments_count_ = 0;
-    TexHandle color_attachments_[MaxColorAttachments];
-    TexHandle depth_attachment_, stencil_attachment_;
-
-  public:
-    Framebuffer() = default;
-    ~Framebuffer();
-
-    Framebuffer(const Framebuffer &rhs) = delete;
-    Framebuffer &operator=(const Framebuffer &rhs) = delete;
-
-    // uint32_t id() const { return id_; }
-
-    bool Setup(const TexHandle color_attachments[], int color_attachments_count, TexHandle depth_attachment,
-               TexHandle stencil_attachment, bool is_multisampled);
-    bool Setup(const TexHandle color_attachment, const TexHandle depth_attachment, const TexHandle stencil_attachment,
-               const bool is_multisampled) {
-        return Setup(&color_attachment, 1, depth_attachment, stencil_attachment, is_multisampled);
-    }
 };
 } // namespace Ren
 

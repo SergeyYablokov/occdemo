@@ -91,8 +91,8 @@ void RpSkydome::LazyInit(Ren::Context &ctx, ShaderLoader &sh, RpAllocTex &color_
     }
 
     const Ren::TexHandle color_attachments[] = {color_tex.ref->handle(), {}, spec_tex.ref->handle()};
-    if (!cached_fb_.Setup(color_attachments, 3, depth_tex.ref->handle(), depth_tex.ref->handle(),
-                          view_state_->is_multisampled)) {
+    if (!cached_fb_.Setup(ctx.api_ctx(), nullptr, depth_tex.desc.w, depth_tex.desc.h, color_attachments, 3,
+                          depth_tex.ref->handle(), depth_tex.ref->handle(), view_state_->is_multisampled)) {
         ctx.log()->Error("RpSkydome: fbo init failed!");
     }
 }

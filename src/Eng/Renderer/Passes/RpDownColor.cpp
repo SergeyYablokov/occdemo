@@ -54,7 +54,7 @@ void RpDownColor::LazyInit(Ren::Context &ctx, ShaderLoader &sh) {
         initialized = true;
     }
 
-    if (!draw_fb_.Setup(&output_tex_, 1, {}, {}, false)) {
+    if (!draw_fb_.Setup(ctx.api_ctx(), nullptr, ctx.w(), ctx.h(), &output_tex_, 1, {}, {}, false)) {
         ctx.log()->Error("RpDownColor: draw_fb_ init failed!");
     }
 }

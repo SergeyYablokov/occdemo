@@ -164,6 +164,9 @@ bool Ren::Context::Init(const int w, const int h, ILog *log, const char *preferr
 
     log_->Info("===========================================");
 
+    default_memory_allocs_.reset(new MemoryAllocators(
+        "Default Allocs", api_ctx_.get(), 1 * 1024 * 1024 /* initial_block_size */, 1.5f /* growth_factor */));
+
     InitDefaultBuffers();
 
     texture_atlas_ = TextureAtlasArray{api_ctx_.get(),     TextureAtlasWidth,       TextureAtlasHeight,

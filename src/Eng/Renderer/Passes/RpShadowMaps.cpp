@@ -6,8 +6,8 @@
 #include "../Renderer_Structs.h"
 
 void RpShadowMaps::Setup(RpBuilder &builder, const DrawList &list, const PersistentBuffers *bufs,
-                         const char instances_buf[], const char shared_data_buf[],
-                         const char shadowmap_tex[], Ren::TexHandle noise_tex) {
+                         const char instances_buf[], const char shared_data_buf[], const char shadowmap_tex[],
+                         Ren::TexHandle noise_tex) {
     materials_ = list.materials;
     shadow_batches_ = list.shadow_batches;
     shadow_batch_indices_ = list.shadow_batch_indices;
@@ -57,7 +57,7 @@ void RpShadowMaps::LazyInit(Ren::Context &ctx, ShaderLoader &sh, Ren::TexHandle 
         initialized = true;
     }
 
-    if (!shadow_fb_.Setup(nullptr, 0, shadow_tex, {}, false)) {
+    if (!shadow_fb_.Setup(ctx.api_ctx(), nullptr, w_, h_, nullptr, 0, shadow_tex, {}, false)) {
         ctx.log()->Error("RpShadowMaps: shadow_fb_ init failed!");
     }
 

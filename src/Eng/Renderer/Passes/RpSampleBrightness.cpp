@@ -31,7 +31,8 @@ void RpSampleBrightness::LazyInit(Ren::Context &ctx, ShaderLoader &sh, RpAllocTe
         initialized_ = true;
     }
 
-    if (!reduced_fb_.Setup(reduced_tex.ref->handle(), {}, {}, false)) {
+    if (!reduced_fb_.Setup(ctx.api_ctx(), nullptr, reduced_tex.desc.w, reduced_tex.desc.h, reduced_tex.ref->handle(),
+                           {}, {}, false)) {
         ctx.log()->Error("RpSampleBrightness: reduced_fb_ init failed!");
     }
 }

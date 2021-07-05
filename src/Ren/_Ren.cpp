@@ -8,7 +8,9 @@ extern "C" {
 #include "VKCtx.cpp"
 #include "BufferVK.cpp"
 #include "ContextVK.cpp"
+#include "MemoryAllocatorVK.cpp"
 #include "FenceVK.cpp"
+#include "FramebufferVK.cpp"
 #include "ProgramVK.cpp"
 #include "RastStateVK.cpp"
 #include "SamplerVK.cpp"
@@ -21,6 +23,7 @@ extern "C" {
 #include "BufferGL.cpp"
 #include "ContextGL.cpp"
 #include "FenceGL.cpp"
+#include "FramebufferGL.cpp"
 #include "ProgramGL.cpp"
 #include "RastStateGL.cpp"
 #include "SamplerGL.cpp"
@@ -34,11 +37,11 @@ extern "C" {
 #include "TextureSW.cpp"
 #endif
 
-//#if !defined(USE_VK_RENDER)
 #include "Anim.cpp"
 #include "Camera.cpp"
 #include "Context.cpp"
 #include "CPUFeatures.cpp"
+#include "LinearAlloc.cpp"
 #include "Material.cpp"
 #include "Mesh.cpp"
 #include "TaskExecutor.cpp"
@@ -46,5 +49,4 @@ extern "C" {
 #include "TextureRegion.cpp"
 #include "TextureSplitter.cpp"
 #include "Utils.cpp"
-//#endif
 

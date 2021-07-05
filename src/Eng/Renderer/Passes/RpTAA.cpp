@@ -110,13 +110,15 @@ void RpTAA::LazyInit(Ren::Context &ctx, ShaderLoader &sh, RpAllocTex &depth_tex,
         initialized = true;
     }
 
-    if (!velocity_fb_.Setup(velocity_tex.ref->handle(), {}, depth_tex.ref->handle(), false)) {
+    if (!velocity_fb_.Setup(ctx.api_ctx(), nullptr, velocity_tex.desc.w, velocity_tex.desc.h,
+                            velocity_tex.ref->handle(), {}, depth_tex.ref->handle(), false)) {
         ctx.log()->Error("RpTAA: velocity_fb_ init failed!");
     }
 
     {
         const Ren::TexHandle textures[] = {output_tex.ref->handle(), history_tex_};
-        if (!resolve_fb_.Setup(textures, 2, {}, {}, false)) {
+        if (!resolve_fb_.Setup(ctx.api_ctx(), nullptr, output_tex.desc.w, output_tex.desc.h, textures, 2, {}, {},
+                               false)) {
             ctx.log()->Error("RpTAA: resolve_fb_ init failed!");
         }
     }

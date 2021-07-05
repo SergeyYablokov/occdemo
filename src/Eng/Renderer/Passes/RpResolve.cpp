@@ -59,7 +59,8 @@ void RpResolve::LazyInit(Ren::Context &ctx, ShaderLoader &sh, RpAllocTex &output
         initialized = true;
     }
 
-    if (!resolve_fb_.Setup(output_tex.ref->handle(), {}, {}, false)) {
+    if (!resolve_fb_.Setup(ctx.api_ctx(), nullptr, view_state_->act_res[0], view_state_->act_res[1],
+                           output_tex.ref->handle(), {}, {}, false)) {
         ctx.log()->Error("RpResolve: resolve_fb_ init failed!");
     }
 }

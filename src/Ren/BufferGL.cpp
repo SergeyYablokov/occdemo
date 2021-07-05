@@ -43,7 +43,7 @@ GLbitfield GetGLBufStorageFlags(const eBufType type) {
 int Ren::Buffer::g_GenCounter = 0;
 
 Ren::Buffer::Buffer(const char *name, ApiContext *api_ctx, const eBufType type, const uint32_t initial_size)
-    : name_(name), api_ctx_(api_ctx), type_(type), size_(0) {
+    : LinearAlloc(initial_size), name_(name), api_ctx_(api_ctx), type_(type), size_(0) {
     nodes_.reserve(1024);
 
     nodes_.emplace();
@@ -56,6 +56,7 @@ Ren::Buffer::~Buffer() { Free(); }
 
 Ren::Buffer &Ren::Buffer::operator=(Buffer &&rhs) noexcept {
     RefCounter::operator=(std::move((RefCounter &)rhs));
+    LinearAlloc::operator=(std::move((LinearAlloc &)rhs));
 
     Free();
 
@@ -69,7 +70,6 @@ Ren::Buffer &Ren::Buffer::operator=(Buffer &&rhs) noexcept {
     type_ = exchange(rhs.type_, eBufType::Undefined);
 
     size_ = exchange(rhs.size_, 0);
-    nodes_ = std::move(rhs.nodes_);
     mapped_ptr_ = exchange(rhs.mapped_ptr_, nullptr);
     mapped_offset_ = exchange(rhs.mapped_offset_, 0xffffffff);
 
@@ -78,169 +78,6 @@ Ren::Buffer &Ren::Buffer::operator=(Buffer &&rhs) noexcept {
 #endif
 
     return (*this);
-}
-
-int Ren::Buffer::Alloc_Recursive(const int i, const uint32_t req_size, const char *tag) {
-    if (!nodes_[i].is_free || req_size > nodes_[i].size) {
-        return -1;
-    }
-
-    int ch0 = nodes_[i].child[0], ch1 = nodes_[i].child[1];
-
-    if (ch0 != -1) {
-        const int new_node = Alloc_Recursive(ch0, req_size, tag);
-        if (new_node != -1) {
-            return new_node;
-        }
-
-        return Alloc_Recursive(ch1, req_size, tag);
-    } else {
-        if (req_size == nodes_[i].size) {
-#ifndef NDEBUG
-            strncpy(nodes_[i].tag, tag, 31);
-#endif
-            nodes_[i].is_free = false;
-            return i;
-        }
-
-        nodes_[i].child[0] = ch0 = int(nodes_.emplace());
-        nodes_[i].child[1] = ch1 = int(nodes_.emplace());
-
-        Node &n = nodes_[i];
-
-        nodes_[ch0].offset = n.offset;
-        nodes_[ch0].size = req_size;
-        nodes_[ch1].offset = n.offset + req_size;
-        nodes_[ch1].size = n.size - req_size;
-        nodes_[ch0].parent = nodes_[ch1].parent = i;
-
-        return Alloc_Recursive(ch0, req_size, tag);
-    }
-}
-
-int Ren::Buffer::Find_Recursive(const int i, const uint32_t offset) const {
-    if ((nodes_[i].is_free && !nodes_[i].has_children()) || offset < nodes_[i].offset ||
-        offset > (nodes_[i].offset + nodes_[i].size)) {
-        return -1;
-    }
-
-    const int ch0 = nodes_[i].child[0], ch1 = nodes_[i].child[1];
-
-    if (ch0 != -1) {
-        const int ndx = Find_Recursive(ch0, offset);
-        if (ndx != -1) {
-            return ndx;
-        }
-        return Find_Recursive(ch1, offset);
-    } else {
-        if (offset == nodes_[i].offset) {
-            return i;
-        } else {
-            return -1;
-        }
-    }
-}
-
-bool Ren::Buffer::Free_Node(int i) {
-    if (i == -1 || nodes_[i].is_free) {
-        return false;
-    }
-
-    nodes_[i].is_free = true;
-#ifndef NDEBUG
-    nodes_[i].tag[0] = '\0';
-#endif
-
-    { // merge empty nodes 1
-        int par = nodes_[i].parent;
-        while (par != -1) {
-            int ch0 = nodes_[par].child[0], ch1 = nodes_[par].child[1];
-
-            if (!nodes_[ch0].has_children() && nodes_[ch0].is_free && !nodes_[ch1].has_children() &&
-                nodes_[ch1].is_free) {
-
-                nodes_.erase(ch0);
-                nodes_.erase(ch1);
-
-                nodes_[par].child[0] = nodes_[par].child[1] = -1;
-
-                i = par;
-                par = nodes_[par].parent;
-            } else {
-                par = -1;
-            }
-        }
-    }
-
-    { // merge empty nodes 2
-        int par = nodes_[i].parent;
-        while (par != -1 && nodes_[par].child[0] == i && !nodes_[i].has_children()) {
-            int gr_par = nodes_[par].parent;
-            if (gr_par != -1 && nodes_[gr_par].has_children()) {
-                int ch0 = nodes_[gr_par].child[0], ch1 = nodes_[gr_par].child[1];
-
-                if (!nodes_[ch0].has_children() && nodes_[ch0].is_free && ch1 == par) {
-                    assert(nodes_[ch0].offset + nodes_[ch0].size == nodes_[i].offset);
-                    nodes_[ch0].size += nodes_[i].size;
-                    nodes_[gr_par].child[1] = nodes_[par].child[1];
-                    nodes_[nodes_[par].child[1]].parent = gr_par;
-
-                    nodes_.erase(i);
-                    nodes_.erase(par);
-
-                    i = ch0;
-                    par = gr_par;
-                } else {
-                    break;
-                }
-            } else {
-                break;
-            }
-        }
-    }
-
-    return true;
-}
-
-void Ren::Buffer::PrintNode(int i, std::string prefix, bool is_tail, ILog *log) {
-    const auto &node = nodes_[i];
-    if (is_tail) {
-        if (!node.has_children() && node.is_free) {
-            log->Info("%s+- %.3fMB [0x%08x..0x%08x) <free>", prefix.c_str(), float(node.size) / (1024.0f * 1024.0f),
-                      node.offset, node.offset + node.size);
-        } else {
-#ifndef NDEBUG
-            log->Info("%s+- %.3fMB [0x%08x..0x%08x) <%s>", prefix.c_str(), float(node.size) / (1024.0f * 1024.0f),
-                      node.offset, node.offset + node.size, node.tag);
-#else
-            log->Info("%s+- %.3fMB [0x%08x..0x%08x) <occupied>", prefix.c_str(), float(node.size) / (1024.0f * 1024.0f),
-                      node.offset, node.offset + node.size);
-#endif
-        }
-        prefix += "   ";
-    } else {
-        if (!node.has_children() && node.is_free) {
-            log->Info("%s|- %.3fMB [0x%08x..0x%08x) <free>", prefix.c_str(), float(node.size) / (1024.0f * 1024.0f),
-                      node.offset, node.offset + node.size);
-        } else {
-#ifndef NDEBUG
-            log->Info("%s|- %.3fMB [0x%08x..0x%08x) <%s>", prefix.c_str(), float(node.size) / (1024.0f * 1024.0f),
-                      node.offset, node.offset + node.size, node.tag);
-#else
-            log->Info("%s|- %.3fMB [0x%08x..0x%08x) <occupied>", prefix.c_str(), float(node.size) / (1024.0f * 1024.0f),
-                      node.offset, node.offset + node.size);
-#endif
-        }
-        prefix += "|  ";
-    }
-
-    if (node.child[0] != -1) {
-        PrintNode(node.child[0], prefix, false, log);
-    }
-
-    if (node.child[1] != -1) {
-        PrintNode(node.child[1], prefix, true, log);
-    }
 }
 
 uint32_t Ren::Buffer::AllocRegion(uint32_t req_size, const char *tag, const Buffer *init_buf, void *,

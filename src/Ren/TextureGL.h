@@ -168,31 +168,6 @@ uint32_t GLBindTarget(eBindTarget binding);
 eTexFormat FormatFromGLInternalFormat(uint32_t gl_internal_format, eTexBlock *block, bool *is_srgb);
 
 void GLUnbindTextureUnits(int start, int count);
-
-const int MaxColorAttachments = 4;
-
-class Framebuffer {
-    uint32_t id_ = 0;
-    int color_attachments_count_ = 0;
-    TexHandle color_attachments_[MaxColorAttachments];
-    TexHandle depth_attachment_, stencil_attachment_;
-
-  public:
-    Framebuffer() = default;
-    ~Framebuffer();
-
-    Framebuffer(const Framebuffer &rhs) = delete;
-    Framebuffer &operator=(const Framebuffer &rhs) = delete;
-
-    uint32_t id() const { return id_; }
-
-    bool Setup(const TexHandle color_attachments[], int color_attachments_count, TexHandle depth_attachment,
-               TexHandle stencil_attachment, bool is_multisampled);
-    bool Setup(const TexHandle color_attachment, const TexHandle depth_attachment, const TexHandle stencil_attachment,
-               const bool is_multisampled) {
-        return Setup(&color_attachment, 1, depth_attachment, stencil_attachment, is_multisampled);
-    }
-};
 } // namespace Ren
 
 #ifdef _MSC_VER

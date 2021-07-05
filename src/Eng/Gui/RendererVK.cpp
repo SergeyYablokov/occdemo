@@ -361,8 +361,7 @@ Gui::Renderer::Renderer(Ren::Context &ctx, const JsObject &config) : ctx_(ctx) {
         assert(result == VK_SUCCESS && "Failed to create graphics pipeline!");
     }
 
-    framebuffers_.resize(api_ctx->present_images.size(), VK_NULL_HANDLE);
-    present_image_views_.resize(api_ctx->present_images.size(), VK_NULL_HANDLE);
+    framebuffers_.resize(api_ctx->present_images.size());
 }
 
 Gui::Renderer::~Renderer() {
@@ -379,10 +378,6 @@ Gui::Renderer::~Renderer() {
     vkDestroyRenderPass(api_ctx->device, render_pass_, nullptr);
     vkDestroyPipelineLayout(api_ctx->device, pipeline_layout_, nullptr);
     vkDestroyPipeline(api_ctx->device, pipeline_, nullptr);
-
-    for (VkFramebuffer fb : framebuffers_) {
-        vkDestroyFramebuffer(api_ctx->device, fb, nullptr);
-    }
 }
 
 void Gui::Renderer::Draw(const int w, const int h) {
@@ -524,29 +519,12 @@ void Gui::Renderer::Draw(const int w, const int h) {
     // (Re)create framebuffer
     //
 
-    if (present_image_views_[api_ctx->active_present_image] !=
-        api_ctx->present_image_views[api_ctx->active_present_image]) { // create framebuffer
-        if (framebuffers_[api_ctx->active_present_image]) {
-            vkDestroyFramebuffer(api_ctx->device, framebuffers_[api_ctx->active_present_image], nullptr);
-        }
+    Ren::TexHandle color_attachment;
+    color_attachment.view = api_ctx->present_image_views[api_ctx->active_present_image];
 
-        present_image_views_[api_ctx->active_present_image] =
-            api_ctx->present_image_views[api_ctx->active_present_image];
-
-        VkFramebufferCreateInfo framebuf_create_info = {};
-        framebuf_create_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-        framebuf_create_info.renderPass = render_pass_;
-        framebuf_create_info.attachmentCount = 1;
-        framebuf_create_info.pAttachments = &present_image_views_[api_ctx->active_present_image];
-        framebuf_create_info.width = w;
-        framebuf_create_info.height = h;
-        framebuf_create_info.layers = 1;
-
-        const VkResult res = vkCreateFramebuffer(api_ctx->device, &framebuf_create_info, nullptr,
-                                                 &framebuffers_[api_ctx->active_present_image]);
-        if (res != VK_SUCCESS) {
-            ctx_.log()->Error("Failed to create framebuffer!");
-        }
+    if (!framebuffers_[api_ctx->active_present_image].Setup(api_ctx, render_pass_, w, h, color_attachment, {}, {},
+                                                            false)) {
+        ctx_.log()->Error("Failed to create framebuffer!");
     }
 
     //
@@ -556,7 +534,7 @@ void Gui::Renderer::Draw(const int w, const int h) {
     VkRenderPassBeginInfo render_pass_begin_info = {};
     render_pass_begin_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
     render_pass_begin_info.renderPass = render_pass_;
-    render_pass_begin_info.framebuffer = framebuffers_[api_ctx->active_present_image];
+    render_pass_begin_info.framebuffer = framebuffers_[api_ctx->active_present_image].handle();
     render_pass_begin_info.renderArea = {0, 0, uint32_t(w), uint32_t(h)};
 
     vkCmdBeginRenderPass(cmd_buf, &render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);

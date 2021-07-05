@@ -3,6 +3,7 @@
 #include <vector>
 
 #include "Fence.h"
+#include "LinearAlloc.h"
 #include "SmallVector.h"
 #include "Storage.h"
 #include "String.h"
@@ -47,19 +48,7 @@ struct RangeFence {
         : range(_range), fence(std::move(_fence)) {}
 };
 
-class Buffer : public RefCounter {
-    struct Node {
-        bool is_free = true;
-        int parent = -1;
-        int child[2] = {-1, -1};
-        uint32_t offset = 0, size = 0;
-#ifndef NDEBUG
-        char tag[32] = {};
-#endif
-
-        bool has_children() const { return child[0] != -1 || child[1] != -1; }
-    };
-
+class Buffer : public RefCounter, public LinearAlloc {
     ApiContext *api_ctx_ = nullptr;
     BufHandle handle_;
     String name_;
@@ -68,18 +57,11 @@ class Buffer : public RefCounter {
 #endif
     eBufType type_ = eBufType::Undefined;
     uint32_t size_ = 0;
-    SparseArray<Node> nodes_;
     uint8_t *mapped_ptr_ = nullptr;
     uint32_t mapped_offset_ = 0xffffffff;
 #ifndef NDEBUG
     SmallVector<RangeFence, 4> flushed_ranges_;
 #endif
-
-    int Alloc_Recursive(int i, uint32_t req_size, const char *tag);
-    int Find_Recursive(int i, uint32_t offset) const;
-    bool Free_Node(int i);
-
-    void PrintNode(int i, std::string prefix, bool is_tail, ILog *log);
 
     static int g_GenCounter;
 
@@ -100,6 +82,7 @@ class Buffer : public RefCounter {
     BufHandle handle() const { return handle_; }
 #if defined(USE_VK_RENDER)
     VkBuffer vk_handle() const { return handle_.buf; }
+    VkDeviceMemory mem() const { return mem_; }
 #elif defined(USE_GL_RENDER) || defined(USE_SW_RENDER)
     uint32_t id() const { return handle_.id; }
 #endif

@@ -3,6 +3,7 @@
 #include <vector>
 
 #include <Ren/Context.h>
+#include <Ren/Framebuffer.h>
 #include <Ren/MVec.h>
 #include <Ren/Program.h>
 #include <Ren/Texture.h>
@@ -107,8 +108,9 @@ class Renderer {
     VkPipelineLayout pipeline_layout_ = {};
     VkPipeline pipeline_ = {};
 
-    Ren::SmallVector<VkFramebuffer, 4> framebuffers_;
-    Ren::SmallVector<VkImageView, 4> present_image_views_;
+    //Ren::SmallVector<VkFramebuffer, 4> framebuffers_;
+    //Ren::SmallVector<VkImageView, 4> present_image_views_;
+    Ren::SmallVector<Ren::Framebuffer, 4> framebuffers_;
 #elif defined(USE_GL_RENDER)
     Ren::Vao vao_;
 

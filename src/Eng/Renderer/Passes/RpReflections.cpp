@@ -9,11 +9,11 @@
 #include "../PrimDraw.h"
 #include "../Renderer_Structs.h"
 
-void RpReflections::Setup(RpBuilder &builder, const ViewState *view_state,
-                          const ProbeStorage *probe_storage, Ren::TexHandle down_buf_4x_tex, Ren::Tex2DRef brdf_lut,
-                          const char shared_data_buf[], const char cells_buf[], const char items_buf[],
-                          const char depth_tex[], const char normal_tex[], const char spec_tex[],
-                          const char depth_down_2x[], const char output_tex_name[]) {
+void RpReflections::Setup(RpBuilder &builder, const ViewState *view_state, const ProbeStorage *probe_storage,
+                          Ren::TexHandle down_buf_4x_tex, Ren::Tex2DRef brdf_lut, const char shared_data_buf[],
+                          const char cells_buf[], const char items_buf[], const char depth_tex[],
+                          const char normal_tex[], const char spec_tex[], const char depth_down_2x[],
+                          const char output_tex_name[]) {
     view_state_ = view_state;
 
     down_buf_4x_tex_ = down_buf_4x_tex;
@@ -166,15 +166,18 @@ void RpReflections::LazyInit(Ren::Context &ctx, ShaderLoader &sh, RpAllocTex &ss
         initialized = true;
     }
 
-    if (!ssr_buf1_fb_.Setup(ssr1_tex.ref->handle(), {}, {}, false)) {
+    if (!ssr_buf1_fb_.Setup(ctx.api_ctx(), nullptr, view_state_->act_res[0], view_state_->act_res[1],
+                            ssr1_tex.ref->handle(), {}, {}, false)) {
         ctx.log()->Error("RpReflections: ssr_buf1_fb_ init failed!");
     }
 
-    if (!ssr_buf2_fb_.Setup(ssr2_tex.ref->handle(), {}, {}, false)) {
+    if (!ssr_buf2_fb_.Setup(ctx.api_ctx(), nullptr, view_state_->act_res[0], view_state_->act_res[1],
+                            ssr2_tex.ref->handle(), {}, {}, false)) {
         ctx.log()->Error("RpReflections: ssr_buf2_fb_ init failed!");
     }
 
-    if (!output_fb_.Setup(output_tex.ref->handle(), {}, {}, false)) {
+    if (!output_fb_.Setup(ctx.api_ctx(), nullptr, view_state_->act_res[0], view_state_->act_res[1],
+                          output_tex.ref->handle(), {}, {}, false)) {
         ctx.log()->Error("RpReflections: output_fb_ init failed!");
     }
 }

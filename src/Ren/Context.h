@@ -4,6 +4,7 @@
 #include "Buffer.h"
 #include "Common.h"
 #include "Material.h"
+#include "MemoryAllocator.h"
 #include "Mesh.h"
 #include "Program.h"
 #include "Sampler.h"
@@ -47,6 +48,7 @@ class Context : public TaskExecutor {
     BufferRef default_vertex_buf1_, default_vertex_buf2_, default_skin_vertex_buf_, default_delta_buf_,
         default_indices_buf_;
     StageBufs default_stage_bufs_;
+    std::unique_ptr<MemoryAllocators> default_memory_allocs_;
 
     TextureAtlasArray texture_atlas_;
 
