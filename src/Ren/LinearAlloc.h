@@ -25,7 +25,7 @@ class LinearAlloc {
 
   public:
     LinearAlloc() = default;
-    LinearAlloc(uint32_t initial_size) {
+    explicit LinearAlloc(uint32_t initial_size) {
         nodes_.emplace();
         nodes_[0].size = initial_size;
     }

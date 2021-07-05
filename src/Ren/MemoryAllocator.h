@@ -36,6 +36,8 @@ struct MemAllocation {
         block_ndx = rhs.block_ndx;
         alloc_off = rhs.alloc_off;
         owner = exchange(rhs.owner, nullptr);
+
+        return (*this);
     }
 
     ~MemAllocation() { Release(); }

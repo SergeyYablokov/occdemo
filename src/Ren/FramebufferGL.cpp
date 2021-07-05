@@ -33,6 +33,14 @@ bool Ren::Framebuffer::Setup(ApiContext *api_ctx, void *renderpass, int w, int h
 
     const GLenum target = is_multisampled ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D;
 
+    for (size_t i = 0; i < color_attachments_.size(); i++) {
+        if (color_attachments_[i].id) {
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + GLenum(i), target, 0, 0);
+            color_attachments_[i] = {};
+        }
+    }
+    color_attachments_.clear();
+
     SmallVector<GLenum, 4> draw_buffers;
     for (int i = 0; i < color_attachments_count; i++) {
         if (color_attachments[i].id) {
@@ -44,13 +52,6 @@ bool Ren::Framebuffer::Setup(ApiContext *api_ctx, void *renderpass, int w, int h
             draw_buffers.push_back(GL_NONE);
         }
         color_attachments_.push_back(color_attachments[i]);
-    }
-
-    for (size_t i = color_attachments_count; i < color_attachments_.size(); i++) {
-        if (color_attachments_[i].id) {
-            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + GLenum(i), target, 0, 0);
-            color_attachments_[i] = {};
-        }
     }
 
     glDrawBuffers(GLsizei(color_attachments_.size()), draw_buffers.data());

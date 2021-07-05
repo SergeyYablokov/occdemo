@@ -360,8 +360,6 @@ Gui::Renderer::Renderer(Ren::Context &ctx, const JsObject &config) : ctx_(ctx) {
             vkCreateGraphicsPipelines(api_ctx->device, VK_NULL_HANDLE, 1, &pipeline_create_info, nullptr, &pipeline_);
         assert(result == VK_SUCCESS && "Failed to create graphics pipeline!");
     }
-
-    framebuffers_.resize(api_ctx->present_images.size());
 }
 
 Gui::Renderer::~Renderer() {
@@ -391,7 +389,7 @@ void Gui::Renderer::Draw(const int w, const int h) {
     //
     if (vtx_count_[ctx_.backend_frame]) {
         const uint32_t data_offset = uint32_t(ctx_.backend_frame) * MaxVerticesPerRange * sizeof(vertex_t);
-        const uint32_t data_size = uint32_t(vtx_count_[ctx_.backend_frame] * sizeof(vertex_t));
+        const uint32_t data_size = uint32_t(vtx_count_[ctx_.backend_frame]) * sizeof(vertex_t);
 
         vertex_stage_buf_->FlushMappedRange(data_offset, data_size);
 
@@ -438,7 +436,7 @@ void Gui::Renderer::Draw(const int w, const int h) {
 
     if (ndx_count_[ctx_.backend_frame]) {
         const uint32_t data_offset = uint32_t(ctx_.backend_frame) * MaxIndicesPerRange * sizeof(uint16_t);
-        const uint32_t data_size = uint32_t(ndx_count_[ctx_.backend_frame] * sizeof(uint16_t));
+        const uint32_t data_size = uint32_t(ndx_count_[ctx_.backend_frame]) * sizeof(uint16_t);
 
         index_stage_buf_->FlushMappedRange(data_offset, data_size);
 
@@ -522,7 +520,7 @@ void Gui::Renderer::Draw(const int w, const int h) {
     Ren::TexHandle color_attachment;
     color_attachment.view = api_ctx->present_image_views[api_ctx->active_present_image];
 
-    if (!framebuffers_[api_ctx->active_present_image].Setup(api_ctx, render_pass_, w, h, color_attachment, {}, {},
+    if (!framebuffers_[ctx_.backend_frame].Setup(api_ctx, render_pass_, w, h, color_attachment, {}, {},
                                                             false)) {
         ctx_.log()->Error("Failed to create framebuffer!");
     }
@@ -534,7 +532,7 @@ void Gui::Renderer::Draw(const int w, const int h) {
     VkRenderPassBeginInfo render_pass_begin_info = {};
     render_pass_begin_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
     render_pass_begin_info.renderPass = render_pass_;
-    render_pass_begin_info.framebuffer = framebuffers_[api_ctx->active_present_image].handle();
+    render_pass_begin_info.framebuffer = framebuffers_[ctx_.backend_frame].handle();
     render_pass_begin_info.renderArea = {0, 0, uint32_t(w), uint32_t(h)};
 
     vkCmdBeginRenderPass(cmd_buf, &render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);

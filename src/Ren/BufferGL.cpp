@@ -55,8 +55,8 @@ Ren::Buffer::Buffer(const char *name, ApiContext *api_ctx, const eBufType type, 
 Ren::Buffer::~Buffer() { Free(); }
 
 Ren::Buffer &Ren::Buffer::operator=(Buffer &&rhs) noexcept {
-    RefCounter::operator=(std::move((RefCounter &)rhs));
-    LinearAlloc::operator=(std::move((LinearAlloc &)rhs));
+    RefCounter::operator=(static_cast<RefCounter &&>(rhs));
+    LinearAlloc::operator=(static_cast<LinearAlloc &&>(rhs));
 
     Free();
 

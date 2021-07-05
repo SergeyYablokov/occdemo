@@ -108,9 +108,7 @@ class Renderer {
     VkPipelineLayout pipeline_layout_ = {};
     VkPipeline pipeline_ = {};
 
-    //Ren::SmallVector<VkFramebuffer, 4> framebuffers_;
-    //Ren::SmallVector<VkImageView, 4> present_image_views_;
-    Ren::SmallVector<Ren::Framebuffer, 4> framebuffers_;
+    Ren::Framebuffer framebuffers_[Ren::MaxFramesInFlight];
 #elif defined(USE_GL_RENDER)
     Ren::Vao vao_;
 

@@ -54,7 +54,7 @@ template <typename T> class SparseArray {
         size_ = rhs.size_;
     }
 
-    SparseArray(SparseArray &&rhs) : ctrl_(nullptr), data_(nullptr), capacity_(0), size_(0), first_free_(0) {
+    SparseArray(SparseArray &&rhs) noexcept : ctrl_(nullptr), data_(nullptr), capacity_(0), size_(0), first_free_(0) {
 
         ctrl_ = exchange(rhs.ctrl_, nullptr);
         data_ = exchange(rhs.data_, nullptr);
@@ -97,7 +97,7 @@ template <typename T> class SparseArray {
         return (*this);
     }
 
-    SparseArray &operator=(SparseArray &&rhs) {
+    SparseArray &operator=(SparseArray &&rhs) noexcept {
         if (this == &rhs) {
             return *this;
         }
