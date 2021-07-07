@@ -416,7 +416,7 @@ void Ren::Texture2D::InitFromRAWData(const void *data, Buffer *stage_buf, void *
                                      const Tex2DParams &p, ILog *log) {
     Free();
 
-    handle_ = {VK_NULL_HANDLE, VK_NULL_HANDLE, TextureHandleCounter++};
+    handle_.generation = TextureHandleCounter++;
     params_ = p;
     initialized_mips_ = 0;
 
