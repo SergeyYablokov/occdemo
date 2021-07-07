@@ -237,7 +237,7 @@ void RpDebugTextures::LazyInit(Ren::Context &ctx, ShaderLoader &sh) {
         params.sampling.repeat = Ren::eTexRepeat::ClampToEdge;
 
         Ren::eTexLoadStatus status;
-        temp_tex_ = ctx.LoadTexture2D("__DEBUG_TEMP_TEXTURE__", params, &status);
+        temp_tex_ = ctx.LoadTexture2D("__DEBUG_TEMP_TEXTURE__", params, ctx.default_mem_allocs(), &status);
         assert(status == Ren::eTexLoadStatus::CreatedDefault || status == Ren::eTexLoadStatus::Found ||
                status == Ren::eTexLoadStatus::Reinitialized);
     }

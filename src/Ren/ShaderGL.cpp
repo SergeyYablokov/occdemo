@@ -44,6 +44,12 @@ Ren::Shader::~Shader() {
 }
 
 Ren::Shader &Ren::Shader::operator=(Shader &&rhs) noexcept {
+    if (this == &rhs) {
+        return (*this);
+    }
+
+    RefCounter::operator=(static_cast<RefCounter &&>(rhs));
+
     if (id_) {
         assert(IsMainThread());
         auto id = GLuint(id_);
@@ -57,8 +63,6 @@ Ren::Shader &Ren::Shader::operator=(Shader &&rhs) noexcept {
     attr_bindings = std::move(rhs.attr_bindings);
     unif_bindings = std::move(rhs.unif_bindings);
     blck_bindings = std::move(rhs.blck_bindings);
-
-    RefCounter::operator=(std::move(rhs));
 
     return (*this);
 }

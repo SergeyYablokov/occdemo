@@ -38,6 +38,12 @@ Ren::Program::~Program() {
 }
 
 Ren::Program &Ren::Program::operator=(Program &&rhs) noexcept {
+    if (this == &rhs) {
+        return (*this);
+    }
+
+    RefCounter::operator=(static_cast<RefCounter &&>(rhs));
+
     if (id_) {
         assert(IsMainThread());
         auto prog = GLuint(id_);
@@ -50,8 +56,6 @@ Ren::Program &Ren::Program::operator=(Program &&rhs) noexcept {
     uniforms_ = std::move(rhs.uniforms_);
     uniform_blocks_ = std::move(rhs.uniform_blocks_);
     name_ = std::move(rhs.name_);
-
-    RefCounter::operator=(std::move(rhs));
 
     return *this;
 }

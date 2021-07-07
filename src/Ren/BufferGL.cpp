@@ -82,7 +82,7 @@ Ren::Buffer &Ren::Buffer::operator=(Buffer &&rhs) noexcept {
 
 uint32_t Ren::Buffer::AllocRegion(uint32_t req_size, const char *tag, const Buffer *init_buf, void *,
                                   uint32_t init_off) {
-    const int i = Alloc_Recursive(0, req_size, tag);
+    const int i = Alloc_r(0, req_size, tag);
     if (i != -1) {
         Node &n = nodes_[i];
         assert(n.size == req_size);
@@ -107,7 +107,7 @@ uint32_t Ren::Buffer::AllocRegion(uint32_t req_size, const char *tag, const Buff
 }
 
 bool Ren::Buffer::FreeRegion(uint32_t offset) {
-    const int i = Find_Recursive(0, offset);
+    const int i = Find_r(0, offset);
     return Free_Node(i);
 }
 

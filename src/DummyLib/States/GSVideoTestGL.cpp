@@ -18,8 +18,6 @@ void GSVideoTest::InitVideoTextures() {
         }
         const VideoPlayer &vp = vp_[tx];
 
-        std::vector<uint8_t> temp_buf(size_t(vp.w()) * vp.h(), 0);
-
         char name_buf[128];
 
         { // create Y-channel texture (full res)
@@ -32,9 +30,8 @@ void GSVideoTest::InitVideoTextures() {
 
             for (int j = 0; j < TextureSyncWindow; j++) {
                 sprintf(name_buf, "__video_Y_texture_%i_%i__", tx, j);
-                Ren::eTexLoadStatus load_status;
-                y_tex_[tx][j] = ren_ctx_->textures().Add(name_buf, &temp_buf[0], int(temp_buf.size()), params,
-                                                         &load_status, log_.get());
+                y_tex_[tx][j] = ren_ctx_->textures().Add(name_buf, ren_ctx_->api_ctx(), params,
+                                                         ren_ctx_->default_mem_allocs(), log_.get());
             }
         }
 
@@ -48,9 +45,8 @@ void GSVideoTest::InitVideoTextures() {
 
             for (int j = 0; j < TextureSyncWindow; j++) {
                 sprintf(name_buf, "__video_UV_texture_%i_%i__", tx, j);
-                Ren::eTexLoadStatus load_status;
-                uv_tex_[tx][j] = ren_ctx_->textures().Add(name_buf, &temp_buf[0], int(temp_buf.size() / 2), params,
-                                                          &load_status, log_.get());
+                uv_tex_[tx][j] = ren_ctx_->textures().Add(name_buf, ren_ctx_->api_ctx(), params,
+                                                          ren_ctx_->default_mem_allocs(), log_.get());
             }
         }
 

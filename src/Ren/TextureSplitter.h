@@ -16,7 +16,7 @@ class TextureSplitter {
     std::vector<node_t> nodes_;
 
     int Insert_Recursive(int i, const int res[2]);
-    int Find_Recursive(int i, const int pos[2]) const;
+    int Find_r(int i, const int pos[2]) const;
     void SafeErase(int i, int *indices, int num);
 
   public:

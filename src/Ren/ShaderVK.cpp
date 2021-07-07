@@ -35,6 +35,8 @@ Ren::Shader::~Shader() {
 }
 
 Ren::Shader &Ren::Shader::operator=(Shader &&rhs) noexcept {
+    RefCounter::operator=(static_cast<RefCounter &&>(rhs));
+
     if (module_) {
         assert(IsMainThread());
         vkDestroyShaderModule(device_, module_, nullptr);
@@ -48,8 +50,6 @@ Ren::Shader &Ren::Shader::operator=(Shader &&rhs) noexcept {
     attr_bindings = std::move(rhs.attr_bindings);
     unif_bindings = std::move(rhs.unif_bindings);
     blck_bindings = std::move(rhs.blck_bindings);
-
-    RefCounter::operator=(std::move(rhs));
 
     return (*this);
 }

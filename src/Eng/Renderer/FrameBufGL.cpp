@@ -42,7 +42,7 @@ FrameBuf::FrameBuf(const char *name, Ren::Context &ctx, const int _w, const int 
         params.samples = sample_count;
 
         Ren::eTexLoadStatus status;
-        Ren::Tex2DRef tex = ctx.LoadTexture2D(name_buf, params, &status);
+        Ren::Tex2DRef tex = ctx.LoadTexture2D(name_buf, params, ctx.default_mem_allocs(), &status);
 
         if (att.attached) {
             ++enabled_attachements_count;
@@ -76,7 +76,7 @@ FrameBuf::FrameBuf(const char *name, Ren::Context &ctx, const int _w, const int 
         params.samples = sample_count;
 
         Ren::eTexLoadStatus status;
-        Ren::Tex2DRef dtex = ctx.LoadTexture2D(name_buf, params, &status);
+        Ren::Tex2DRef dtex = ctx.LoadTexture2D(name_buf, params, ctx.default_mem_allocs(), &status);
 
         Ren::CheckError("[Renderer]: create framebuffer 3", log);
 

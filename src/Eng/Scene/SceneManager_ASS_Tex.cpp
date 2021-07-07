@@ -422,6 +422,10 @@ bool Write_DDS_Mips(const uint8_t *const *mipmaps, const int *widths, const int 
         out_stream.write((char *)dxt_data[i].get(), dxt_size[i]);
     }
 
+    for (int i = 0; i < mip_count; i++) {
+        dxt_data[i].reset();
+    }
+
     return out_stream.good();
 }
 

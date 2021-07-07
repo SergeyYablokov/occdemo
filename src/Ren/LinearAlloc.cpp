@@ -2,7 +2,7 @@
 
 #include "Log.h"
 
-int Ren::LinearAlloc::Alloc_Recursive(const int i, const uint32_t req_size, const char *tag) {
+int Ren::LinearAlloc::Alloc_r(const int i, const uint32_t req_size, const char *tag) {
     if (!nodes_[i].is_free || req_size > nodes_[i].size) {
         return -1;
     }
@@ -10,12 +10,12 @@ int Ren::LinearAlloc::Alloc_Recursive(const int i, const uint32_t req_size, cons
     int ch0 = nodes_[i].child[0], ch1 = nodes_[i].child[1];
 
     if (ch0 != -1) {
-        const int new_node = Alloc_Recursive(ch0, req_size, tag);
+        const int new_node = Alloc_r(ch0, req_size, tag);
         if (new_node != -1) {
             return new_node;
         }
 
-        return Alloc_Recursive(ch1, req_size, tag);
+        return Alloc_r(ch1, req_size, tag);
     } else {
         if (req_size == nodes_[i].size) {
 #ifndef NDEBUG
@@ -36,11 +36,11 @@ int Ren::LinearAlloc::Alloc_Recursive(const int i, const uint32_t req_size, cons
         nodes_[ch1].size = n.size - req_size;
         nodes_[ch0].parent = nodes_[ch1].parent = i;
 
-        return Alloc_Recursive(ch0, req_size, tag);
+        return Alloc_r(ch0, req_size, tag);
     }
 }
 
-int Ren::LinearAlloc::Find_Recursive(const int i, const uint32_t offset) const {
+int Ren::LinearAlloc::Find_r(const int i, const uint32_t offset) const {
     if ((nodes_[i].is_free && !nodes_[i].has_children()) || offset < nodes_[i].offset ||
         offset > (nodes_[i].offset + nodes_[i].size)) {
         return -1;
@@ -49,11 +49,11 @@ int Ren::LinearAlloc::Find_Recursive(const int i, const uint32_t offset) const {
     const int ch0 = nodes_[i].child[0], ch1 = nodes_[i].child[1];
 
     if (ch0 != -1) {
-        const int ndx = Find_Recursive(ch0, offset);
+        const int ndx = Find_r(ch0, offset);
         if (ndx != -1) {
             return ndx;
         }
-        return Find_Recursive(ch1, offset);
+        return Find_r(ch1, offset);
     } else {
         if (offset == nodes_[i].offset) {
             return i;

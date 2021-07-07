@@ -10,7 +10,7 @@ int Ren::TextureSplitter::Allocate(const int res[2], int pos[2]) {
 }
 
 bool Ren::TextureSplitter::Free(const int pos[2]) {
-    const int i = Find_Recursive(0, pos);
+    const int i = Find_r(0, pos);
     return Free(i);
 }
 
@@ -50,7 +50,7 @@ void Ren::TextureSplitter::Clear() {
 }
 
 int Ren::TextureSplitter::FindNode(const int pos[2], int size[2]) const {
-    const int i = Find_Recursive(0, pos);
+    const int i = Find_r(0, pos);
     if (i != -1) {
         size[0] = nodes_[i].size[0];
         size[1] = nodes_[i].size[1];
@@ -113,7 +113,7 @@ int Ren::TextureSplitter::Insert_Recursive(const int i, const int res[2]) {
     }
 }
 
-int Ren::TextureSplitter::Find_Recursive(const int i, const int pos[2]) const {
+int Ren::TextureSplitter::Find_r(const int i, const int pos[2]) const {
     if (pos[0] < nodes_[i].pos[0] || pos[0] > (nodes_[i].pos[0] + nodes_[i].size[0]) || pos[1] < nodes_[i].pos[1] ||
         pos[1] > (nodes_[i].pos[1] + nodes_[i].size[1])) {
         return -1;
@@ -122,10 +122,10 @@ int Ren::TextureSplitter::Find_Recursive(const int i, const int pos[2]) const {
     const int ch0 = nodes_[i].child[0], ch1 = nodes_[i].child[1];
 
     if (ch0 != -1) {
-        int ndx = Find_Recursive(ch0, pos);
+        int ndx = Find_r(ch0, pos);
         if (ndx != -1)
             return ndx;
-        return Find_Recursive(ch1, pos);
+        return Find_r(ch1, pos);
     } else {
         if (!nodes_[i].is_free && pos[0] == nodes_[i].pos[0] && pos[1] == nodes_[i].pos[1]) {
             return i;

@@ -4,39 +4,7 @@
 #include "Utils.h"
 
 namespace Ren {
-const VkFormat g_vk_formats[] = {
-    VK_FORMAT_UNDEFINED,                // Undefined
-    VK_FORMAT_R8G8B8_UNORM,             // RawRGB888
-    VK_FORMAT_R8G8B8A8_UNORM,           // RawRGBA8888
-    VK_FORMAT_R8G8B8A8_SNORM,           // RawSignedRGBA8888
-    VK_FORMAT_R32_SFLOAT,               // RawR32F
-    VK_FORMAT_R16_SFLOAT,               // RawR16F
-    VK_FORMAT_R8_UNORM,                 // RawR8
-    VK_FORMAT_R8G8_UNORM,               // RawRG88
-    VK_FORMAT_R32G32B32_SFLOAT,         // RawRGB32F
-    VK_FORMAT_R32G32B32A32_SFLOAT,      // RawRGBA32F
-    VK_FORMAT_UNDEFINED,                // RawRGBE8888
-    VK_FORMAT_R16G16B16_SFLOAT,         // RawRGB16F
-    VK_FORMAT_R16G16B16A16_SFLOAT,      // RawRGBA16F
-    VK_FORMAT_R16G16_UNORM,             // RawRG16
-    VK_FORMAT_R16G16_UINT,              // RawRG16U
-    VK_FORMAT_R16G16_SFLOAT,            // RawRG16F
-    VK_FORMAT_R32G32_SFLOAT,            // RawRG32F
-    VK_FORMAT_R32G32_UINT,              // RawRG32U
-    VK_FORMAT_A2B10G10R10_UNORM_PACK32, // RawRGB10_A2
-    VK_FORMAT_B10G11R11_UFLOAT_PACK32,  // RawRG11F_B10F
-    VK_FORMAT_D16_UNORM,                // Depth16
-    VK_FORMAT_D24_UNORM_S8_UINT,        // Depth24Stencil8
-#ifndef __ANDROID__
-    VK_FORMAT_D32_SFLOAT, // Depth32
-#endif
-    VK_FORMAT_BC1_RGBA_UNORM_BLOCK, // Compressed_DXT1
-    VK_FORMAT_BC2_UNORM_BLOCK,      // Compressed_DXT3
-    VK_FORMAT_BC3_UNORM_BLOCK,      // Compressed_DXT5
-    VK_FORMAT_UNDEFINED,            // Compressed_ASTC
-    VK_FORMAT_UNDEFINED,            // None
-};
-static_assert(sizeof(g_vk_formats) / sizeof(g_vk_formats[0]) == size_t(eTexFormat::_Count), "!");
+extern const VkFormat g_vk_formats[];
 } // namespace Ren
 
 Ren::TextureAtlas::TextureAtlas(const int w, const int h, const int min_res, const eTexFormat *formats,

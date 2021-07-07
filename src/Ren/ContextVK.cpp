@@ -165,7 +165,7 @@ bool Ren::Context::Init(const int w, const int h, ILog *log, const char *preferr
     log_->Info("===========================================");
 
     default_memory_allocs_.reset(new MemoryAllocators(
-        "Default Allocs", api_ctx_.get(), 1 * 1024 * 1024 /* initial_block_size */, 1.5f /* growth_factor */));
+        "Default Allocs", api_ctx_.get(), 32 * 1024 * 1024 /* initial_block_size */, 1.5f /* growth_factor */));
 
     InitDefaultBuffers();
 
@@ -209,7 +209,8 @@ void Ren::Context::BegSingleTimeCommands(void *_cmd_buf) {
     begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 
-    vkBeginCommandBuffer(cmd_buf, &begin_info);
+    VkResult res = vkBeginCommandBuffer(cmd_buf, &begin_info);
+    volatile int ii = 0;
 }
 
 Ren::SyncFence Ren::Context::EndSingleTimeCommands(void *cmd_buf) {

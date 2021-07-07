@@ -48,7 +48,7 @@ inline bool operator<(const TexHandle lhs, const TexHandle rhs) {
     return false;
 }
 
-class TextureStageBuf;
+class MemoryAllocators;
 
 class Texture2D : public RefCounter {
     TexHandle handle_;
@@ -60,17 +60,17 @@ class Texture2D : public RefCounter {
 
     void Free();
 
-    void InitFromRAWData(const void *data, const Tex2DParams &p, ILog *log);
-    void InitFromTGAFile(const void *data, const Tex2DParams &p, ILog *log);
-    void InitFromTGA_RGBEFile(const void *data, const Tex2DParams &p, ILog *log);
-    void InitFromDDSFile(const void *data, int size, const Tex2DParams &p, ILog *log);
-    void InitFromPNGFile(const void *data, int size, const Tex2DParams &p, ILog *log);
-    void InitFromKTXFile(const void *data, int size, const Tex2DParams &p, ILog *log);
+    void InitFromRAWData(Buffer *sbuf, int data_off, const Tex2DParams &p, ILog *log);
+    void InitFromTGAFile(const void *data, Buffer &sbuf, const Tex2DParams &p, ILog *log);
+    void InitFromTGA_RGBEFile(const void *data, Buffer &sbuf, const Tex2DParams &p, ILog *log);
+    void InitFromDDSFile(const void *data, int size, Buffer &sbuf, const Tex2DParams &p, ILog *log);
+    void InitFromPNGFile(const void *data, int size, Buffer &sbuf, const Tex2DParams &p, ILog *log);
+    void InitFromKTXFile(const void *data, int size, Buffer &sbuf, const Tex2DParams &p, ILog *log);
 
-    void InitFromRAWData(const void *data[6], const Tex2DParams &p, ILog *log);
-    void InitFromTGAFile(const void *data[6], const Tex2DParams &p, ILog *log);
-    void InitFromTGA_RGBEFile(const void *data[6], const Tex2DParams &p, ILog *log);
-    void InitFromPNGFile(const void *data[6], const int size[6], const Tex2DParams &p, ILog *log);
+    void InitFromRAWData(Buffer &sbuf, int data_off[6], const Tex2DParams &p, ILog *log);
+    void InitFromTGAFile(const void *data[6], Buffer &sbuf, const Tex2DParams &p, ILog *log);
+    void InitFromTGA_RGBEFile(const void *data[6], Buffer &sbuf, const Tex2DParams &p, ILog *log);
+    void InitFromPNGFile(const void *data[6], const int size[6], Buffer &sbuf, const Tex2DParams &p, ILog *log);
     void InitFromDDSFile(const void *data[6], const int size[6], const Tex2DParams &p, ILog *log);
     void InitFromKTXFile(const void *data[6], const int size[6], const Tex2DParams &p, ILog *log);
 
@@ -78,14 +78,15 @@ class Texture2D : public RefCounter {
     uint32_t first_user = 0xffffffff;
 
     Texture2D() = default;
-    Texture2D(const char *name, const Tex2DParams &params, ILog *log);
+    Texture2D(const char *name, ApiContext *api_ctx, const Tex2DParams &p, MemoryAllocators *mem_allocs, ILog *log);
     // TODO: remove this!
-    Texture2D(const char *name, uint32_t tex_id, const Tex2DParams &params, ILog *log)
-        : handle_{tex_id, 0}, params_(params), ready_(true), name_(name) {}
-    Texture2D(const char *name, const void *data, int size, const Tex2DParams &params, eTexLoadStatus *load_status,
-              ILog *log);
-    Texture2D(const char *name, const void *data[6], const int size[6], const Tex2DParams &params,
-              eTexLoadStatus *load_status, ILog *log);
+    Texture2D(const char *name, ApiContext *api_ctx, uint32_t tex_id, MemoryAllocators *mem_allocs,
+              const Tex2DParams &p, ILog *log)
+        : handle_{tex_id, 0}, params_(p), ready_(true), name_(name) {}
+    Texture2D(const char *name, ApiContext *api_ctx, const void *data, const uint32_t size, const Tex2DParams &p,
+              Buffer &stage_buf, void *_cmd_buf, MemoryAllocators *mem_allocs, eTexLoadStatus *load_status, ILog *log);
+    Texture2D(const char *name, ApiContext *api_ctx, const void *data[6], const int size[6], const Tex2DParams &p,
+              Buffer &stage_buf, void *_cmd_buf, MemoryAllocators *mem_allocs, eTexLoadStatus *load_status, ILog *log);
     Texture2D(const Texture2D &rhs) = delete;
     Texture2D(Texture2D &&rhs) noexcept { (*this) = std::move(rhs); }
     ~Texture2D();
@@ -95,10 +96,11 @@ class Texture2D : public RefCounter {
 
     uint64_t GetBindlessHandle() const;
 
-    void Init(const Tex2DParams &params, ILog *log);
-    void Init(const void *data, int size, const Tex2DParams &params, eTexLoadStatus *load_status, ILog *log);
-    void Init(const void *data[6], const int size[6], const Tex2DParams &params, eTexLoadStatus *load_status,
-              ILog *log);
+    void Init(const Tex2DParams &p, MemoryAllocators *mem_allocs, ILog *log);
+    void Init(const void *data, const uint32_t size, const Tex2DParams &p, Buffer &stage_buf, void *_cmd_buf,
+              MemoryAllocators *mem_allocs, eTexLoadStatus *load_status, ILog *log);
+    void Init(const void *data[6], const int size[6], const Tex2DParams &p, Buffer &stage_buf, void *_cmd_buf,
+              MemoryAllocators *mem_allocs, eTexLoadStatus *load_status, ILog *log);
 
     void Realloc(int w, int h, int mip_count, int samples, Ren::eTexFormat format, Ren::eTexBlock block, bool is_srgb,
                  ILog *log);

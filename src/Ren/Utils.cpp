@@ -317,7 +317,11 @@ std::unique_ptr<float[]> Ren::ConvertRGBE_to_RGB32F(const uint8_t image_data[], 
 
 std::unique_ptr<uint16_t[]> Ren::ConvertRGBE_to_RGB16F(const uint8_t image_data[], const int w, const int h) {
     std::unique_ptr<uint16_t[]> fp16_data(new uint16_t[w * h * 3]);
+    ConvertRGBE_to_RGB16F(image_data, w, h, fp16_data.get());
+    return fp16_data;
+}
 
+void Ren::ConvertRGBE_to_RGB16F(const uint8_t image_data[], int w, int h, uint16_t *out_data) {
     for (int i = 0; i < w * h; i++) {
         const uint8_t r = image_data[4 * i + 0], g = image_data[4 * i + 1], b = image_data[4 * i + 2],
                       a = image_data[4 * i + 3];
@@ -325,12 +329,10 @@ std::unique_ptr<uint16_t[]> Ren::ConvertRGBE_to_RGB16F(const uint8_t image_data[
         const float f = std::exp2(float(a) - 128.0f);
         const float k = 1.0f / 255;
 
-        fp16_data[3 * i + 0] = f32_to_f16(k * float(r) * f);
-        fp16_data[3 * i + 1] = f32_to_f16(k * float(g) * f);
-        fp16_data[3 * i + 2] = f32_to_f16(k * float(b) * f);
+        out_data[3 * i + 0] = f32_to_f16(k * float(r) * f);
+        out_data[3 * i + 1] = f32_to_f16(k * float(g) * f);
+        out_data[3 * i + 2] = f32_to_f16(k * float(b) * f);
     }
-
-    return fp16_data;
 }
 
 std::unique_ptr<uint8_t[]> Ren::ConvertRGB32F_to_RGBE(const float image_data[], const int w, const int h,
@@ -1817,7 +1819,7 @@ void Ren::CompressImage_DXT1(const uint8_t img_src[], const int w, const int h, 
                 Extract4x4Block_SSSE3<Channels>(&img_src[i * Channels], w * Channels, block);
                 EmitDXT1Block_SSE2(block, p_out);
             }
-            if (w_limited != w) {
+            if (w_limited != w && w_aligned >= 4) {
                 // process last block (avoid reading 4 bytes outside of range)
                 Extract4x4Block_Ref<Channels>(&img_src[(w_aligned - 4) * Channels], w * Channels, block);
                 EmitDXT1Block_SSE2(block, p_out);

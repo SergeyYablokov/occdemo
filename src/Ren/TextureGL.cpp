@@ -198,18 +198,23 @@ GLenum ToSRGBFormat(const GLenum internal_format) {
 
 static_assert(sizeof(GLsync) == sizeof(void *), "!");
 
-Ren::Texture2D::Texture2D(const char *name, const Tex2DParams &p, ILog *log) : name_(name) { Init(p, log); }
-
-Ren::Texture2D::Texture2D(const char *name, const void *data, const int size, const Tex2DParams &p,
-                          eTexLoadStatus *load_status, ILog *log)
+Ren::Texture2D::Texture2D(const char *name, ApiContext *api_ctx, const Tex2DParams &p, MemoryAllocators *, ILog *log)
     : name_(name) {
-    Init(data, size, p, load_status, log);
+    Init(p, nullptr, log);
 }
 
-Ren::Texture2D::Texture2D(const char *name, const void *data[6], const int size[6], const Tex2DParams &p,
+Ren::Texture2D::Texture2D(const char *name, ApiContext *api_ctx, const void *data, const uint32_t size,
+                          const Tex2DParams &p, Buffer &stage_buf, void *, MemoryAllocators *,
                           eTexLoadStatus *load_status, ILog *log)
     : name_(name) {
-    Init(data, size, p, load_status, log);
+    Init(data, size, p, stage_buf, nullptr, nullptr, load_status, log);
+}
+
+Ren::Texture2D::Texture2D(const char *name, ApiContext *api_ctx, const void *data[6], const int size[6],
+                          const Tex2DParams &p, Buffer &stage_buf, void *_cmd_buf, MemoryAllocators *mem_allocs,
+                          eTexLoadStatus *load_status, ILog *log)
+    : name_(name) {
+    Init(data, size, p, stage_buf, nullptr, nullptr, load_status, log);
 }
 
 Ren::Texture2D::~Texture2D() { Free(); }
@@ -219,6 +224,8 @@ Ren::Texture2D &Ren::Texture2D::operator=(Ren::Texture2D &&rhs) noexcept {
         return (*this);
     }
 
+    RefCounter::operator=(static_cast<RefCounter &&>(rhs));
+
     Free();
 
     handle_ = exchange(rhs.handle_, {});
@@ -227,77 +234,106 @@ Ren::Texture2D &Ren::Texture2D::operator=(Ren::Texture2D &&rhs) noexcept {
     cubemap_ready_ = exchange(rhs.cubemap_ready_, 0);
     name_ = std::move(rhs.name_);
 
-    RefCounter::operator=(std::move(rhs));
-
     return (*this);
 }
 
 uint64_t Ren::Texture2D::GetBindlessHandle() const { return glGetTextureHandleARB(GLuint(handle_.id)); }
 
-void Ren::Texture2D::Init(const Tex2DParams &params, ILog *log) {
+void Ren::Texture2D::Init(const Tex2DParams &p, MemoryAllocators *, ILog *log) {
     assert(IsMainThread());
-    const void *null = nullptr;
-    InitFromRAWData(null, params, log);
+    InitFromRAWData(nullptr, 0, p, log);
     ready_ = true;
 }
 
-void Ren::Texture2D::Init(const void *data, int size, const Tex2DParams &p, eTexLoadStatus *load_status, ILog *log) {
+void Ren::Texture2D::Init(const void *data, const uint32_t size, const Tex2DParams &p, Buffer &stage_buf,
+                          void *_cmd_buf, MemoryAllocators *mem_allocs, eTexLoadStatus *load_status, ILog *log) {
     assert(IsMainThread());
     if (!data) {
+        uint8_t *stage_data = stage_buf.Map(BufMapWrite);
+        memcpy(stage_data, p.fallback_color, 4);
+        stage_buf.FlushMappedRange(0, 4);
+        stage_buf.Unmap();
+
         Tex2DParams _p = p;
         _p.w = _p.h = 1;
         _p.mip_count = 1;
         _p.format = eTexFormat::RawRGBA8888;
-        InitFromRAWData(p.fallback_color, _p, log);
+        InitFromRAWData(&stage_buf, 0, _p, log);
         // mark it as not ready
         ready_ = false;
         (*load_status) = eTexLoadStatus::CreatedDefault;
     } else {
         if (name_.EndsWith(".tga_rgbe") != 0 || name_.EndsWith(".TGA_RGBE") != 0) {
-            InitFromTGA_RGBEFile(data, p, log);
+            InitFromTGA_RGBEFile(data, stage_buf, p, log);
         } else if (name_.EndsWith(".tga") != 0 || name_.EndsWith(".TGA") != 0) {
-            InitFromTGAFile(data, p, log);
+            InitFromTGAFile(data, stage_buf, p, log);
         } else if (name_.EndsWith(".dds") != 0 || name_.EndsWith(".DDS") != 0) {
-            InitFromDDSFile(data, size, p, log);
+            InitFromDDSFile(data, size, stage_buf, p, log);
         } else if (name_.EndsWith(".ktx") != 0 || name_.EndsWith(".KTX") != 0) {
-            InitFromKTXFile(data, size, p, log);
+            InitFromKTXFile(data, size, stage_buf, p, log);
         } else if (name_.EndsWith(".png") != 0 || name_.EndsWith(".PNG") != 0) {
-            InitFromPNGFile(data, size, p, log);
+            InitFromPNGFile(data, size, stage_buf, p, log);
         } else {
-            InitFromRAWData(data, p, log);
+            uint8_t *stage_data = stage_buf.Map(BufMapWrite);
+            memcpy(stage_data, data, size);
+            stage_buf.FlushMappedRange(0, size);
+            stage_buf.Unmap();
+
+            InitFromRAWData(&stage_buf, 0, p, log);
         }
         ready_ = true;
         (*load_status) = eTexLoadStatus::CreatedFromData;
     }
 }
 
-void Ren::Texture2D::Init(const void *data[6], const int size[6], const Tex2DParams &p, eTexLoadStatus *load_status,
-                          ILog *log) {
+void Ren::Texture2D::Init(const void *data[6], const int size[6], const Tex2DParams &p, Buffer &stage_buf,
+                          void *_cmd_buf, MemoryAllocators *mem_allocs, eTexLoadStatus *load_status, ILog *log) {
     assert(IsMainThread());
     if (!data) {
-        const void *_data[6] = {p.fallback_color, p.fallback_color, p.fallback_color,
-                                p.fallback_color, p.fallback_color, p.fallback_color};
+        uint8_t *stage_data = stage_buf.Map(BufMapWrite);
+        memcpy(stage_data, p.fallback_color, 4);
+        stage_buf.FlushMappedRange(0, 4);
+        stage_buf.Unmap();
+
+        int data_off[6] = {};
+
         Tex2DParams _p = p;
         _p.w = _p.h = 1;
         _p.format = eTexFormat::RawRGBA8888;
-        InitFromRAWData(_data, _p, log);
+        InitFromRAWData(stage_buf, data_off, _p, log);
         // mark it as not ready
         ready_ = false;
         cubemap_ready_ = 0;
         (*load_status) = eTexLoadStatus::CreatedDefault;
     } else {
         if (name_.EndsWith(".tga_rgbe") != 0 || name_.EndsWith(".TGA_RGBE") != 0) {
-            InitFromTGA_RGBEFile(data, p, log);
+            InitFromTGA_RGBEFile(data, stage_buf, p, log);
         } else if (name_.EndsWith(".tga") != 0 || name_.EndsWith(".TGA") != 0) {
-            InitFromTGAFile(data, p, log);
+            InitFromTGAFile(data, stage_buf, p, log);
         } else if (name_.EndsWith(".png") != 0 || name_.EndsWith(".PNG") != 0) {
-            InitFromPNGFile(data, size, p, log);
+            InitFromPNGFile(data, size, stage_buf, p, log);
         } else if (name_.EndsWith(".ktx") != 0 || name_.EndsWith(".KTX") != 0) {
             InitFromKTXFile(data, size, p, log);
         } else if (name_.EndsWith(".dds") != 0 || name_.EndsWith(".DDS") != 0) {
             InitFromDDSFile(data, size, p, log);
         } else {
-            InitFromRAWData(data, p, log);
+            uint8_t *stage_data = stage_buf.Map(BufMapWrite);
+            uint32_t stage_off = 0;
+
+            int data_off[6];
+            for (int i = 0; i < 6; i++) {
+                if (data[i]) {
+                    memcpy(&stage_data[stage_off], data[i], size[i]);
+                    data_off[i] = int(stage_off);
+                    stage_off += size[i];
+                } else {
+                    data_off[i] = -1;
+                }
+            }
+            stage_buf.FlushMappedRange(0, 4);
+            stage_buf.Unmap();
+
+            InitFromRAWData(stage_buf, data_off, p, log);
         }
 
         ready_ = (cubemap_ready_ & (1u << 0u)) == 1;
@@ -386,7 +422,7 @@ void Ren::Texture2D::Realloc(const int w, const int h, int mip_count, const int 
     initialized_mips_ = new_initialized_mips;
 }
 
-void Ren::Texture2D::InitFromRAWData(const void *data, const Tex2DParams &p, ILog *log) {
+void Ren::Texture2D::InitFromRAWData(Buffer *sbuf, int data_off, const Tex2DParams &p, ILog *log) {
     Free();
 
     GLuint tex_id;
@@ -411,8 +447,16 @@ void Ren::Texture2D::InitFromRAWData(const void *data, const Tex2DParams &p, ILo
             for (int i = 0; i < mip_count; i++) {
                 const int w = std::max(p.w << i, 1);
                 const int h = std::max(p.h << i, 1);
-                glTexImage2D(GL_TEXTURE_2D, GLint(i), internal_format, w, h, 0, format, type,
-                             (i == 0) ? data : nullptr);
+
+                if (i == 0 && sbuf) {
+                    glBindBuffer(GL_PIXEL_UNPACK_BUFFER, sbuf->id());
+                    glTexImage2D(GL_TEXTURE_2D, GLint(i), internal_format, w, h, 0, format, type,
+                                 reinterpret_cast<const GLvoid *>(uintptr_t(data_off)));
+                    glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
+                } else {
+                    glTexImage2D(GL_TEXTURE_2D, GLint(i), internal_format, w, h, 0, format, type, nullptr);
+                }
+
                 initialized_mips_ |= (1u << i);
             }
         } else {
@@ -425,10 +469,15 @@ void Ren::Texture2D::InitFromRAWData(const void *data, const Tex2DParams &p, ILo
                 // allocate all mip levels
                 ren_glTextureStorage2D_Comp(GL_TEXTURE_2D, tex_id, mip_count, internal_format, GLsizei(p.w),
                                             GLsizei(p.h));
-                if (data) {
+                if (sbuf) {
+                    glBindBuffer(GL_PIXEL_UNPACK_BUFFER, sbuf->id());
+
                     // update first level
-                    ren_glTextureSubImage2D_Comp(GL_TEXTURE_2D, tex_id, 0, 0, 0, p.w, p.h, format, type, data);
+                    ren_glTextureSubImage2D_Comp(GL_TEXTURE_2D, tex_id, 0, 0, 0, p.w, p.h, format, type,
+                                                 reinterpret_cast<const GLvoid *>(uintptr_t(data_off)));
                     initialized_mips_ |= (1u << 0);
+
+                    glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
                 }
             }
         }
@@ -441,35 +490,47 @@ void Ren::Texture2D::InitFromRAWData(const void *data, const Tex2DParams &p, ILo
     CheckError("create texture", log);
 }
 
-void Ren::Texture2D::InitFromTGAFile(const void *data, const Tex2DParams &p, ILog *log) {
+void Ren::Texture2D::InitFromTGAFile(const void *data, Buffer &sbuf, const Tex2DParams &p, ILog *log) {
     int w = 0, h = 0;
     eTexFormat format = eTexFormat::Undefined;
-    const std::unique_ptr<uint8_t[]> image_data = ReadTGAFile(data, w, h, format);
+    uint32_t img_size = 0;
+    const bool res1 = ReadTGAFile(data, w, h, format, nullptr, img_size);
+    assert(res1 && img_size <= sbuf.size());
+
+    uint8_t *stage_data = sbuf.Map(BufMapWrite);
+    const bool res2 = ReadTGAFile(data, w, h, format, stage_data, img_size);
+    assert(res2);
+    sbuf.FlushMappedRange(0, img_size);
+    sbuf.Unmap();
 
     Tex2DParams _p = p;
     _p.w = w;
     _p.h = h;
     _p.format = format;
 
-    InitFromRAWData(image_data.get(), _p, log);
+    InitFromRAWData(&sbuf, 0, _p, log);
 }
 
-void Ren::Texture2D::InitFromTGA_RGBEFile(const void *data, const Tex2DParams &p, ILog *log) {
+void Ren::Texture2D::InitFromTGA_RGBEFile(const void *data, Buffer &sbuf, const Tex2DParams &p, ILog *log) {
     int w = 0, h = 0;
     eTexFormat format = eTexFormat::Undefined;
     std::unique_ptr<uint8_t[]> image_data = ReadTGAFile(data, w, h, format);
+    assert(format == eTexFormat::RawRGBA8888);
 
-    std::unique_ptr<uint16_t[]> fp_data = ConvertRGBE_to_RGB16F(image_data.get(), w, h);
+    uint16_t *stage_data = reinterpret_cast<uint16_t *>(sbuf.Map(BufMapWrite));
+    ConvertRGBE_to_RGB16F(image_data.get(), w, h, stage_data);
+    sbuf.FlushMappedRange(0, 3 * w * h * sizeof(uint16_t));
+    sbuf.Unmap();
 
     Tex2DParams _p = p;
     _p.w = w;
     _p.h = h;
     _p.format = eTexFormat::RawRGB16F;
 
-    InitFromRAWData(fp_data.get(), _p, log);
+    InitFromRAWData(&sbuf, 0, _p, log);
 }
 
-void Ren::Texture2D::InitFromDDSFile(const void *data, const int size, const Tex2DParams &p, ILog *log) {
+void Ren::Texture2D::InitFromDDSFile(const void *data, const int size, Buffer &sbuf, const Tex2DParams &p, ILog *log) {
     DDSHeader header;
     memcpy(&header, data, sizeof(DDSHeader));
 
@@ -510,30 +571,41 @@ void Ren::Texture2D::InitFromDDSFile(const void *data, const int size, const Tex
     const GLuint internal_format = GLInternalFormatFromTexFormat(params_.format, (p.flags & TexSRGB) != 0);
 
     int w = params_.w, h = params_.h;
-    int bytes_left = size - int(sizeof(DDSHeader));
+    uint32_t bytes_left = uint32_t(size) - sizeof(DDSHeader);
     const uint8_t *p_data = (uint8_t *)data + sizeof(DDSHeader);
 
+    assert(bytes_left <= sbuf.size());
+    uint8_t *stage_data = sbuf.Map(BufMapWrite);
+    memcpy(stage_data, p_data, bytes_left);
+    sbuf.FlushMappedRange(0, bytes_left);
+    sbuf.Unmap();
+
+    glBindBuffer(GL_PIXEL_UNPACK_BUFFER, sbuf.id());
+
+    uintptr_t data_off = 0;
     for (uint32_t i = 0; i < header.dwMipMapCount; i++) {
-        const int len = ((w + 3) / 4) * ((h + 3) / 4) * block_size_bytes;
+        const uint32_t len = ((w + 3) / 4) * ((h + 3) / 4) * block_size_bytes;
         if (len > bytes_left) {
             log->Error("Insufficient data length, bytes left %i, expected %i", bytes_left, len);
             return;
         }
 
         ren_glCompressedTextureSubImage2D_Comp(GL_TEXTURE_2D, GLuint(handle_.id), GLint(i), 0, 0, w, h, internal_format,
-                                               len, p_data);
+                                               len, reinterpret_cast<const GLvoid *>(data_off));
         initialized_mips_ |= (1u << i);
 
-        p_data += len;
+        data_off += len;
         bytes_left -= len;
         w = std::max(w / 2, 1);
         h = std::max(h / 2, 1);
     }
 
+    glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
+
     ApplySampling(p.sampling, log);
 }
 
-void Ren::Texture2D::InitFromPNGFile(const void *data, const int size, const Tex2DParams &p, ILog *log) {
+void Ren::Texture2D::InitFromPNGFile(const void *data, const int size, Buffer &sbuf, const Tex2DParams &p, ILog *log) {
     int width, height, channels;
     unsigned char *const image_data = stbi_load_from_memory((const uint8_t *)data, size, &width, &height, &channels, 0);
 
@@ -548,11 +620,18 @@ void Ren::Texture2D::InitFromPNGFile(const void *data, const int size, const Tex
         assert(false);
     }
 
-    InitFromRAWData(image_data, _p, log);
+    const uint32_t img_size = channels * width * height;
+    assert(img_size <= sbuf.size());
+    uint8_t *stage_data = sbuf.Map(BufMapWrite);
+    memcpy(stage_data, image_data, img_size);
+    sbuf.FlushMappedRange(0, img_size);
+    sbuf.Unmap();
+
+    InitFromRAWData(&sbuf, 0, _p, log);
     free(image_data);
 }
 
-void Ren::Texture2D::InitFromKTXFile(const void *data, const int size, const Tex2DParams &p, ILog *log) {
+void Ren::Texture2D::InitFromKTXFile(const void *data, const int size, Buffer &sbuf, const Tex2DParams &p, ILog *log) {
     KTXHeader header;
     memcpy(&header, data, sizeof(KTXHeader));
 
@@ -581,6 +660,14 @@ void Ren::Texture2D::InitFromKTXFile(const void *data, const int size, const Tex
     const auto *_data = (const uint8_t *)data;
     int data_offset = sizeof(KTXHeader);
 
+    assert(uint32_t(size - data_offset) <= sbuf.size());
+    uint8_t *stage_data = sbuf.Map(BufMapWrite);
+    memcpy(stage_data, _data, size);
+    sbuf.FlushMappedRange(0, size);
+    sbuf.Unmap();
+
+    glBindBuffer(GL_PIXEL_UNPACK_BUFFER, sbuf.id());
+
     for (int i = 0; i < int(header.mipmap_levels_count); i++) {
         if (data_offset + int(sizeof(uint32_t)) > size) {
             log->Error("Insufficient data length, bytes left %i, expected %i", size - data_offset, sizeof(uint32_t));
@@ -599,7 +686,7 @@ void Ren::Texture2D::InitFromKTXFile(const void *data, const int size, const Tex
         ren_glCompressedTextureSubImage2D_Comp(
             GL_TEXTURE_2D, GLuint(handle_.id), i, 0, 0, w, h,
             GLInternalFormatFromTexFormat(params_.format, (params_.flags & TexSRGB) != 0), GLsizei(img_size),
-            &_data[data_offset]);
+            reinterpret_cast<const GLvoid *>(uintptr_t(data_offset)));
         initialized_mips_ |= (1u << i);
         data_offset += img_size;
 
@@ -610,10 +697,12 @@ void Ren::Texture2D::InitFromKTXFile(const void *data, const int size, const Tex
         data_offset += pad;
     }
 
+    glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
+
     ApplySampling(p.sampling, log);
 }
 
-void Ren::Texture2D::InitFromRAWData(const void *data[6], const Tex2DParams &p, ILog *log) {
+void Ren::Texture2D::InitFromRAWData(Buffer &sbuf, int data_off[6], const Tex2DParams &p, ILog *log) {
     assert(p.w > 0 && p.h > 0);
     Free();
 
@@ -638,8 +727,10 @@ void Ren::Texture2D::InitFromRAWData(const void *data[6], const Tex2DParams &p, 
     // allocate all mip levels
     ren_glTextureStorage2D_Comp(GL_TEXTURE_CUBE_MAP, tex_id, mip_count, internal_format, w, h);
 
+    glBindBuffer(GL_PIXEL_UNPACK_BUFFER, sbuf.id());
+
     for (unsigned i = 0; i < 6; i++) {
-        if (!data[i]) {
+        if (data_off[i] == -1) {
             continue;
         } else {
             cubemap_ready_ |= (1u << i);
@@ -647,9 +738,11 @@ void Ren::Texture2D::InitFromRAWData(const void *data[6], const Tex2DParams &p, 
 
         if (format != 0xffffffff && internal_format != 0xffffffff && type != 0xffffffff) {
             ren_glTextureSubImage3D_Comp(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, tex_id, 0, 0, 0, i, w, h, 1, format, type,
-                                         data[i]);
+                                         reinterpret_cast<const GLvoid *>(uintptr_t(data_off[i])));
         }
     }
+
+    glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
 
     if (f == eTexFilter::NoFilter) {
         ren_glTextureParameteri_Comp(GL_TEXTURE_CUBE_MAP, tex_id, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -678,53 +771,95 @@ void Ren::Texture2D::InitFromRAWData(const void *data[6], const Tex2DParams &p, 
     }
 }
 
-void Ren::Texture2D::InitFromTGAFile(const void *data[6], const Tex2DParams &p, ILog *log) {
-    std::unique_ptr<uint8_t[]> image_data[6];
-    const void *_image_data[6] = {};
+void Ren::Texture2D::InitFromTGAFile(const void *data[6], Buffer &sbuf, const Tex2DParams &p, ILog *log) {
     int w = 0, h = 0;
     eTexFormat format = eTexFormat::Undefined;
+
+    uint8_t *stage_data = sbuf.Map(BufMapWrite);
+    uint32_t stage_off = 0;
+
+    int data_off[6] = {-1, -1, -1, -1, -1, -1};
+
     for (int i = 0; i < 6; i++) {
         if (data[i]) {
-            image_data[i] = ReadTGAFile(data[i], w, h, format);
-            _image_data[i] = image_data[i].get();
+            uint32_t data_size;
+            const bool res1 = ReadTGAFile(data[i], w, h, format, nullptr, data_size);
+            assert(res1);
+
+            assert(stage_off + data_size < sbuf.size());
+            const bool res2 = ReadTGAFile(data[i], w, h, format, &stage_data[stage_off], data_size);
+            assert(res2);
+
+            data_off[i] = int(stage_off);
+            stage_off += data_size;
         }
     }
+
+    sbuf.FlushMappedRange(0, stage_off);
+    sbuf.Unmap();
 
     Tex2DParams _p = p;
     _p.w = w;
     _p.h = h;
     _p.format = format;
 
-    InitFromRAWData(_image_data, _p, log);
+    InitFromRAWData(sbuf, data_off, _p, log);
 }
 
-void Ren::Texture2D::InitFromTGA_RGBEFile(const void *data[6], const Tex2DParams &p, ILog *log) {
-    std::unique_ptr<uint16_t[]> image_data[6];
-    const void *_image_data[6] = {};
+void Ren::Texture2D::InitFromTGA_RGBEFile(const void *data[6], Buffer &sbuf, const Tex2DParams &p, ILog *log) {
     int w = p.w, h = p.h;
+
+    uint8_t *stage_data = sbuf.Map(BufMapWrite);
+    uint32_t stage_off = 0;
+
+    int data_off[6];
+
     for (int i = 0; i < 6; i++) {
         if (data[i]) {
-            image_data[i] = ConvertRGBE_to_RGB16F((const uint8_t *)data[i], w, h);
-            _image_data[i] = image_data[i].get();
+            const uint32_t img_size = 3 * w * h * sizeof(uint16_t);
+            assert(stage_off + img_size <= sbuf.size());
+            ConvertRGBE_to_RGB16F((const uint8_t *)data[i], w, h, (uint16_t *)&stage_data[stage_off]);
+            data_off[i] = int(stage_off);
+            stage_off += img_size;
+        } else {
+            data_off[i] = -1;
         }
     }
+
+    sbuf.FlushMappedRange(0, stage_off);
+    sbuf.Unmap();
 
     Tex2DParams _p = p;
     _p.w = w;
     _p.h = h;
     _p.format = Ren::eTexFormat::RawRGB16F;
 
-    InitFromRAWData(_image_data, _p, log);
+    InitFromRAWData(sbuf, data_off, _p, log);
 }
 
-void Ren::Texture2D::InitFromPNGFile(const void *data[6], const int size[6], const Tex2DParams &p, ILog *log) {
-    uint8_t *image_data[6] = {};
+void Ren::Texture2D::InitFromPNGFile(const void *data[6], const int size[6], Buffer &sbuf, const Tex2DParams &p,
+                                     ILog *log) {
+    uint8_t *stage_data = sbuf.Map(BufMapWrite);
+    uint32_t stage_off = 0;
+
+    int data_off[6] = {-1, -1, -1, -1, -1, -1};
+
     int width, height, channels;
     for (int i = 0; i < 6; i++) {
         if (data[i]) {
-            image_data[i] = stbi_load_from_memory((const uint8_t *)data[i], size[i], &width, &height, &channels, 0);
+            uint8_t *img_data = stbi_load_from_memory((const uint8_t *)data[i], size[i], &width, &height, &channels, 0);
+
+            assert(stage_off + channels * width * height <= sbuf.size());
+            memcpy(&stage_data[stage_off], img_data, channels * width * height);
+            data_off[i] = int(stage_off);
+            stage_off += channels * width * height;
+
+            free(img_data);
         }
     }
+
+    sbuf.FlushMappedRange(0, stage_off);
+    sbuf.Unmap();
 
     Tex2DParams _p = p;
     _p.w = width;
@@ -737,10 +872,7 @@ void Ren::Texture2D::InitFromPNGFile(const void *data[6], const int size[6], con
         assert(false);
     }
 
-    InitFromRAWData(image_data, _p, log);
-    for (int i = 0; i < 6; i++) {
-        free(image_data[i]);
-    }
+    InitFromRAWData(sbuf, data_off, _p, log);
 }
 
 void Ren::Texture2D::InitFromDDSFile(const void *data[6], const int size[6], const Tex2DParams &p, ILog *log) {

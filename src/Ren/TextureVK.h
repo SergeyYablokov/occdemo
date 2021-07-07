@@ -4,6 +4,7 @@
 #include <cstring>
 
 #include "Buffer.h"
+#include "MemoryAllocator.h"
 #include "TextureParams.h"
 
 #ifdef _MSC_VER
@@ -13,6 +14,7 @@
 
 namespace Ren {
 class ILog;
+class MemoryAllocators;
 
 enum eTexFlags {
     TexNoOwnership = (1u << 0u),
@@ -28,6 +30,7 @@ enum eTexFlags {
 };
 
 struct TexHandle {
+    VkImage img = VK_NULL_HANDLE;
     VkImageView view = VK_NULL_HANDLE;
     uint32_t generation = 0; // used to identify unique texture (name can be reused)
 
@@ -37,14 +40,18 @@ struct TexHandle {
     explicit operator bool() const { return false; }
 };
 inline bool operator==(const TexHandle lhs, const TexHandle rhs) {
-    lhs.view == rhs.view &&lhs.generation == rhs.generation;
+    return lhs.img == rhs.img && lhs.view == rhs.view && lhs.generation == rhs.generation;
 }
 inline bool operator!=(const TexHandle lhs, const TexHandle rhs) { return !operator==(lhs, rhs); }
 inline bool operator<(const TexHandle lhs, const TexHandle rhs) {
-    if (lhs.view < rhs.view) {
+    if (lhs.img < rhs.img) {
         return true;
-    } else if (lhs.view == rhs.view) {
-        return lhs.generation < rhs.generation;
+    } else if (lhs.img == rhs.img) {
+        if (lhs.view < rhs.view) {
+            return true;
+        } else if (lhs.view == rhs.view) {
+            return lhs.generation < rhs.generation;
+        }
     }
     return false;
 }
@@ -52,7 +59,9 @@ inline bool operator<(const TexHandle lhs, const TexHandle rhs) {
 class TextureStageBuf;
 
 class Texture2D : public RefCounter {
+    ApiContext *api_ctx_ = nullptr;
     TexHandle handle_;
+    MemAllocation alloc_;
     Tex2DParams params_;
     uint16_t initialized_mips_ = 0;
     bool ready_ = false;
@@ -61,32 +70,39 @@ class Texture2D : public RefCounter {
 
     void Free();
 
-    void InitFromRAWData(const void *data, const Tex2DParams &p, ILog *log);
-    void InitFromTGAFile(const void *data, const Tex2DParams &p, ILog *log);
-    void InitFromTGA_RGBEFile(const void *data, const Tex2DParams &p, ILog *log);
-    void InitFromDDSFile(const void *data, int size, const Tex2DParams &p, ILog *log);
-    void InitFromPNGFile(const void *data, int size, const Tex2DParams &p, ILog *log);
-    void InitFromKTXFile(const void *data, int size, const Tex2DParams &p, ILog *log);
+    void InitFromRAWData(const void *data, Buffer *stage_buf, void *_cmd_buf, MemoryAllocators *mem_allocs,
+                         const Tex2DParams &p, ILog *log);
+    void InitFromTGAFile(const void *data, Buffer &stage_buf, void *_cmd_buf, MemoryAllocators *mem_allocs,
+                         const Tex2DParams &p, ILog *log);
+    void InitFromTGA_RGBEFile(const void *data, Buffer &stage_buf, void *_cmd_buf, MemoryAllocators *mem_allocs,
+                              const Tex2DParams &p, ILog *log);
+    void InitFromDDSFile(const void *data, int size, MemoryAllocators *mem_allocs, const Tex2DParams &p, ILog *log);
+    void InitFromPNGFile(const void *data, int size, MemoryAllocators *mem_allocs, const Tex2DParams &p, ILog *log);
+    void InitFromKTXFile(const void *data, int size, MemoryAllocators *mem_allocs, const Tex2DParams &p, ILog *log);
 
-    void InitFromRAWData(const void *data[6], const Tex2DParams &p, ILog *log);
-    void InitFromTGAFile(const void *data[6], const Tex2DParams &p, ILog *log);
-    void InitFromTGA_RGBEFile(const void *data[6], const Tex2DParams &p, ILog *log);
-    void InitFromPNGFile(const void *data[6], const int size[6], const Tex2DParams &p, ILog *log);
-    void InitFromDDSFile(const void *data[6], const int size[6], const Tex2DParams &p, ILog *log);
-    void InitFromKTXFile(const void *data[6], const int size[6], const Tex2DParams &p, ILog *log);
+    void InitFromRAWData(const void *data[6], MemoryAllocators *mem_allocs, const Tex2DParams &p, ILog *log);
+    void InitFromTGAFile(const void *data[6], MemoryAllocators *mem_allocs, const Tex2DParams &p, ILog *log);
+    void InitFromTGA_RGBEFile(const void *data[6], MemoryAllocators *mem_allocs, const Tex2DParams &p, ILog *log);
+    void InitFromPNGFile(const void *data[6], const int size[6], MemoryAllocators *mem_allocs, const Tex2DParams &p,
+                         ILog *log);
+    void InitFromDDSFile(const void *data[6], const int size[6], MemoryAllocators *mem_allocs, const Tex2DParams &p,
+                         ILog *log);
+    void InitFromKTXFile(const void *data[6], const int size[6], MemoryAllocators *mem_allocs, const Tex2DParams &p,
+                         ILog *log);
 
   public:
     uint32_t first_user = 0xffffffff;
 
     Texture2D() = default;
-    Texture2D(const char *name, const Tex2DParams &params, ILog *log);
-    // TODO: remove this!
-    Texture2D(const char *name, uint32_t tex_id, const Tex2DParams &params, ILog *log)
-        : /*handle_{tex_id, 0},*/ params_(params), ready_(true), name_(name) {}
-    Texture2D(const char *name, const void *data, int size, const Tex2DParams &params, eTexLoadStatus *load_status,
+    Texture2D(const char *name, ApiContext *api_ctx, const Tex2DParams &params, MemoryAllocators *mem_allocs,
               ILog *log);
-    Texture2D(const char *name, const void *data[6], const int size[6], const Tex2DParams &params,
-              eTexLoadStatus *load_status, ILog *log);
+    // TODO: remove this!
+    // Texture2D(const char *name, ApiContext *api_ctx, uint32_t tex_id, const Tex2DParams &params, ILog *log)
+    //    : /*handle_{tex_id, 0},*/ params_(params), ready_(true), name_(name) {}
+    Texture2D(const char *name, ApiContext *api_ctx, const void *data, const uint32_t size, const Tex2DParams &p,
+              Buffer &stage_buf, void *_cmd_buf, MemoryAllocators *mem_allocs, eTexLoadStatus *load_status, ILog *log);
+    Texture2D(const char *name, ApiContext *api_ctx, const void *data[6], const int size[6], const Tex2DParams &p,
+              Buffer &stage_buf, void *_cmd_buf, MemoryAllocators *mem_allocs, eTexLoadStatus *load_status, ILog *log);
     Texture2D(const Texture2D &rhs) = delete;
     Texture2D(Texture2D &&rhs) noexcept { (*this) = std::move(rhs); }
     ~Texture2D();
@@ -94,17 +110,16 @@ class Texture2D : public RefCounter {
     Texture2D &operator=(const Texture2D &rhs) = delete;
     Texture2D &operator=(Texture2D &&rhs) noexcept;
 
-    void Init(const Tex2DParams &params, ILog *log);
-    void Init(const void *data, int size, const Tex2DParams &params, eTexLoadStatus *load_status, ILog *log);
-    void Init(const void *data[6], const int size[6], const Tex2DParams &params, eTexLoadStatus *load_status,
-              ILog *log);
+    void Init(const Tex2DParams &params, MemoryAllocators *mem_allocs, ILog *log);
+    void Init(const void *data, const uint32_t size, const Tex2DParams &p, Buffer &stage_buf, void *_cmd_buf,
+              MemoryAllocators *mem_allocs, eTexLoadStatus *load_status, ILog *log);
+    void Init(const void *data[6], const int size[6], const Tex2DParams &p, Buffer &stage_buf, void *_cmd_buf,
+              MemoryAllocators *mem_allocs, eTexLoadStatus *load_status, ILog *log);
 
     void Realloc(int w, int h, int mip_count, int samples, Ren::eTexFormat format, Ren::eTexBlock block, bool is_srgb,
                  ILog *log);
 
     TexHandle handle() const { return handle_; }
-    // uint32_t id() const { return handle_.id; }
-    // uint32_t generation() const { return handle_.generation; }
     uint16_t initialized_mips() const { return initialized_mips_; }
 
     const Tex2DParams &params() const { return params_; }
@@ -122,30 +137,6 @@ class Texture2D : public RefCounter {
                           const Buffer &sbuf, int data_off, int data_len);
 
     void DownloadTextureData(eTexFormat format, void *out_data) const;
-};
-
-class TextureStageBuf {
-    uint32_t id_ = 0xffffffff;
-    uint32_t size_ = 0;
-    uint8_t *mapped_ptr_ = nullptr;
-
-  public:
-    TextureStageBuf() = default;
-    TextureStageBuf(const TextureStageBuf &rhs) = delete;
-    TextureStageBuf(TextureStageBuf &&rhs) = delete;
-    ~TextureStageBuf() { Free(); }
-
-    uint32_t id() const { return id_; }
-    uint32_t size() const { return size_; }
-    uint8_t *mapped_ptr() const { return mapped_ptr_; }
-
-    void Alloc(uint32_t size, bool persistantly_mapped = true);
-    void Free();
-
-    uint8_t *MapRange(uint32_t offset, uint32_t size);
-    void Unmap();
-
-    void FlushMapped(uint32_t offset = 0, uint32_t size = 0);
 };
 
 struct Texture1DParams {

@@ -18,8 +18,6 @@ void GSVideoTest::InitVideoTextures() {
         }
         const VideoPlayer &vp = vp_[tx];
 
-        std::vector<uint8_t> temp_buf(vp.w() * vp.h(), 0);
-
         char name_buf[128];
 
         { // create Y-channel texture (full res)
@@ -32,9 +30,8 @@ void GSVideoTest::InitVideoTextures() {
 
             for (int j = 0; j < TextureSyncWindow; j++) {
                 sprintf(name_buf, "__video_Y_texture_%i_%i__", tx, j);
-                Ren::eTexLoadStatus load_status;
-                y_tex_[tx][j] = ren_ctx_->textures().Add(name_buf, &temp_buf[0], int(temp_buf.size()), params,
-                                                         &load_status, log_.get());
+                y_tex_[tx][j] = ren_ctx_->textures().Add(name_buf, ren_ctx_->api_ctx(), params,
+                                                         ren_ctx_->default_mem_allocs(), log_.get());
             }
         }
 
@@ -48,9 +45,8 @@ void GSVideoTest::InitVideoTextures() {
 
             for (int j = 0; j < TextureSyncWindow; j++) {
                 sprintf(name_buf, "__video_UV_texture_%i_%i__", tx, j);
-                Ren::eTexLoadStatus load_status;
-                uv_tex_[tx][j] = ren_ctx_->textures().Add(name_buf, &temp_buf[0], int(temp_buf.size() / 2), params,
-                                                          &load_status, log_.get());
+                uv_tex_[tx][j] = ren_ctx_->textures().Add(name_buf, ren_ctx_->api_ctx(), params,
+                                                          ren_ctx_->default_mem_allocs(), log_.get());
             }
         }
 
@@ -78,8 +74,8 @@ void GSVideoTest::InitVideoTextures() {
             const uint32_t y_buf_size = TextureSyncWindow * vp.w() * vp.h(),
                            uv_buf_size = TextureSyncWindow * 2 * (vp.w() / 2) * (vp.h() / 2);
 
-            //y_sbuf_[tx].Resize(y_buf_size, ren_ctx_->capabilities.persistent_buf_mapping);
-            //uv_sbuf_[tx].Resize(uv_buf_size, ren_ctx_->capabilities.persistent_buf_mapping);
+            // y_sbuf_[tx].Resize(y_buf_size, ren_ctx_->capabilities.persistent_buf_mapping);
+            // uv_sbuf_[tx].Resize(uv_buf_size, ren_ctx_->capabilities.persistent_buf_mapping);
         }
 #endif
     }

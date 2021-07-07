@@ -15,6 +15,7 @@ void RGBMEncode(const float rgb[3], uint8_t out_rgbm[4]);
 
 std::unique_ptr<float[]> ConvertRGBE_to_RGB32F(const uint8_t image_data[], int w, int h);
 std::unique_ptr<uint16_t[]> ConvertRGBE_to_RGB16F(const uint8_t image_data[], int w, int h);
+void ConvertRGBE_to_RGB16F(const uint8_t image_data[], int w, int h, uint16_t *out_data);
 
 std::unique_ptr<uint8_t[]> ConvertRGB32F_to_RGBE(const float image_data[], int w, int h, int channels);
 std::unique_ptr<uint8_t[]> ConvertRGB32F_to_RGBM(const float image_data[], int w, int h, int channels);

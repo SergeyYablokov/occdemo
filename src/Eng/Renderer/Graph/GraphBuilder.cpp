@@ -251,7 +251,7 @@ RpAllocTex &RpBuilder::GetWriteTexture(RpResource handle) {
 
     if (!tex.ref || tex.desc != tex.ref->params()) {
         Ren::eTexLoadStatus status;
-        tex.ref = ctx_.LoadTexture2D(tex.name.c_str(), tex.desc, &status);
+        tex.ref = ctx_.LoadTexture2D(tex.name.c_str(), tex.desc, ctx_.default_mem_allocs(), &status);
         assert(status == Ren::eTexLoadStatus::CreatedDefault || status == Ren::eTexLoadStatus::Found ||
                status == Ren::eTexLoadStatus::Reinitialized);
     }

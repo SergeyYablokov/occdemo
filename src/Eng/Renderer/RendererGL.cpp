@@ -1056,7 +1056,7 @@ void Renderer::BlitPixels(const void *data, const int w, const int h, const Ren:
         params.sampling.repeat = Ren::eTexRepeat::ClampToEdge;
 
         Ren::eTexLoadStatus status;
-        temp_tex_ = ctx_.LoadTexture2D("__TEMP_BLIT_TEXTURE__", params, &status);
+        temp_tex_ = ctx_.LoadTexture2D("__TEMP_BLIT_TEXTURE__", params, ctx_.default_mem_allocs(), &status);
         assert(status == Ren::eTexLoadStatus::CreatedDefault);
     }
 
@@ -1096,7 +1096,7 @@ void Renderer::BlitPixelsTonemap(const void *data, const int w, const int h, con
         params.sampling.repeat = Ren::eTexRepeat::ClampToEdge;
 
         Ren::eTexLoadStatus status;
-        temp_tex_ = ctx_.LoadTexture2D("__TEMP_BLIT_TEXTURE__", params, &status);
+        temp_tex_ = ctx_.LoadTexture2D("__TEMP_BLIT_TEXTURE__", params, ctx_.default_mem_allocs(), &status);
         assert(status == Ren::eTexLoadStatus::CreatedDefault);
     }
 

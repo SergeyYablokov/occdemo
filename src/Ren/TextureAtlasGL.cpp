@@ -205,6 +205,10 @@ Ren::TextureAtlasArray::~TextureAtlasArray() {
 }
 
 Ren::TextureAtlasArray &Ren::TextureAtlasArray::operator=(TextureAtlasArray &&rhs) noexcept {
+    if (this == &rhs) {
+        return (*this);
+    }
+
     if (tex_id_ != 0xffffffff) {
         auto tex_id = (GLuint)tex_id_;
         glDeleteTextures(1, &tex_id);

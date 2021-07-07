@@ -37,9 +37,10 @@ class LinearAlloc {
     LinearAlloc &operator=(LinearAlloc &&rhs) noexcept = default;
 
     uint32_t size() const { return nodes_[0].size; }
+    uint32_t node_off(int i) { return nodes_[i].offset; }
 
-    int Alloc_Recursive(int i, uint32_t req_size, const char *tag);
-    int Find_Recursive(int i, uint32_t offset) const;
+    int Alloc_r(int i, uint32_t req_size, const char *tag);
+    int Find_r(int i, uint32_t offset) const;
     bool Free_Node(int i);
 
     void PrintNode(int i, std::string prefix, bool is_tail, ILog *log);

@@ -32,9 +32,9 @@ Ren::Sampler &Ren::Sampler::operator=(Sampler &&rhs) {
         return (*this);
     }
 
-    Destroy();
+    RefCounter::operator=(static_cast<RefCounter &&>(rhs));
 
-    RefCounter::operator=(std::move(rhs));
+    Destroy();
 
     id_ = exchange(rhs.id_, 0);
     params_ = exchange(rhs.params_, {});

@@ -144,7 +144,8 @@ void RpSSAO::LazyInit(Ren::Context &ctx, ShaderLoader &sh, RpAllocTex &ssao1_tex
             static const uint8_t white[] = {255, 255, 255, 255};
 
             Ren::eTexLoadStatus status;
-            dummy_white_ = ctx.LoadTexture2D("dummy_white", white, sizeof(white), p, &status);
+            dummy_white_ = ctx.LoadTexture2D("dummy_white", white, sizeof(white), p, ctx.default_stage_bufs(),
+                                             ctx.default_mem_allocs(), &status);
             assert(status == Ren::eTexLoadStatus::CreatedFromData || status == Ren::eTexLoadStatus::Found);
         }
 

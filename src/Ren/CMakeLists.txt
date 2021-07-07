@@ -91,6 +91,7 @@ if(${RENDERER} STREQUAL "GL")
                      GLExtDSAEmu.h
                      GLExtDSAEmu.cpp
                      FenceGL.cpp
+                     MemoryAllocatorGL.cpp
                      SamplerGL.h
                      SamplerGL.cpp
                      ShaderGL.h

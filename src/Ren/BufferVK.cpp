@@ -44,8 +44,8 @@ Ren::Buffer::Buffer(const char *name, ApiContext *api_ctx, const eBufType type, 
 Ren::Buffer::~Buffer() { Free(); }
 
 Ren::Buffer &Ren::Buffer::operator=(Buffer &&rhs) noexcept {
-    RefCounter::operator=(std::move((RefCounter &)rhs));
-    LinearAlloc::operator=(std::move((LinearAlloc &)rhs));
+    RefCounter::operator=(static_cast<RefCounter &&>(rhs));
+    LinearAlloc::operator=(static_cast<LinearAlloc &&>(rhs));
 
     if (handle_.buf != VK_NULL_HANDLE) {
         vkDestroyBuffer(api_ctx_->device, handle_.buf, nullptr);
@@ -78,9 +78,9 @@ Ren::Buffer &Ren::Buffer::operator=(Buffer &&rhs) noexcept {
 
 uint32_t Ren::Buffer::AllocRegion(uint32_t req_size, const char *tag, const Buffer *init_buf, void *_cmd_buf,
                                   uint32_t init_off) {
-    const int i = Alloc_Recursive(0, req_size, tag);
+    const int i = Alloc_r(0, req_size, tag);
     if (i != -1) {
-        Node &n = nodes_[i];
+        const Node &n = nodes_[i];
         assert(n.size == req_size);
 
         if (init_buf) {
@@ -135,7 +135,7 @@ uint32_t Ren::Buffer::AllocRegion(uint32_t req_size, const char *tag, const Buff
 }
 
 bool Ren::Buffer::FreeRegion(uint32_t offset) {
-    const int i = Find_Recursive(0, offset);
+    const int i = Find_r(0, offset);
     return Free_Node(i);
 }
 

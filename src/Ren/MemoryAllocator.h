@@ -65,10 +65,20 @@ class MemoryAllocator {
   public:
     MemoryAllocator(const char name[32], ApiContext *api_ctx, uint32_t initial_block_size, uint32_t mem_type_index,
                     float growth_factor);
+    ~MemoryAllocator();
 
+    MemoryAllocator(const MemoryAllocator &rhs) = delete;
+    MemoryAllocator(MemoryAllocator &&rhs) = default;
+
+    MemoryAllocator &operator=(const MemoryAllocator &rhs) = delete;
+    MemoryAllocator &operator=(MemoryAllocator &&rhs) = default;
+
+#if defined(USE_VK_RENDER)
+    VkDeviceMemory mem(int i) const { return blocks_[i].mem; }
+#endif
     uint32_t mem_type_index() const { return mem_type_index_; }
 
-    MemAllocation Allocate(uint32_t size, const char *tag);
+    MemAllocation Allocate(uint32_t size, uint32_t alignment, const char *tag);
     void Free(uint32_t block_ndx, uint32_t alloc_off);
 };
 
@@ -85,7 +95,7 @@ class MemoryAllocators {
         strcpy(name_, name);
     }
 
-    MemAllocation Allocate(uint32_t size, uint32_t mem_type_index, const char *tag) {
+    MemAllocation Allocate(uint32_t size, uint32_t alignment, uint32_t mem_type_index, const char *tag) {
         int alloc_index = -1;
         for (int i = 0; i < int(allocators_.size()); ++i) {
             if (allocators_[i].mem_type_index() == mem_type_index) {
@@ -101,7 +111,7 @@ class MemoryAllocators {
             allocators_.emplace_back(name, api_ctx_, initial_block_size_, mem_type_index, growth_factor_);
         }
 
-        return allocators_[alloc_index].Allocate(size, tag);
+        return allocators_[alloc_index].Allocate(size, alignment, tag);
     }
 };
 } // namespace Ren

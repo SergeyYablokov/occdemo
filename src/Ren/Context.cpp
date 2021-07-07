@@ -13,22 +13,22 @@ Ren::MeshRef Ren::Context::LoadMesh(const char *name, const float *positions, in
                                     BufferRef &vertex_buf2, BufferRef &index_buf, eMeshLoadStatus *load_status) {
     MeshRef ref = meshes_.FindByName(name);
     if (!ref) {
-        stage_bufs.fences[stage_bufs.cur].ClientWaitSync();
-        BegSingleTimeCommands(stage_bufs.cmd_bufs[stage_bufs.cur]);
-        ref = meshes_.Add(name, positions, vtx_count, indices, ndx_count, *stage_bufs.bufs[stage_bufs.cur],
-                          stage_bufs.cmd_bufs[stage_bufs.cur], vertex_buf1, vertex_buf2, index_buf, load_status, log_);
-        stage_bufs.fences[stage_bufs.cur] = EndSingleTimeCommands(stage_bufs.cmd_bufs[stage_bufs.cur]);
-        stage_bufs.cur = (stage_bufs.cur + 1) % StageBufferCount;
+        const int ndx = stage_bufs.next_index();
+        stage_bufs.fences[ndx].ClientWaitSync();
+        BegSingleTimeCommands(stage_bufs.cmd_bufs[ndx]);
+        ref = meshes_.Add(name, positions, vtx_count, indices, ndx_count, *stage_bufs.bufs[ndx],
+                          stage_bufs.cmd_bufs[ndx], vertex_buf1, vertex_buf2, index_buf, load_status, log_);
+        stage_bufs.fences[ndx] = EndSingleTimeCommands(stage_bufs.cmd_bufs[ndx]);
     } else {
         if (ref->ready()) {
             (*load_status) = eMeshLoadStatus::Found;
         } else if (positions) {
-            stage_bufs.fences[stage_bufs.cur].ClientWaitSync();
-            BegSingleTimeCommands(stage_bufs.cmd_bufs[stage_bufs.cur]);
-            ref->Init(positions, vtx_count, indices, ndx_count, *stage_bufs.bufs[stage_bufs.cur],
-                      stage_bufs.cmd_bufs[stage_bufs.cur], vertex_buf1, vertex_buf2, index_buf, load_status, log_);
-            stage_bufs.fences[stage_bufs.cur] = EndSingleTimeCommands(stage_bufs.cmd_bufs[stage_bufs.cur]);
-            stage_bufs.cur = (stage_bufs.cur + 1) % StageBufferCount;
+            const int ndx = stage_bufs.next_index();
+            stage_bufs.fences[ndx].ClientWaitSync();
+            BegSingleTimeCommands(stage_bufs.cmd_bufs[ndx]);
+            ref->Init(positions, vtx_count, indices, ndx_count, *stage_bufs.bufs[ndx], stage_bufs.cmd_bufs[ndx],
+                      vertex_buf1, vertex_buf2, index_buf, load_status, log_);
+            stage_bufs.fences[ndx] = EndSingleTimeCommands(stage_bufs.cmd_bufs[ndx]);
         }
     }
 
@@ -47,23 +47,22 @@ Ren::MeshRef Ren::Context::LoadMesh(const char *name, std::istream *data, const 
                                     eMeshLoadStatus *load_status) {
     MeshRef ref = meshes_.FindByName(name);
     if (!ref) {
-        stage_bufs.fences[stage_bufs.cur].ClientWaitSync();
-        BegSingleTimeCommands(stage_bufs.cmd_bufs[stage_bufs.cur]);
-        ref =
-            meshes_.Add(name, data, on_mat_load, *stage_bufs.bufs[stage_bufs.cur], stage_bufs.cmd_bufs[stage_bufs.cur],
-                        vertex_buf1, vertex_buf2, index_buf, skin_vertex_buf, delta_buf, load_status, log_);
-        stage_bufs.fences[stage_bufs.cur] = EndSingleTimeCommands(stage_bufs.cmd_bufs[stage_bufs.cur]);
-        stage_bufs.cur = (stage_bufs.cur + 1) % StageBufferCount;
+        const int ndx = stage_bufs.next_index();
+        stage_bufs.fences[ndx].ClientWaitSync();
+        BegSingleTimeCommands(stage_bufs.cmd_bufs[ndx]);
+        ref = meshes_.Add(name, data, on_mat_load, *stage_bufs.bufs[ndx], stage_bufs.cmd_bufs[ndx], vertex_buf1,
+                          vertex_buf2, index_buf, skin_vertex_buf, delta_buf, load_status, log_);
+        stage_bufs.fences[ndx] = EndSingleTimeCommands(stage_bufs.cmd_bufs[ndx]);
     } else {
         if (ref->ready()) {
             (*load_status) = eMeshLoadStatus::Found;
         } else if (data) {
-            stage_bufs.fences[stage_bufs.cur].ClientWaitSync();
-            BegSingleTimeCommands(stage_bufs.cmd_bufs[stage_bufs.cur]);
-            ref->Init(data, on_mat_load, *stage_bufs.bufs[stage_bufs.cur], stage_bufs.cmd_bufs[stage_bufs.cur],
-                      vertex_buf1, vertex_buf2, index_buf, skin_vertex_buf, delta_buf, load_status, log_);
-            stage_bufs.fences[stage_bufs.cur] = EndSingleTimeCommands(stage_bufs.cmd_bufs[stage_bufs.cur]);
-            stage_bufs.cur = (stage_bufs.cur + 1) % StageBufferCount;
+            const int ndx = stage_bufs.next_index();
+            stage_bufs.fences[ndx].ClientWaitSync();
+            BegSingleTimeCommands(stage_bufs.cmd_bufs[ndx]);
+            ref->Init(data, on_mat_load, *stage_bufs.bufs[ndx], stage_bufs.cmd_bufs[ndx], vertex_buf1, vertex_buf2,
+                      index_buf, skin_vertex_buf, delta_buf, load_status, log_);
+            stage_bufs.fences[ndx] = EndSingleTimeCommands(stage_bufs.cmd_bufs[ndx]);
         }
     }
 
@@ -203,13 +202,14 @@ void Ren::Context::ReleasePrograms() {
     programs_.clear();
 }
 
-Ren::Tex2DRef Ren::Context::LoadTexture2D(const char *name, const Tex2DParams &p, eTexLoadStatus *load_status) {
+Ren::Tex2DRef Ren::Context::LoadTexture2D(const char *name, const Tex2DParams &p, MemoryAllocators *mem_allocs,
+                                          eTexLoadStatus *load_status) {
     Tex2DRef ref = textures_.FindByName(name);
     if (!ref) {
-        ref = textures_.Add(name, p, log_);
+        ref = textures_.Add(name, api_ctx_.get(), p, mem_allocs, log_);
         (*load_status) = eTexLoadStatus::CreatedDefault;
     } else if (ref->params() != p) {
-        ref->Init(p, log_);
+        ref->Init(p, mem_allocs, log_);
         (*load_status) = eTexLoadStatus::Reinitialized;
     } else {
         (*load_status) = eTexLoadStatus::Found;
@@ -218,14 +218,24 @@ Ren::Tex2DRef Ren::Context::LoadTexture2D(const char *name, const Tex2DParams &p
 }
 
 Ren::Tex2DRef Ren::Context::LoadTexture2D(const char *name, const void *data, int size, const Tex2DParams &p,
+                                          StageBufs &stage_bufs, MemoryAllocators *mem_allocs,
                                           eTexLoadStatus *load_status) {
     Tex2DRef ref = textures_.FindByName(name);
     if (!ref) {
-        ref = textures_.Add(name, data, size, p, load_status, log_);
+        const int ndx = stage_bufs.next_index();
+        stage_bufs.fences[ndx].ClientWaitSync();
+        BegSingleTimeCommands(stage_bufs.cmd_bufs[ndx]);
+        ref = textures_.Add(name, api_ctx_.get(), data, size, p, *stage_bufs.bufs[ndx], stage_bufs.cmd_bufs[ndx],
+                            mem_allocs, load_status, log_);
+        stage_bufs.fences[ndx] = EndSingleTimeCommands(stage_bufs.cmd_bufs[ndx]);
     } else {
         (*load_status) = eTexLoadStatus::Found;
         if (!ref->ready() && data) {
-            ref->Init(data, size, p, load_status, log_);
+            const int ndx = stage_bufs.next_index();
+            stage_bufs.fences[ndx].ClientWaitSync();
+            BegSingleTimeCommands(stage_bufs.cmd_bufs[ndx]);
+            ref->Init(data, size, p, *stage_bufs.bufs[ndx], stage_bufs.cmd_bufs[ndx], mem_allocs, load_status, log_);
+            stage_bufs.fences[ndx] = EndSingleTimeCommands(stage_bufs.cmd_bufs[ndx]);
         }
     }
 
@@ -233,15 +243,25 @@ Ren::Tex2DRef Ren::Context::LoadTexture2D(const char *name, const void *data, in
 }
 
 Ren::Tex2DRef Ren::Context::LoadTextureCube(const char *name, const void *data[6], const int size[6],
-                                            const Tex2DParams &p, eTexLoadStatus *load_status) {
+                                            const Tex2DParams &p, StageBufs &stage_bufs, MemoryAllocators *mem_allocs,
+                                            eTexLoadStatus *load_status) {
     Tex2DRef ref = textures_.FindByName(name);
     if (!ref) {
-        ref = textures_.Add(name, data, size, p, load_status, log_);
+        const int ndx = stage_bufs.next_index();
+        stage_bufs.fences[ndx].ClientWaitSync();
+        BegSingleTimeCommands(stage_bufs.cmd_bufs[ndx]);
+        ref = textures_.Add(name, api_ctx_.get(), data, size, p, *stage_bufs.bufs[ndx], stage_bufs.cmd_bufs[ndx],
+                            mem_allocs, load_status, log_);
+        stage_bufs.fences[ndx] = EndSingleTimeCommands(stage_bufs.cmd_bufs[ndx]);
     } else {
         if (ref->ready()) {
             (*load_status) = eTexLoadStatus::Found;
         } else if (data) {
-            ref->Init(data, size, p, load_status, log_);
+            const int ndx = stage_bufs.next_index();
+            stage_bufs.fences[ndx].ClientWaitSync();
+            BegSingleTimeCommands(stage_bufs.cmd_bufs[ndx]);
+            ref->Init(data, size, p, *stage_bufs.bufs[ndx], stage_bufs.cmd_bufs[ndx], mem_allocs, load_status, log_);
+            stage_bufs.fences[ndx] = EndSingleTimeCommands(stage_bufs.cmd_bufs[ndx]);
         }
     }
 
@@ -301,22 +321,21 @@ Ren::TextureRegionRef Ren::Context::LoadTextureRegion(const char *name, const vo
                                                       eTexLoadStatus *load_status) {
     TextureRegionRef ref = texture_regions_.FindByName(name);
     if (!ref) {
-        stage_bufs.fences[stage_bufs.cur].ClientWaitSync();
-        BegSingleTimeCommands(stage_bufs.cmd_bufs[stage_bufs.cur]);
-        ref = texture_regions_.Add(name, data, size, *stage_bufs.bufs[stage_bufs.cur],
-                                   stage_bufs.cmd_bufs[stage_bufs.cur], p, &texture_atlas_, load_status);
-        stage_bufs.fences[stage_bufs.cur] = EndSingleTimeCommands(stage_bufs.cmd_bufs[stage_bufs.cur]);
-        stage_bufs.cur = (stage_bufs.cur + 1) % StageBufferCount;
+        const int ndx = stage_bufs.next_index();
+        stage_bufs.fences[ndx].ClientWaitSync();
+        BegSingleTimeCommands(stage_bufs.cmd_bufs[ndx]);
+        ref = texture_regions_.Add(name, data, size, *stage_bufs.bufs[ndx], stage_bufs.cmd_bufs[ndx], p,
+                                   &texture_atlas_, load_status);
+        stage_bufs.fences[ndx] = EndSingleTimeCommands(stage_bufs.cmd_bufs[ndx]);
     } else {
         if (ref->ready()) {
             (*load_status) = eTexLoadStatus::Found;
         } else {
-            stage_bufs.fences[stage_bufs.cur].ClientWaitSync();
-            BegSingleTimeCommands(stage_bufs.cmd_bufs[stage_bufs.cur]);
-            ref->Init(data, size, *stage_bufs.bufs[stage_bufs.cur], stage_bufs.cmd_bufs[stage_bufs.cur], p,
-                      &texture_atlas_, load_status);
-            stage_bufs.fences[stage_bufs.cur] = EndSingleTimeCommands(stage_bufs.cmd_bufs[stage_bufs.cur]);
-            stage_bufs.cur = (stage_bufs.cur + 1) % StageBufferCount;
+            const int ndx = stage_bufs.next_index();
+            stage_bufs.fences[ndx].ClientWaitSync();
+            BegSingleTimeCommands(stage_bufs.cmd_bufs[ndx]);
+            ref->Init(data, size, *stage_bufs.bufs[ndx], stage_bufs.cmd_bufs[ndx], p, &texture_atlas_, load_status);
+            stage_bufs.fences[ndx] = EndSingleTimeCommands(stage_bufs.cmd_bufs[ndx]);
         }
     }
     return ref;
@@ -485,4 +504,5 @@ void Ren::Context::ReleaseAll() {
     ReleaseBuffers();
 
     texture_atlas_ = {};
+    default_memory_allocs_.reset();
 }

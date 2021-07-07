@@ -18,7 +18,7 @@ struct SWcontext;
 
 namespace Ren {
 const int TextureAtlasWidth = 1024, TextureAtlasHeight = 512, TextureAtlasLayers = 4;
-const int StageBufferCount = 4;
+const int StageBufferCount = 16;
 
 struct ApiContext;
 
@@ -26,7 +26,16 @@ struct StageBufs {
     BufferRef bufs[StageBufferCount];
     SyncFence fences[StageBufferCount];
     void *cmd_bufs[StageBufferCount];
+
+  private:
     int cur = 0;
+
+  public:
+    int next_index() {
+        const int ret = cur;
+        cur = (cur + 1) % StageBufferCount;
+        return ret;
+    }
 };
 
 class Context : public TaskExecutor {
@@ -86,6 +95,7 @@ class Context : public TaskExecutor {
     BufferRef default_delta_buf() const { return default_delta_buf_; }
     BufferRef default_indices_buf() const { return default_indices_buf_; }
     StageBufs &default_stage_bufs() { return default_stage_bufs_; }
+    MemoryAllocators *default_mem_allocs() { return default_memory_allocs_.get(); }
 
     void BegSingleTimeCommands(void *cmd_buf);
     SyncFence EndSingleTimeCommands(void *cmd_buf);
@@ -134,11 +144,12 @@ class Context : public TaskExecutor {
     void ReleasePrograms();
 
     /*** Texture ***/
-    Tex2DRef LoadTexture2D(const char *name, const Tex2DParams &p, eTexLoadStatus *load_status);
-    Tex2DRef LoadTexture2D(const char *name, const void *data, int size, const Tex2DParams &p,
+    Tex2DRef LoadTexture2D(const char *name, const Tex2DParams &p, MemoryAllocators *mem_allocs,
                            eTexLoadStatus *load_status);
+    Tex2DRef LoadTexture2D(const char *name, const void *data, int size, const Tex2DParams &p, StageBufs &stage_bufs,
+                           MemoryAllocators *mem_allocs, eTexLoadStatus *load_status);
     Tex2DRef LoadTextureCube(const char *name, const void *data[6], const int size[6], const Tex2DParams &p,
-                             eTexLoadStatus *load_status);
+                             StageBufs &stage_bufs, MemoryAllocators *mem_allocs, eTexLoadStatus *load_status);
 
     void VisitTextures(uint32_t mask, const std::function<void(Texture2D &tex)> &callback);
     int NumTexturesNotReady();

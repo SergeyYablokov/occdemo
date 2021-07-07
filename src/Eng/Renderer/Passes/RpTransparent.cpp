@@ -107,10 +107,12 @@ void RpTransparent::LazyInit(Ren::Context &ctx, ShaderLoader &sh, RpAllocTex &co
         p.sampling.repeat = Ren::eTexRepeat::ClampToEdge;
 
         Ren::eTexLoadStatus status;
-        dummy_black_ = ctx.LoadTexture2D("dummy_black", black, sizeof(black), p, &status);
+        dummy_black_ = ctx.LoadTexture2D("dummy_black", black, sizeof(black), p, ctx.default_stage_bufs(),
+                                         ctx.default_mem_allocs(), &status);
         assert(status == Ren::eTexLoadStatus::CreatedFromData || status == Ren::eTexLoadStatus::Found);
 
-        dummy_white_ = ctx.LoadTexture2D("dummy_white", white, sizeof(white), p, &status);
+        dummy_white_ = ctx.LoadTexture2D("dummy_white", white, sizeof(white), p, ctx.default_stage_bufs(),
+                                         ctx.default_mem_allocs(), &status);
         assert(status == Ren::eTexLoadStatus::CreatedFromData || status == Ren::eTexLoadStatus::Found);
 
         initialized = true;

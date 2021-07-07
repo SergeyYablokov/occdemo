@@ -418,7 +418,9 @@ void SceneManager::LoadScene(const JsObjectP &js_scene) {
 #endif
 
             Ren::eTexLoadStatus load_status;
-            scene_data_.env.env_map = ren_ctx_.LoadTextureCube(tex_name.c_str(), data, size, p, &load_status);
+            scene_data_.env.env_map =
+                ren_ctx_.LoadTextureCube(tex_name.c_str(), data, size, p, ren_ctx_.default_stage_bufs(),
+                                         ren_ctx_.default_mem_allocs(), &load_status);
         }
         if (js_env.Has("env_map_pt")) {
             scene_data_.env.env_map_name_pt = Ren::String{js_env.at("env_map_pt").as_str().val.c_str()};
@@ -1094,14 +1096,14 @@ Ren::MeshRef SceneManager::LoadMesh(const char *name, std::istream *data,
     Ren::MeshRef ref = scene_data_.meshes.FindByName(name);
     if (!ref) {
         auto &stage = ren_ctx_.default_stage_bufs();
-        stage.fences[stage.cur].ClientWaitSync();
-        ren_ctx_.BegSingleTimeCommands(stage.cmd_bufs[stage.cur]);
-        ref = scene_data_.meshes.Add(name, data, on_mat_load, *stage.bufs[stage.cur], stage.cmd_bufs[stage.cur],
+        const int ndx = stage.next_index();
+        stage.fences[ndx].ClientWaitSync();
+        ren_ctx_.BegSingleTimeCommands(stage.cmd_bufs[ndx]);
+        ref = scene_data_.meshes.Add(name, data, on_mat_load, *stage.bufs[ndx], stage.cmd_bufs[ndx],
                                      ren_ctx_.default_vertex_buf1(), ren_ctx_.default_vertex_buf2(),
                                      ren_ctx_.default_indices_buf(), ren_ctx_.default_skin_vertex_buf(),
                                      ren_ctx_.default_delta_buf(), load_status, ren_ctx_.log());
-        stage.fences[stage.cur] = ren_ctx_.EndSingleTimeCommands(stage.cmd_bufs[stage.cur]);
-        stage.cur = (stage.cur + 1) % Ren::StageBufferCount;
+        stage.fences[ndx] = ren_ctx_.EndSingleTimeCommands(stage.cmd_bufs[ndx]);
     } else {
         if (ref->ready()) {
             if (load_status) {
@@ -1109,13 +1111,13 @@ Ren::MeshRef SceneManager::LoadMesh(const char *name, std::istream *data,
             }
         } else if (data) {
             auto &stage = ren_ctx_.default_stage_bufs();
-            stage.fences[stage.cur].ClientWaitSync();
-            ren_ctx_.BegSingleTimeCommands(stage.cmd_bufs[stage.cur]);
-            ref->Init(data, on_mat_load, *stage.bufs[stage.cur], stage.cmd_bufs[stage.cur],
-                      ren_ctx_.default_vertex_buf1(), ren_ctx_.default_vertex_buf2(), ren_ctx_.default_indices_buf(),
+            const int ndx = stage.next_index();
+            stage.fences[ndx].ClientWaitSync();
+            ren_ctx_.BegSingleTimeCommands(stage.cmd_bufs[ndx]);
+            ref->Init(data, on_mat_load, *stage.bufs[ndx], stage.cmd_bufs[ndx], ren_ctx_.default_vertex_buf1(),
+                      ren_ctx_.default_vertex_buf2(), ren_ctx_.default_indices_buf(),
                       ren_ctx_.default_skin_vertex_buf(), ren_ctx_.default_delta_buf(), load_status, ren_ctx_.log());
-            stage.fences[stage.cur] = ren_ctx_.EndSingleTimeCommands(stage.cmd_bufs[stage.cur]);
-            stage.cur = (stage.cur + 1) % Ren::StageBufferCount;
+            stage.fences[ndx] = ren_ctx_.EndSingleTimeCommands(stage.cmd_bufs[ndx]);
         }
     }
 
@@ -1147,13 +1149,25 @@ Ren::Tex2DRef SceneManager::LoadTexture(const char *name, const void *data, int 
                                         Ren::eTexLoadStatus *load_status) {
     Ren::Tex2DRef ref = scene_data_.textures.FindByName(name);
     if (!ref) {
-        ref = scene_data_.textures.Add(name, data, size, p, load_status, ren_ctx_.log());
+        auto &stage = ren_ctx_.default_stage_bufs();
+        const int ndx = stage.next_index();
+        stage.fences[ndx].ClientWaitSync();
+        ren_ctx_.BegSingleTimeCommands(stage.cmd_bufs[ndx]);
+        ref = scene_data_.textures.Add(name, ren_ctx_.api_ctx(), data, size, p, *stage.bufs[ndx], stage.cmd_bufs[ndx],
+                                       ren_ctx_.default_mem_allocs(), load_status, ren_ctx_.log());
+        stage.fences[ndx] = ren_ctx_.EndSingleTimeCommands(stage.cmd_bufs[ndx]);
     } else {
         if (load_status) {
             (*load_status) = Ren::eTexLoadStatus::Found;
         }
         if (!ref->ready() && data) {
-            ref->Init(data, size, p, load_status, ren_ctx_.log());
+            auto &stage = ren_ctx_.default_stage_bufs();
+            const int ndx = stage.next_index();
+            stage.fences[ndx].ClientWaitSync();
+            ren_ctx_.BegSingleTimeCommands(stage.cmd_bufs[ndx]);
+            ref->Init(data, size, p, *stage.bufs[ndx], stage.cmd_bufs[ndx], ren_ctx_.default_mem_allocs(),
+                      load_status, ren_ctx_.log());
+            stage.fences[ndx] = ren_ctx_.EndSingleTimeCommands(stage.cmd_bufs[ndx]);
         }
     }
 
