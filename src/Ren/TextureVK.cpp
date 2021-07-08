@@ -2,8 +2,9 @@
 
 #include <memory>
 
-//#include "GL.h"
 #include "Utils.h"
+
+#include "stb/stb_image.h"
 
 #ifdef _MSC_VER
 #pragma warning(push)
@@ -160,52 +161,57 @@ uint32_t TextureHandleCounter = 0;
 
 bool IsMainThread();
 
-/*GLenum ToSRGBFormat(const GLenum internal_format) {
-    switch (internal_format) {
-    case GL_RGB8:
-        return GL_SRGB8;
-    case GL_RGBA8:
-        return GL_SRGB8_ALPHA8;
-    case GL_COMPRESSED_RGBA_S3TC_DXT1_EXT:
-        return GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT;
-    case GL_COMPRESSED_RGBA_S3TC_DXT3_EXT:
-        return GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT;
-    case GL_COMPRESSED_RGBA_S3TC_DXT5_EXT:
-        return GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT;
-    case GL_COMPRESSED_RGBA_ASTC_4x4_KHR:
-        return GL_COMPRESSED_SRGB8_ALPHA8_ASTC_4x4_KHR;
-    case GL_COMPRESSED_RGBA_ASTC_5x4_KHR:
-        return GL_COMPRESSED_SRGB8_ALPHA8_ASTC_5x4_KHR;
-    case GL_COMPRESSED_RGBA_ASTC_5x5_KHR:
-        return GL_COMPRESSED_SRGB8_ALPHA8_ASTC_5x5_KHR;
-    case GL_COMPRESSED_RGBA_ASTC_6x5_KHR:
-        return GL_COMPRESSED_SRGB8_ALPHA8_ASTC_6x5_KHR;
-    case GL_COMPRESSED_RGBA_ASTC_6x6_KHR:
-        return GL_COMPRESSED_SRGB8_ALPHA8_ASTC_6x6_KHR;
-    case GL_COMPRESSED_RGBA_ASTC_8x5_KHR:
-        return GL_COMPRESSED_SRGB8_ALPHA8_ASTC_8x5_KHR;
-    case GL_COMPRESSED_RGBA_ASTC_8x6_KHR:
-        return GL_COMPRESSED_SRGB8_ALPHA8_ASTC_8x6_KHR;
-    case GL_COMPRESSED_RGBA_ASTC_8x8_KHR:
-        return GL_COMPRESSED_SRGB8_ALPHA8_ASTC_8x8_KHR;
-    case GL_COMPRESSED_RGBA_ASTC_10x5_KHR:
-        return GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x5_KHR;
-    case GL_COMPRESSED_RGBA_ASTC_10x6_KHR:
-        return GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x6_KHR;
-    case GL_COMPRESSED_RGBA_ASTC_10x8_KHR:
-        return GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x8_KHR;
-    case GL_COMPRESSED_RGBA_ASTC_10x10_KHR:
-        return GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x10_KHR;
-    case GL_COMPRESSED_RGBA_ASTC_12x10_KHR:
-        return GL_COMPRESSED_SRGB8_ALPHA8_ASTC_12x10_KHR;
-    case GL_COMPRESSED_RGBA_ASTC_12x12_KHR:
-        return GL_COMPRESSED_SRGB8_ALPHA8_ASTC_12x12_KHR;
+// make sure we can simply cast these
+static_assert(VkSampleCountFlagBits::VK_SAMPLE_COUNT_1_BIT == 1, "!");
+static_assert(VkSampleCountFlagBits::VK_SAMPLE_COUNT_2_BIT == 2, "!");
+static_assert(VkSampleCountFlagBits::VK_SAMPLE_COUNT_4_BIT == 4, "!");
+static_assert(VkSampleCountFlagBits::VK_SAMPLE_COUNT_8_BIT == 8, "!");
+
+VkFormat ToSRGBFormat(const VkFormat format) {
+    switch (format) {
+    case VK_FORMAT_R8G8B8_UNORM:
+        return VK_FORMAT_R8G8B8_SRGB;
+    case VK_FORMAT_R8G8B8A8_UNORM:
+        return VK_FORMAT_R8G8B8A8_SRGB;
+    case VK_FORMAT_BC1_RGBA_UNORM_BLOCK:
+        return VK_FORMAT_BC1_RGBA_SRGB_BLOCK;
+    case VK_FORMAT_BC2_UNORM_BLOCK:
+        return VK_FORMAT_BC2_SRGB_BLOCK;
+    case VK_FORMAT_BC3_UNORM_BLOCK:
+        return VK_FORMAT_BC3_SRGB_BLOCK;
+    case VK_FORMAT_ASTC_4x4_UNORM_BLOCK:
+        return VK_FORMAT_ASTC_4x4_SRGB_BLOCK;
+    case VK_FORMAT_ASTC_5x4_UNORM_BLOCK:
+        return VK_FORMAT_ASTC_5x4_SRGB_BLOCK;
+    case VK_FORMAT_ASTC_5x5_UNORM_BLOCK:
+        return VK_FORMAT_ASTC_5x5_SRGB_BLOCK;
+    case VK_FORMAT_ASTC_6x5_UNORM_BLOCK:
+        return VK_FORMAT_ASTC_6x5_SRGB_BLOCK;
+    case VK_FORMAT_ASTC_6x6_UNORM_BLOCK:
+        return VK_FORMAT_ASTC_6x6_SRGB_BLOCK;
+    case VK_FORMAT_ASTC_8x5_UNORM_BLOCK:
+        return VK_FORMAT_ASTC_8x5_SRGB_BLOCK;
+    case VK_FORMAT_ASTC_8x6_UNORM_BLOCK:
+        return VK_FORMAT_ASTC_8x6_SRGB_BLOCK;
+    case VK_FORMAT_ASTC_8x8_UNORM_BLOCK:
+        return VK_FORMAT_ASTC_8x8_SRGB_BLOCK;
+    case VK_FORMAT_ASTC_10x5_UNORM_BLOCK:
+        return VK_FORMAT_ASTC_10x5_SRGB_BLOCK;
+    case VK_FORMAT_ASTC_10x6_UNORM_BLOCK:
+        return VK_FORMAT_ASTC_10x6_SRGB_BLOCK;
+    case VK_FORMAT_ASTC_10x8_UNORM_BLOCK:
+        return VK_FORMAT_ASTC_10x8_SRGB_BLOCK;
+    case VK_FORMAT_ASTC_10x10_UNORM_BLOCK:
+        return VK_FORMAT_ASTC_10x10_SRGB_BLOCK;
+    case VK_FORMAT_ASTC_12x10_UNORM_BLOCK:
+        return VK_FORMAT_ASTC_12x10_SRGB_BLOCK;
+    case VK_FORMAT_ASTC_12x12_UNORM_BLOCK:
+        return VK_FORMAT_ASTC_12x12_SRGB_BLOCK;
     default:
         assert(false && "Unsupported format!");
     }
-
-    return 0xffffffff;
-}*/
+    return VK_FORMAT_UNDEFINED;
+}
 } // namespace Ren
 
 Ren::Texture2D::Texture2D(const char *name, ApiContext *api_ctx, const Tex2DParams &p, MemoryAllocators *mem_allocs,
@@ -241,80 +247,116 @@ Ren::Texture2D &Ren::Texture2D::operator=(Ren::Texture2D &&rhs) noexcept {
 
     api_ctx_ = exchange(rhs.api_ctx_, nullptr);
     handle_ = exchange(rhs.handle_, {});
+    sampler_ = std::move(rhs.sampler_);
     alloc_ = exchange(rhs.alloc_, {});
     params_ = exchange(rhs.params_, {});
     ready_ = exchange(rhs.ready_, false);
     cubemap_ready_ = exchange(rhs.cubemap_ready_, 0);
     name_ = std::move(rhs.name_);
 
+    layout = exchange(rhs.layout, VK_IMAGE_LAYOUT_UNDEFINED);
+    last_access_mask = exchange(rhs.last_access_mask, 0);
+    last_stage_mask = exchange(rhs.last_stage_mask, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT);
+
     return (*this);
 }
 
 void Ren::Texture2D::Init(const Tex2DParams &p, MemoryAllocators *mem_allocs, ILog *log) {
     assert(IsMainThread());
-    const void *null = nullptr;
-    InitFromRAWData(null, nullptr, nullptr, mem_allocs, p, log);
+    InitFromRAWData(nullptr, 0, nullptr, mem_allocs, p, log);
     ready_ = true;
 }
 
-void Ren::Texture2D::Init(const void *data, const uint32_t size, const Tex2DParams &p, Buffer &stage_buf,
-                          void *_cmd_buf, MemoryAllocators *mem_allocs, eTexLoadStatus *load_status, ILog *log) {
+void Ren::Texture2D::Init(const void *data, const uint32_t size, const Tex2DParams &p, Buffer &sbuf, void *_cmd_buf,
+                          MemoryAllocators *mem_allocs, eTexLoadStatus *load_status, ILog *log) {
     assert(IsMainThread());
     if (!data) {
+        uint8_t *stage_data = sbuf.Map(BufMapWrite);
+        memcpy(stage_data, p.fallback_color, 4);
+        sbuf.FlushMappedRange(0, 4);
+        sbuf.Unmap();
+
         Tex2DParams _p = p;
         _p.w = _p.h = 1;
         _p.mip_count = 1;
         _p.format = eTexFormat::RawRGBA8888;
-        InitFromRAWData(p.fallback_color, &stage_buf, _cmd_buf, mem_allocs, _p, log);
+
+        InitFromRAWData(&sbuf, 0, _cmd_buf, mem_allocs, _p, log);
         // mark it as not ready
         ready_ = false;
         (*load_status) = eTexLoadStatus::CreatedDefault;
     } else {
         if (name_.EndsWith(".tga_rgbe") != 0 || name_.EndsWith(".TGA_RGBE") != 0) {
-            InitFromTGA_RGBEFile(data, stage_buf, _cmd_buf, mem_allocs, p, log);
+            InitFromTGA_RGBEFile(data, sbuf, _cmd_buf, mem_allocs, p, log);
         } else if (name_.EndsWith(".tga") != 0 || name_.EndsWith(".TGA") != 0) {
-            InitFromTGAFile(data, stage_buf, _cmd_buf, mem_allocs, p, log);
+            InitFromTGAFile(data, sbuf, _cmd_buf, mem_allocs, p, log);
         } else if (name_.EndsWith(".dds") != 0 || name_.EndsWith(".DDS") != 0) {
-            InitFromDDSFile(data, size, mem_allocs, p, log);
+            InitFromDDSFile(data, size, sbuf, _cmd_buf, mem_allocs, p, log);
         } else if (name_.EndsWith(".ktx") != 0 || name_.EndsWith(".KTX") != 0) {
-            InitFromKTXFile(data, size, mem_allocs, p, log);
+            InitFromKTXFile(data, size, sbuf, _cmd_buf, mem_allocs, p, log);
         } else if (name_.EndsWith(".png") != 0 || name_.EndsWith(".PNG") != 0) {
-            InitFromPNGFile(data, size, mem_allocs, p, log);
+            InitFromPNGFile(data, size, sbuf, _cmd_buf, mem_allocs, p, log);
         } else {
-            InitFromRAWData(data, &stage_buf, _cmd_buf, mem_allocs, p, log);
+            uint8_t *stage_data = sbuf.Map(BufMapWrite);
+            memcpy(stage_data, data, size);
+            sbuf.FlushMappedRange(0, size);
+            sbuf.Unmap();
+
+            InitFromRAWData(&sbuf, 0, _cmd_buf, mem_allocs, p, log);
         }
         ready_ = true;
         (*load_status) = eTexLoadStatus::CreatedFromData;
     }
 }
 
-void Ren::Texture2D::Init(const void *data[6], const int size[6], const Tex2DParams &p, Buffer &stage_buf,
-                          void *_cmd_buf, MemoryAllocators *mem_allocs, eTexLoadStatus *load_status, ILog *log) {
+void Ren::Texture2D::Init(const void *data[6], const int size[6], const Tex2DParams &p, Buffer &sbuf, void *_cmd_buf,
+                          MemoryAllocators *mem_allocs, eTexLoadStatus *load_status, ILog *log) {
     assert(IsMainThread());
     if (!data) {
-        const void *_data[6] = {p.fallback_color, p.fallback_color, p.fallback_color,
-                                p.fallback_color, p.fallback_color, p.fallback_color};
+        uint8_t *stage_data = sbuf.Map(BufMapWrite);
+        memcpy(stage_data, p.fallback_color, 4);
+        sbuf.FlushMappedRange(0, 4);
+        sbuf.Unmap();
+
+        int data_off[6] = {};
+
         Tex2DParams _p = p;
         _p.w = _p.h = 1;
         _p.format = eTexFormat::RawRGBA8888;
-        InitFromRAWData(_data, mem_allocs, _p, log);
+        InitFromRAWData(sbuf, data_off, _cmd_buf, mem_allocs, _p, log);
         // mark it as not ready
         ready_ = false;
         cubemap_ready_ = 0;
         (*load_status) = eTexLoadStatus::CreatedDefault;
     } else {
         if (name_.EndsWith(".tga_rgbe") != 0 || name_.EndsWith(".TGA_RGBE") != 0) {
-            InitFromTGA_RGBEFile(data, mem_allocs, p, log);
+            InitFromTGA_RGBEFile(data, sbuf, _cmd_buf, mem_allocs, p, log);
         } else if (name_.EndsWith(".tga") != 0 || name_.EndsWith(".TGA") != 0) {
-            InitFromTGAFile(data, mem_allocs, p, log);
+            InitFromTGAFile(data, sbuf, _cmd_buf, mem_allocs, p, log);
         } else if (name_.EndsWith(".png") != 0 || name_.EndsWith(".PNG") != 0) {
-            InitFromPNGFile(data, size, mem_allocs, p, log);
+            InitFromPNGFile(data, size, sbuf, _cmd_buf, mem_allocs, p, log);
         } else if (name_.EndsWith(".ktx") != 0 || name_.EndsWith(".KTX") != 0) {
             InitFromKTXFile(data, size, mem_allocs, p, log);
         } else if (name_.EndsWith(".dds") != 0 || name_.EndsWith(".DDS") != 0) {
             InitFromDDSFile(data, size, mem_allocs, p, log);
         } else {
-            InitFromRAWData(data, mem_allocs, p, log);
+            uint8_t *stage_data = sbuf.Map(BufMapWrite);
+            uint32_t stage_off = 0;
+
+            int data_off[6];
+            for (int i = 0; i < 6; i++) {
+                if (data[i]) {
+                    memcpy(&stage_data[stage_off], data[i], size[i]);
+                    data_off[i] = int(stage_off);
+                    stage_off += size[i];
+                } else {
+                    data_off[i] = -1;
+                }
+            }
+            sbuf.FlushMappedRange(0, 4);
+            sbuf.Unmap();
+
+            InitFromRAWData(sbuf, data_off, _cmd_buf, mem_allocs, p, log);
         }
 
         ready_ = (cubemap_ready_ & (1u << 0u)) == 1;
@@ -330,6 +372,7 @@ void Ren::Texture2D::Free() {
     if (params_.format != eTexFormat::Undefined && !(params_.flags & TexNoOwnership)) {
         assert(IsMainThread());
 
+        vkDestroyImageView(api_ctx_->device, handle_.view, nullptr);
         vkDestroyImage(api_ctx_->device, handle_.img, nullptr);
 
         handle_ = {};
@@ -337,32 +380,101 @@ void Ren::Texture2D::Free() {
     }
 }
 
-void Ren::Texture2D::Realloc(const int w, const int h, int mip_count, const int samples, const Ren::eTexFormat format,
-                             const Ren::eTexBlock block, const bool is_srgb, ILog *log) {
-#if 0
-    GLuint tex_id;
-    glCreateTextures(samples > 1 ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D, 1, &tex_id);
-#ifdef ENABLE_OBJ_LABELS
-    glObjectLabel(GL_TEXTURE, tex_id, -1, name_.c_str());
-#endif
-    const GLuint internal_format = GLInternalFormatFromTexFormat(format, is_srgb);
+bool Ren::Texture2D::Realloc(const int w, const int h, int mip_count, const int samples, const Ren::eTexFormat format,
+                             const Ren::eTexBlock block, const bool is_srgb, void *_cmd_buf,
+                             MemoryAllocators *mem_allocs, ILog *log) {
+    VkImage new_image = VK_NULL_HANDLE;
+    VkImageView new_image_view = VK_NULL_HANDLE;
+    MemAllocation new_alloc = {};
 
     mip_count = std::min(mip_count, CalcMipCount(w, h, 1, Ren::eTexFilter::Trilinear));
 
-    // allocate all mip levels
-    ren_glTextureStorage2D_Comp(GL_TEXTURE_2D, tex_id, GLsizei(mip_count),
-                                internal_format, GLsizei(w), GLsizei(h));
+    { // create new image
+        VkImageCreateInfo img_info = {};
+        img_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+        img_info.imageType = VK_IMAGE_TYPE_2D;
+        img_info.extent.width = uint32_t(w);
+        img_info.extent.height = uint32_t(h);
+        img_info.extent.depth = 1;
+        img_info.mipLevels = mip_count;
+        img_info.arrayLayers = 1;
+        img_info.format = g_vk_formats[size_t(format)];
+        if (is_srgb) {
+            img_info.format = ToSRGBFormat(img_info.format);
+        }
+        img_info.tiling = VK_IMAGE_TILING_OPTIMAL;
+        img_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        img_info.usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT |
+                         VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+        img_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        img_info.samples = VkSampleCountFlagBits(samples);
+        img_info.flags = 0;
+
+        VkResult res = vkCreateImage(api_ctx_->device, &img_info, nullptr, &new_image);
+        if (res != VK_SUCCESS) {
+            log->Error("Failed to create image!");
+            return false;
+        }
+
+#ifdef ENABLE_OBJ_LABELS
+        VkDebugUtilsObjectNameInfoEXT name_info = {};
+        name_info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+        name_info.objectType = VK_OBJECT_TYPE_IMAGE;
+        name_info.objectHandle = uint64_t(new_image);
+        name_info.pObjectName = name_.c_str();
+        vkSetDebugUtilsObjectNameEXT(api_ctx_->device, &name_info);
+#endif
+
+        VkMemoryRequirements tex_mem_req;
+        vkGetImageMemoryRequirements(api_ctx_->device, handle_.img, &tex_mem_req);
+
+        new_alloc = mem_allocs->Allocate(
+            uint32_t(tex_mem_req.size), uint32_t(tex_mem_req.alignment),
+            FindMemoryType(&api_ctx_->mem_properties, tex_mem_req.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT),
+            name_.c_str());
+
+        const VkDeviceSize aligned_offset = AlignTo(VkDeviceSize(new_alloc.alloc_off), tex_mem_req.alignment);
+
+        res =
+            vkBindImageMemory(api_ctx_->device, handle_.img, new_alloc.owner->mem(new_alloc.block_ndx), aligned_offset);
+        if (res != VK_SUCCESS) {
+            log->Error("Failed to bind memory!");
+            return false;
+        }
+    }
+
+    { // create new image view
+        VkImageViewCreateInfo view_info = {};
+        view_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+        view_info.image = handle_.img;
+        view_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
+        view_info.format = g_vk_formats[size_t(format)];
+        if (is_srgb) {
+            view_info.format = ToSRGBFormat(view_info.format);
+        }
+        view_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        view_info.subresourceRange.baseMipLevel = 0;
+        view_info.subresourceRange.levelCount = mip_count;
+        view_info.subresourceRange.baseArrayLayer = 0;
+        view_info.subresourceRange.layerCount = 1;
+
+        const VkResult res = vkCreateImageView(api_ctx_->device, &view_info, nullptr, &new_image_view);
+        if (res != VK_SUCCESS) {
+            log->Error("Failed to create image view!");
+            return false;
+        }
+    }
+
 #ifdef TEX_VERBOSE_LOGGING
     if (params_.format != eTexFormat::Undefined) {
-        log->Info("Realloc %s, %ix%i (%i mips) -> %ix%i (%i mips)", name_.c_str(),
-                  int(params_.w), int(params_.h), int(params_.mip_count), w, h,
-                  mip_count);
+        log->Info("Realloc %s, %ix%i (%i mips) -> %ix%i (%i mips)", name_.c_str(), int(params_.w), int(params_.h),
+                  int(params_.mip_count), w, h, mip_count);
     } else {
         log->Info("Alloc %s %ix%i (%i mips)", name_.c_str(), w, h, mip_count);
     }
 #endif
 
-    const TexHandle new_handle = {tex_id, TextureHandleCounter++};
+    const TexHandle new_handle = {new_image, new_image_view, TextureHandleCounter++};
     uint16_t new_initialized_mips = 0;
 
     // copy data from old texture
@@ -378,20 +490,77 @@ void Ren::Texture2D::Realloc(const int w, const int h, int mip_count, const int 
             }
         }
 
-        for (; src_mip < int(params_.mip_count) && dst_mip < mip_count;
-             ++src_mip, ++dst_mip) {
+        VkImageCopy copy_regions[16];
+        uint32_t copy_regions_count = 0;
+
+        for (; src_mip < int(params_.mip_count) && dst_mip < mip_count; ++src_mip, ++dst_mip) {
             if (initialized_mips_ & (1u << src_mip)) {
-                glCopyImageSubData(GLuint(handle_.id), GL_TEXTURE_2D, GLint(src_mip), 0,
-                                   0, 0, GLuint(new_handle.id), GL_TEXTURE_2D,
-                                   GLint(dst_mip), 0, 0, 0,
-                                   GLsizei(std::max(params_.w >> src_mip, 1)),
-                                   GLsizei(std::max(params_.h >> src_mip, 1)), 1);
+                VkImageCopy &reg = copy_regions[copy_regions_count++];
+
+                reg.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+                reg.srcSubresource.baseArrayLayer = 0;
+                reg.srcSubresource.layerCount = 1;
+                reg.srcSubresource.mipLevel = src_mip;
+                reg.srcOffset = {0, 0, 0};
+                reg.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+                reg.dstSubresource.baseArrayLayer = 0;
+                reg.dstSubresource.layerCount = 1;
+                reg.dstSubresource.mipLevel = dst_mip;
+                reg.dstOffset = {0, 0, 0};
+                reg.extent = {uint32_t(std::max(w >> dst_mip, 1)), uint32_t(std::max(h >> dst_mip, 1)), 1};
+
 #ifdef TEX_VERBOSE_LOGGING
                 log->Info("Copying data mip %i [old] -> mip %i [new]", src_mip, dst_mip);
 #endif
 
                 new_initialized_mips |= (1u << dst_mip);
             }
+        }
+
+        if (copy_regions_count) {
+            VkCommandBuffer cmd_buf = reinterpret_cast<VkCommandBuffer>(_cmd_buf);
+
+            VkImageMemoryBarrier barriers[2] = {};
+
+            // src image barrier
+            barriers[0].sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+            barriers[0].srcAccessMask = this->last_access_mask;
+            barriers[0].dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+            barriers[0].oldLayout = this->layout;
+            barriers[0].newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+            barriers[0].srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            barriers[0].dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            barriers[0].image = handle_.img;
+            barriers[0].subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+            barriers[0].subresourceRange.baseMipLevel = 0;
+            barriers[0].subresourceRange.levelCount = params_.mip_count; // transit the whole image
+            barriers[0].subresourceRange.baseArrayLayer = 0;
+            barriers[0].subresourceRange.layerCount = 1;
+
+            // dst image barrier
+            barriers[1].sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+            barriers[1].srcAccessMask = 0;
+            barriers[1].dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+            barriers[1].oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+            barriers[1].newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+            barriers[1].srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            barriers[1].dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            barriers[1].image = new_image;
+            barriers[1].subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+            barriers[1].subresourceRange.baseMipLevel = 0;
+            barriers[1].subresourceRange.levelCount = mip_count; // transit the whole image
+            barriers[1].subresourceRange.baseArrayLayer = 0;
+            barriers[1].subresourceRange.layerCount = 1;
+
+            vkCmdPipelineBarrier(cmd_buf, this->last_stage_mask, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0,
+                                 nullptr, 2, barriers);
+
+            vkCmdCopyImage(cmd_buf, handle_.img, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, new_image,
+                           VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, copy_regions_count, copy_regions);
+
+            this->layout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+            this->last_access_mask = VK_ACCESS_TRANSFER_WRITE_BIT;
+            this->last_stage_mask = VK_PIPELINE_STAGE_TRANSFER_BIT;
         }
     }
     Free();
@@ -409,10 +578,11 @@ void Ren::Texture2D::Realloc(const int w, const int h, int mip_count, const int 
     params_.format = format;
     params_.block = block;
     initialized_mips_ = new_initialized_mips;
-#endif
+
+    return true;
 }
 
-void Ren::Texture2D::InitFromRAWData(const void *data, Buffer *stage_buf, void *_cmd_buf, MemoryAllocators *mem_allocs,
+void Ren::Texture2D::InitFromRAWData(Buffer *sbuf, int data_off, void *_cmd_buf, MemoryAllocators *mem_allocs,
                                      const Tex2DParams &p, ILog *log) {
     Free();
 
@@ -420,143 +590,183 @@ void Ren::Texture2D::InitFromRAWData(const void *data, Buffer *stage_buf, void *
     params_ = p;
     initialized_mips_ = 0;
 
-    VkImageCreateInfo img_info = {};
-    img_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-    img_info.imageType = VK_IMAGE_TYPE_2D;
-    img_info.extent.width = uint32_t(p.w);
-    img_info.extent.height = uint32_t(p.h);
-    img_info.extent.depth = 1;
-    img_info.mipLevels = CalcMipCount(p.w, p.h, 1, p.sampling.filter);
-    img_info.arrayLayers = 1;
-    img_info.format = g_vk_formats[size_t(p.format)];
-    img_info.tiling = VK_IMAGE_TILING_OPTIMAL;
-    img_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    img_info.usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT |
-                     VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-    img_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-    img_info.samples = VkSampleCountFlagBits(p.samples);
-    img_info.flags = 0;
+    const int mip_count = CalcMipCount(p.w, p.h, 1, p.sampling.filter);
 
-    VkResult res = vkCreateImage(api_ctx_->device, &img_info, nullptr, &handle_.img);
-    if (res != VK_SUCCESS) {
-        log->Error("Failed to create image!");
-        return;
+    { // create image
+        VkImageCreateInfo img_info = {};
+        img_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+        img_info.imageType = VK_IMAGE_TYPE_2D;
+        img_info.extent.width = uint32_t(p.w);
+        img_info.extent.height = uint32_t(p.h);
+        img_info.extent.depth = 1;
+        img_info.mipLevels = mip_count;
+        img_info.arrayLayers = 1;
+        img_info.format = g_vk_formats[size_t(p.format)];
+        img_info.tiling = VK_IMAGE_TILING_OPTIMAL;
+        img_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        img_info.usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT |
+                         VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+        img_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        img_info.samples = VkSampleCountFlagBits(p.samples);
+        img_info.flags = 0;
+
+        VkResult res = vkCreateImage(api_ctx_->device, &img_info, nullptr, &handle_.img);
+        if (res != VK_SUCCESS) {
+            log->Error("Failed to create image!");
+            return;
+        }
+
+#ifdef ENABLE_OBJ_LABELS
+        VkDebugUtilsObjectNameInfoEXT name_info = {};
+        name_info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+        name_info.objectType = VK_OBJECT_TYPE_IMAGE;
+        name_info.objectHandle = uint64_t(handle_.img);
+        name_info.pObjectName = name_.c_str();
+        vkSetDebugUtilsObjectNameEXT(api_ctx_->device, &name_info);
+#endif
+
+        VkMemoryRequirements tex_mem_req;
+        vkGetImageMemoryRequirements(api_ctx_->device, handle_.img, &tex_mem_req);
+
+        alloc_ = mem_allocs->Allocate(
+            uint32_t(tex_mem_req.size), uint32_t(tex_mem_req.alignment),
+            FindMemoryType(&api_ctx_->mem_properties, tex_mem_req.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT),
+            name_.c_str());
+
+        const VkDeviceSize aligned_offset = AlignTo(VkDeviceSize(alloc_.alloc_off), tex_mem_req.alignment);
+
+        res = vkBindImageMemory(api_ctx_->device, handle_.img, alloc_.owner->mem(alloc_.block_ndx), aligned_offset);
+        if (res != VK_SUCCESS) {
+            log->Error("Failed to bind memory!");
+            return;
+        }
     }
 
-    VkMemoryRequirements tex_mem_req;
-    vkGetImageMemoryRequirements(api_ctx_->device, handle_.img, &tex_mem_req);
+    { // create default image view
+        VkImageViewCreateInfo view_info = {};
+        view_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+        view_info.image = handle_.img;
+        view_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
+        view_info.format = g_vk_formats[size_t(p.format)];
+        view_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        view_info.subresourceRange.baseMipLevel = 0;
+        view_info.subresourceRange.levelCount = mip_count;
+        view_info.subresourceRange.baseArrayLayer = 0;
+        view_info.subresourceRange.layerCount = 1;
 
-    alloc_ = mem_allocs->Allocate(
-        uint32_t(tex_mem_req.size), uint32_t(tex_mem_req.alignment),
-        FindMemoryType(&api_ctx_->mem_properties, tex_mem_req.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT),
-        name_.c_str());
-
-    const VkDeviceSize aligned_offset = AlignTo(VkDeviceSize(alloc_.alloc_off), tex_mem_req.alignment);
-
-    res = vkBindImageMemory(api_ctx_->device, handle_.img, alloc_.owner->mem(alloc_.block_ndx), aligned_offset);
-    if (res != VK_SUCCESS) {
-        log->Error("Failed to bind memory!");
-        return;
+        const VkResult res = vkCreateImageView(api_ctx_->device, &view_info, nullptr, &handle_.view);
+        if (res != VK_SUCCESS) {
+            log->Error("Failed to create image view!");
+            return;
+        }
     }
 
-    if (data) {
+    if (sbuf) {
         assert(p.samples == 1);
-        assert(stage_buf && stage_buf->type() == eBufType::Stage);
+        assert(sbuf && sbuf->type() == eBufType::Stage);
         VkCommandBuffer cmd_buf = reinterpret_cast<VkCommandBuffer>(_cmd_buf);
+
+        VkBufferMemoryBarrier stage_barrier = {};
+        stage_barrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+        stage_barrier.srcAccessMask = sbuf->last_access_mask;
+        stage_barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+        stage_barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        stage_barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        stage_barrier.buffer = sbuf->handle().buf;
+        stage_barrier.offset = VkDeviceSize(data_off);
+        stage_barrier.size = VkDeviceSize(sbuf->size() - data_off);
+
+        VkImageMemoryBarrier img_barrier = {};
+        img_barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+        img_barrier.srcAccessMask = this->last_access_mask;
+        img_barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+        img_barrier.oldLayout = this->layout;
+        img_barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+        img_barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        img_barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        img_barrier.image = handle_.img;
+        img_barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        img_barrier.subresourceRange.baseMipLevel = 0;
+        img_barrier.subresourceRange.levelCount = mip_count; // transition whole image
+        img_barrier.subresourceRange.baseArrayLayer = 0;
+        img_barrier.subresourceRange.layerCount = 1;
+
+        vkCmdPipelineBarrier(cmd_buf, sbuf->last_stage_mask | this->last_stage_mask, VK_PIPELINE_STAGE_TRANSFER_BIT, 0,
+                             0, nullptr, 1, &stage_barrier, 1, &img_barrier);
+
+        VkBufferImageCopy region = {};
+        region.bufferOffset = VkDeviceSize(data_off);
+        region.bufferRowLength = 0;
+        region.bufferImageHeight = 0;
+
+        region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        region.imageSubresource.mipLevel = 0;
+        region.imageSubresource.baseArrayLayer = 0;
+        region.imageSubresource.layerCount = 1;
+
+        region.imageOffset = {0, 0, 0};
+        region.imageExtent = {uint32_t(p.w), uint32_t(p.h), 1};
+
+        vkCmdCopyBufferToImage(cmd_buf, sbuf->handle().buf, handle_.img, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1,
+                               &region);
+
+        sbuf->last_access_mask = VK_ACCESS_TRANSFER_READ_BIT;
+        sbuf->last_stage_mask = VK_PIPELINE_STAGE_TRANSFER_BIT;
+
+        this->layout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+        this->last_access_mask = VK_ACCESS_TRANSFER_WRITE_BIT;
+        this->last_stage_mask = VK_PIPELINE_STAGE_TRANSFER_BIT;
 
         initialized_mips_ |= (1u << 0);
     }
 
-#if 0
-    GLuint tex_id;
-    glCreateTextures(p.samples > 1 ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D, 1,
-                     &tex_id);
-#ifdef ENABLE_OBJ_LABELS
-    glObjectLabel(GL_TEXTURE, tex_id, -1, name_.c_str());
-#endif
-    handle_ = {tex_id, TextureHandleCounter++};
-
-    params_ = p;
-    initialized_mips_ = 0;
-
-    const auto format = (GLenum)GLFormatFromTexFormat(p.format),
-               internal_format = (GLenum)GLInternalFormatFromTexFormat(
-                   p.format, (p.flags & eTexFlags::TexSRGB) != 0),
-               type = (GLenum)GLTypeFromTexFormat(p.format);
-
-    auto mip_count = (GLsizei)CalcMipCount(p.w, p.h, 1, p.sampling.filter);
-
-    if (format != 0xffffffff && internal_format != 0xffffffff && type != 0xffffffff) {
-        if (p.flags & TexMutable) {
-            glBindTexture(GL_TEXTURE_2D, tex_id);
-            for (int i = 0; i < mip_count; i++) {
-                const int w = std::max(p.w << i, 1);
-                const int h = std::max(p.h << i, 1);
-                glTexImage2D(GL_TEXTURE_2D, GLint(i), internal_format, w, h, 0, format,
-                             type, (i == 0) ? data : nullptr);
-                initialized_mips_ |= (1u << i);
-            }
-        } else {
-            if (p.samples > 1) {
-                glBindTexture(GL_TEXTURE_2D_MULTISAMPLE, tex_id);
-                glTexStorage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, GLsizei(p.samples),
-                                          internal_format, GLsizei(p.w), GLsizei(p.h),
-                                          GL_TRUE);
-                initialized_mips_ |= (1u << 0);
-            } else {
-                // allocate all mip levels
-                ren_glTextureStorage2D_Comp(GL_TEXTURE_2D, tex_id, mip_count,
-                                            internal_format, GLsizei(p.w), GLsizei(p.h));
-                if (data) {
-                    // update first level
-                    ren_glTextureSubImage2D_Comp(GL_TEXTURE_2D, tex_id, 0, 0, 0, p.w, p.h,
-                                                 format, type, data);
-                    initialized_mips_ |= (1u << 0);
-                }
-            }
-        }
-    }
-
-    if (p.samples == 1) {
-        ApplySampling(p.sampling, log);
-    }
-
-    CheckError("create texture", log);
-#endif
+    sampler_.Init(api_ctx_, p.sampling);
 }
 
-void Ren::Texture2D::InitFromTGAFile(const void *data, Buffer &stage_buf, void *_cmd_buf, MemoryAllocators *mem_allocs,
+void Ren::Texture2D::InitFromTGAFile(const void *data, Buffer &sbuf, void *_cmd_buf, MemoryAllocators *mem_allocs,
                                      const Tex2DParams &p, ILog *log) {
     int w = 0, h = 0;
     eTexFormat format = eTexFormat::Undefined;
-    const std::unique_ptr<uint8_t[]> image_data = ReadTGAFile(data, w, h, format);
+    uint32_t img_size = 0;
+    const bool res1 = ReadTGAFile(data, w, h, format, nullptr, img_size);
+    assert(res1 && img_size <= sbuf.size());
+
+    uint8_t *stage_data = sbuf.Map(BufMapWrite);
+    const bool res2 = ReadTGAFile(data, w, h, format, stage_data, img_size);
+    assert(res2);
+    sbuf.FlushMappedRange(0, img_size);
+    sbuf.Unmap();
 
     Tex2DParams _p = p;
     _p.w = w;
     _p.h = h;
     _p.format = format;
 
-    InitFromRAWData(image_data.get(), &stage_buf, _cmd_buf, mem_allocs, _p, log);
+    InitFromRAWData(&sbuf, 0, _cmd_buf, mem_allocs, _p, log);
 }
 
-void Ren::Texture2D::InitFromTGA_RGBEFile(const void *data, Buffer &stage_buf, void *_cmd_buf,
-                                          MemoryAllocators *mem_allocs, const Tex2DParams &p, ILog *log) {
+void Ren::Texture2D::InitFromTGA_RGBEFile(const void *data, Buffer &sbuf, void *_cmd_buf, MemoryAllocators *mem_allocs,
+                                          const Tex2DParams &p, ILog *log) {
     int w = 0, h = 0;
     eTexFormat format = eTexFormat::Undefined;
     std::unique_ptr<uint8_t[]> image_data = ReadTGAFile(data, w, h, format);
+    assert(format == eTexFormat::RawRGBA8888);
 
-    std::unique_ptr<uint16_t[]> fp_data = ConvertRGBE_to_RGB16F(image_data.get(), w, h);
+    uint16_t *stage_data = reinterpret_cast<uint16_t *>(sbuf.Map(BufMapWrite));
+    ConvertRGBE_to_RGB16F(image_data.get(), w, h, stage_data);
+    sbuf.FlushMappedRange(0, 3 * w * h * sizeof(uint16_t));
+    sbuf.Unmap();
 
     Tex2DParams _p = p;
     _p.w = w;
     _p.h = h;
     _p.format = eTexFormat::RawRGB16F;
 
-    InitFromRAWData(fp_data.get(), &stage_buf, _cmd_buf, mem_allocs, _p, log);
+    InitFromRAWData(&sbuf, 0, _cmd_buf, mem_allocs, _p, log);
 }
 
-void Ren::Texture2D::InitFromDDSFile(const void *data, const int size, MemoryAllocators *mem_allocs,
-                                     const Tex2DParams &p, ILog *log) {
+void Ren::Texture2D::InitFromDDSFile(const void *data, const int size, Buffer &sbuf, void *_cmd_buf,
+                                     MemoryAllocators *mem_allocs, const Tex2DParams &p, ILog *log) {
     DDSHeader header;
     memcpy(&header, data, sizeof(DDSHeader));
 
@@ -588,133 +798,134 @@ void Ren::Texture2D::InitFromDDSFile(const void *data, const int size, MemoryAll
 
     Free();
     Realloc(int(header.dwWidth), int(header.dwHeight), int(header.dwMipMapCount), 1, format, block,
-            (p.flags & TexSRGB) != 0, log);
+            (p.flags & TexSRGB) != 0, _cmd_buf, mem_allocs, log);
 
     params_.flags = p.flags;
     params_.block = block;
     params_.sampling = p.sampling;
 
-#if 0
-    const GLuint internal_format =
-        GLInternalFormatFromTexFormat(params_.format, (p.flags & TexSRGB) != 0);
+    // const GLuint internal_format = GLInternalFormatFromTexFormat(params_.format, (p.flags & TexSRGB) != 0);
 
     int w = params_.w, h = params_.h;
-    int bytes_left = size - int(sizeof(DDSHeader));
+    uint32_t bytes_left = uint32_t(size) - sizeof(DDSHeader);
     const uint8_t *p_data = (uint8_t *)data + sizeof(DDSHeader);
 
+    assert(bytes_left <= sbuf.size());
+    uint8_t *stage_data = sbuf.Map(BufMapWrite);
+    memcpy(stage_data, p_data, bytes_left);
+    sbuf.FlushMappedRange(0, bytes_left);
+    sbuf.Unmap();
+
+    assert(sbuf.type() == eBufType::Stage);
+    VkCommandBuffer cmd_buf = reinterpret_cast<VkCommandBuffer>(_cmd_buf);
+
+    VkBufferMemoryBarrier buf_barrier = {};
+    buf_barrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+    buf_barrier.srcAccessMask = sbuf.last_access_mask;
+    buf_barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+    buf_barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    buf_barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    buf_barrier.buffer = sbuf.handle().buf;
+    buf_barrier.offset = 0;
+    buf_barrier.size = VkDeviceSize(bytes_left);
+
+    VkImageMemoryBarrier img_barrier = {};
+    img_barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+    img_barrier.srcAccessMask = this->last_access_mask;
+    img_barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+    img_barrier.oldLayout = this->layout;
+    img_barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+    img_barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    img_barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    img_barrier.image = handle_.img;
+    img_barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    img_barrier.subresourceRange.baseMipLevel = 0;
+    img_barrier.subresourceRange.levelCount = params_.mip_count; // transit the whole image
+    img_barrier.subresourceRange.baseArrayLayer = 0;
+    img_barrier.subresourceRange.layerCount = 1;
+
+    vkCmdPipelineBarrier(cmd_buf, sbuf.last_stage_mask | this->last_stage_mask, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0,
+                         nullptr, 1, &buf_barrier, 1, &img_barrier);
+
+    VkBufferImageCopy regions[16] = {};
+    int regions_count = 0;
+
+    uintptr_t data_off = 0;
     for (uint32_t i = 0; i < header.dwMipMapCount; i++) {
-        const int len = ((w + 3) / 4) * ((h + 3) / 4) * block_size_bytes;
+        const uint32_t len = ((w + 3) / 4) * ((h + 3) / 4) * block_size_bytes;
         if (len > bytes_left) {
-            log->Error("Insufficient data length, bytes left %i, expected %i", bytes_left,
-                       len);
+            log->Error("Insufficient data length, bytes left %i, expected %i", bytes_left, len);
             return;
         }
 
-        ren_glCompressedTextureSubImage2D_Comp(GL_TEXTURE_2D, GLuint(handle_.id),
-                                               GLint(i), 0, 0, w, h, internal_format, len,
-                                               p_data);
+        VkBufferImageCopy &reg = regions[regions_count++];
+
+        reg.bufferOffset = VkDeviceSize(data_off);
+        reg.bufferRowLength = 0;
+        reg.bufferImageHeight = 0;
+
+        reg.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        reg.imageSubresource.mipLevel = i;
+        reg.imageSubresource.baseArrayLayer = 0;
+        reg.imageSubresource.layerCount = 1;
+
         initialized_mips_ |= (1u << i);
 
-        p_data += len;
+        data_off += len;
         bytes_left -= len;
         w = std::max(w / 2, 1);
         h = std::max(h / 2, 1);
     }
-#endif
+
+    vkCmdCopyBufferToImage(cmd_buf, sbuf.handle().buf, handle_.img, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, regions_count,
+                           regions);
 
     ApplySampling(p.sampling, log);
 }
 
-void Ren::Texture2D::InitFromPNGFile(const void *data, const int size, MemoryAllocators *mem_allocs,
-                                     const Tex2DParams &p, ILog *log) {
-    Free();
+void Ren::Texture2D::InitFromPNGFile(const void *data, const int size, Buffer &sbuf, void *_cmd_buf,
+                                     MemoryAllocators *mem_allocs, const Tex2DParams &p, ILog *log) {
+    int width, height, channels;
+    unsigned char *const image_data = stbi_load_from_memory((const uint8_t *)data, size, &width, &height, &channels, 0);
 
-#if 0
-    GLuint tex_id;
-    glCreateTextures(GL_TEXTURE_2D, 1, &tex_id);
-#ifdef ENABLE_OBJ_LABELS
-    glObjectLabel(GL_TEXTURE, tex_id, -1, name_.c_str());
-#endif
-
-    handle_ = {tex_id, TextureHandleCounter++};
-    params_ = p;
-    initialized_mips_ = 0;
-
-    const unsigned res = SOIL_load_OGL_texture_from_memory(
-        (unsigned char *)data, size, SOIL_LOAD_AUTO, tex_id,
-        SOIL_FLAG_INVERT_Y /*| SOIL_FLAG_GL_MIPMAPS*/);
-    initialized_mips_ |= (1u << 0);
-    assert(res == tex_id);
-
-    GLint w, h;
-    glBindTexture(GL_TEXTURE_2D, tex_id);
-    glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &w);
-    glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, &h);
-
-    // generate mip maps manually
-    if (params_.flags & (eTexFlags::TexMIPMin | eTexFlags::TexMIPMax)) {
-        int width, height, channels;
-        uint8_t *const img_data = SOIL_load_image_from_memory(
-            (unsigned char *)data, size, &width, &height, &channels, 0);
-
-        std::unique_ptr<uint8_t[]> mipmaps[16];
-        int widths[16] = {}, heights[16] = {};
-
-        mipmaps[0].reset(new uint8_t[w * h * channels]);
-        widths[0] = w;
-        heights[0] = h;
-
-        for (int y = 0; y < h; y++) {
-            // flip y
-            memcpy(&mipmaps[0][y * w * channels], &img_data[(h - y - 1) * w * channels],
-                   w * channels);
-        }
-
-        // select mip operation
-        const Ren::eMipOp op = (params_.flags & eTexFlags::TexMIPMin)
-                                   ? Ren::eMipOp::MinBilinear
-                                   : Ren::eMipOp::MaxBilinear;
-        // use it for all channels
-        const Ren::eMipOp ops[4] = {op, op, op, op};
-        const int mip_count = InitMipMaps(mipmaps, widths, heights, 4, ops);
-
-        for (int lod = 1; lod < mip_count; lod++) {
-            glTexImage2D(GL_TEXTURE_2D, lod, (channels == 3 ? GL_RGB : GL_RGBA),
-                         widths[lod], heights[lod], 0, (channels == 3 ? GL_RGB : GL_RGBA),
-                         GL_UNSIGNED_BYTE, &mipmaps[lod][0]);
-            initialized_mips_ |= (1u << lod);
-        }
-
-        SOIL_free_image_data(img_data);
+    Tex2DParams _p = p;
+    _p.w = width;
+    _p.h = height;
+    if (channels == 3) {
+        _p.format = Ren::eTexFormat::RawRGB888;
+    } else if (channels == 4) {
+        _p.format = Ren::eTexFormat::RawRGBA8888;
+    } else {
+        assert(false);
     }
 
-    params_.w = int(w);
-    params_.h = int(h);
+    const uint32_t img_size = channels * width * height;
+    assert(img_size <= sbuf.size());
+    uint8_t *stage_data = sbuf.Map(BufMapWrite);
+    memcpy(stage_data, image_data, img_size);
+    sbuf.FlushMappedRange(0, img_size);
+    sbuf.Unmap();
 
-#endif
-
-    ApplySampling(p.sampling, log);
+    InitFromRAWData(&sbuf, 0, _cmd_buf, mem_allocs, _p, log);
+    free(image_data);
 }
 
-void Ren::Texture2D::InitFromKTXFile(const void *data, const int size, MemoryAllocators *mem_allocs,
-                                     const Tex2DParams &p, ILog *log) {
+void Ren::Texture2D::InitFromKTXFile(const void *data, const int size, Buffer &sbuf, void *_cmd_buf,
+                                     MemoryAllocators *mem_allocs, const Tex2DParams &p, ILog *log) {
     KTXHeader header;
     memcpy(&header, data, sizeof(KTXHeader));
 
-#if 0
     eTexBlock block;
     bool is_srgb_format;
-    eTexFormat format =
-        FormatFromGLInternalFormat(header.gl_internal_format, &block, &is_srgb_format);
+    eTexFormat format = FormatFromGLInternalFormat(header.gl_internal_format, &block, &is_srgb_format);
 
     if (is_srgb_format && (params_.flags & TexSRGB) == 0) {
         log->Warning("Loading SRGB texture as non-SRGB!");
     }
 
     Free();
-    Realloc(int(header.pixel_width), int(header.pixel_height),
-            int(header.mipmap_levels_count), 1, format, block, (p.flags & TexSRGB) != 0,
-            log);
+    Realloc(int(header.pixel_width), int(header.pixel_height), int(header.mipmap_levels_count), 1, format, block,
+            (p.flags & TexSRGB) != 0, nullptr, nullptr, log);
 
     params_.flags = p.flags;
     params_.block = block;
@@ -729,27 +940,72 @@ void Ren::Texture2D::InitFromKTXFile(const void *data, const int size, MemoryAll
     const auto *_data = (const uint8_t *)data;
     int data_offset = sizeof(KTXHeader);
 
+    assert(uint32_t(size - data_offset) <= sbuf.size());
+    uint8_t *stage_data = sbuf.Map(BufMapWrite);
+    memcpy(stage_data, _data, size);
+    sbuf.FlushMappedRange(0, size);
+    sbuf.Unmap();
+
+    assert(sbuf.type() == eBufType::Stage);
+    VkCommandBuffer cmd_buf = reinterpret_cast<VkCommandBuffer>(_cmd_buf);
+
+    VkBufferMemoryBarrier buf_barrier = {};
+    buf_barrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+    buf_barrier.srcAccessMask = sbuf.last_access_mask;
+    buf_barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+    buf_barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    buf_barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    buf_barrier.buffer = sbuf.handle().buf;
+    buf_barrier.offset = 0;
+    buf_barrier.size = VkDeviceSize(size);
+
+    VkImageMemoryBarrier img_barrier = {};
+    img_barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+    img_barrier.srcAccessMask = this->last_access_mask;
+    img_barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+    img_barrier.oldLayout = this->layout;
+    img_barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+    img_barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    img_barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    img_barrier.image = handle_.img;
+    img_barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    img_barrier.subresourceRange.baseMipLevel = 0;
+    img_barrier.subresourceRange.levelCount = params_.mip_count; // transit the whole image
+    img_barrier.subresourceRange.baseArrayLayer = 0;
+    img_barrier.subresourceRange.layerCount = 1;
+
+    vkCmdPipelineBarrier(cmd_buf, sbuf.last_stage_mask | this->last_stage_mask, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0,
+                         nullptr, 1, &buf_barrier, 1, &img_barrier);
+
+    VkBufferImageCopy regions[16] = {};
+    int regions_count = 0;
+
     for (int i = 0; i < int(header.mipmap_levels_count); i++) {
         if (data_offset + int(sizeof(uint32_t)) > size) {
-            log->Error("Insufficient data length, bytes left %i, expected %i",
-                       size - data_offset, sizeof(uint32_t));
+            log->Error("Insufficient data length, bytes left %i, expected %i", size - data_offset, sizeof(uint32_t));
             break;
         }
 
         uint32_t img_size;
         memcpy(&img_size, &_data[data_offset], sizeof(uint32_t));
         if (data_offset + int(img_size) > size) {
-            log->Error("Insufficient data length, bytes left %i, expected %i",
-                       size - data_offset, img_size);
+            log->Error("Insufficient data length, bytes left %i, expected %i", size - data_offset, img_size);
             break;
         }
 
         data_offset += sizeof(uint32_t);
 
-        ren_glCompressedTextureSubImage2D_Comp(
-            GL_TEXTURE_2D, GLuint(handle_.id), i, 0, 0, w, h,
-            GLInternalFormatFromTexFormat(params_.format, (params_.flags & TexSRGB) != 0),
-            GLsizei(img_size), &_data[data_offset]);
+        VkBufferImageCopy &reg = regions[regions_count++];
+
+        reg.bufferOffset = VkDeviceSize(data_offset);
+        reg.bufferRowLength = 0;
+        reg.bufferImageHeight = 0;
+
+        reg.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        reg.imageSubresource.mipLevel = i;
+        reg.imageSubresource.baseArrayLayer = 0;
+        reg.imageSubresource.layerCount = 1;
+
         initialized_mips_ |= (1u << i);
         data_offset += img_size;
 
@@ -759,17 +1015,18 @@ void Ren::Texture2D::InitFromKTXFile(const void *data, const int size, MemoryAll
         const int pad = (data_offset % 4) ? (4 - (data_offset % 4)) : 0;
         data_offset += pad;
     }
-#endif
+
+    vkCmdCopyBufferToImage(cmd_buf, sbuf.handle().buf, handle_.img, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, regions_count,
+                           regions);
 
     ApplySampling(p.sampling, log);
 }
 
-void Ren::Texture2D::InitFromRAWData(const void *data[6], MemoryAllocators *mem_allocs, const Tex2DParams &p,
-                                     ILog *log) {
+void Ren::Texture2D::InitFromRAWData(Buffer &sbuf, int data_off[6], void *_cmd_buf, MemoryAllocators *mem_allocs,
+                                     const Tex2DParams &p, ILog *log) {
     assert(p.w > 0 && p.h > 0);
     Free();
-
-#if 0
+    #if 0
     GLuint tex_id;
     glCreateTextures(GL_TEXTURE_CUBE_MAP, 1, &tex_id);
 #ifdef ENABLE_OBJ_LABELS
@@ -780,8 +1037,7 @@ void Ren::Texture2D::InitFromRAWData(const void *data[6], MemoryAllocators *mem_
     params_ = p;
 
     const auto format = (GLenum)GLFormatFromTexFormat(params_.format),
-               internal_format = (GLenum)GLInternalFormatFromTexFormat(
-                   params_.format, (p.flags & TexSRGB) != 0),
+               internal_format = (GLenum)GLInternalFormatFromTexFormat(params_.format, (p.flags & TexSRGB) != 0),
                type = (GLenum)GLTypeFromTexFormat(params_.format);
 
     const int w = p.w, h = p.h;
@@ -790,136 +1046,157 @@ void Ren::Texture2D::InitFromRAWData(const void *data[6], MemoryAllocators *mem_
     auto mip_count = (GLsizei)CalcMipCount(w, h, 1, f);
 
     // allocate all mip levels
-    ren_glTextureStorage2D_Comp(GL_TEXTURE_CUBE_MAP, tex_id, mip_count, internal_format,
-                                w, h);
+    ren_glTextureStorage2D_Comp(GL_TEXTURE_CUBE_MAP, tex_id, mip_count, internal_format, w, h);
+
+    glBindBuffer(GL_PIXEL_UNPACK_BUFFER, sbuf.id());
 
     for (unsigned i = 0; i < 6; i++) {
-        if (!data[i]) {
+        if (data_off[i] == -1) {
             continue;
         } else {
             cubemap_ready_ |= (1u << i);
         }
 
         if (format != 0xffffffff && internal_format != 0xffffffff && type != 0xffffffff) {
-            ren_glTextureSubImage3D_Comp(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, tex_id, 0, 0,
-                                         0, i, w, h, 1, format, type, data[i]);
+            ren_glTextureSubImage3D_Comp(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, tex_id, 0, 0, 0, i, w, h, 1, format, type,
+                                         reinterpret_cast<const GLvoid *>(uintptr_t(data_off[i])));
         }
     }
+
+    glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
 
     if (f == eTexFilter::NoFilter) {
-        ren_glTextureParameteri_Comp(GL_TEXTURE_CUBE_MAP, tex_id, GL_TEXTURE_MIN_FILTER,
-                                     GL_NEAREST);
-        ren_glTextureParameteri_Comp(GL_TEXTURE_CUBE_MAP, tex_id, GL_TEXTURE_MAG_FILTER,
-                                     GL_NEAREST);
+        ren_glTextureParameteri_Comp(GL_TEXTURE_CUBE_MAP, tex_id, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        ren_glTextureParameteri_Comp(GL_TEXTURE_CUBE_MAP, tex_id, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     } else if (f == eTexFilter::Bilinear) {
         ren_glTextureParameteri_Comp(GL_TEXTURE_CUBE_MAP, tex_id, GL_TEXTURE_MIN_FILTER,
-                                     (cubemap_ready_ == 0x3F) ? GL_LINEAR_MIPMAP_NEAREST
-                                                              : GL_LINEAR);
-        ren_glTextureParameteri_Comp(GL_TEXTURE_CUBE_MAP, tex_id, GL_TEXTURE_MAG_FILTER,
-                                     GL_LINEAR);
+                                     (cubemap_ready_ == 0x3F) ? GL_LINEAR_MIPMAP_NEAREST : GL_LINEAR);
+        ren_glTextureParameteri_Comp(GL_TEXTURE_CUBE_MAP, tex_id, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     } else if (f == eTexFilter::Trilinear) {
         ren_glTextureParameteri_Comp(GL_TEXTURE_CUBE_MAP, tex_id, GL_TEXTURE_MIN_FILTER,
-                                     (cubemap_ready_ == 0x3F) ? GL_LINEAR_MIPMAP_LINEAR
-                                                              : GL_LINEAR);
-        ren_glTextureParameteri_Comp(GL_TEXTURE_CUBE_MAP, tex_id, GL_TEXTURE_MAG_FILTER,
-                                     GL_LINEAR);
+                                     (cubemap_ready_ == 0x3F) ? GL_LINEAR_MIPMAP_LINEAR : GL_LINEAR);
+        ren_glTextureParameteri_Comp(GL_TEXTURE_CUBE_MAP, tex_id, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     } else if (f == eTexFilter::BilinearNoMipmap) {
-        ren_glTextureParameteri_Comp(GL_TEXTURE_CUBE_MAP, tex_id, GL_TEXTURE_MIN_FILTER,
-                                     GL_LINEAR);
-        ren_glTextureParameteri_Comp(GL_TEXTURE_CUBE_MAP, tex_id, GL_TEXTURE_MAG_FILTER,
-                                     GL_LINEAR);
+        ren_glTextureParameteri_Comp(GL_TEXTURE_CUBE_MAP, tex_id, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        ren_glTextureParameteri_Comp(GL_TEXTURE_CUBE_MAP, tex_id, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     }
 
-    ren_glTextureParameteri_Comp(GL_TEXTURE_CUBE_MAP, tex_id, GL_TEXTURE_WRAP_S,
-                                 GL_CLAMP_TO_EDGE);
-    ren_glTextureParameteri_Comp(GL_TEXTURE_CUBE_MAP, tex_id, GL_TEXTURE_WRAP_T,
-                                 GL_CLAMP_TO_EDGE);
+    ren_glTextureParameteri_Comp(GL_TEXTURE_CUBE_MAP, tex_id, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    ren_glTextureParameteri_Comp(GL_TEXTURE_CUBE_MAP, tex_id, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 #if !defined(GL_ES_VERSION_2_0) && !defined(__EMSCRIPTEN__)
-    ren_glTextureParameteri_Comp(GL_TEXTURE_CUBE_MAP, tex_id, GL_TEXTURE_WRAP_R,
-                                 GL_CLAMP_TO_EDGE);
+    ren_glTextureParameteri_Comp(GL_TEXTURE_CUBE_MAP, tex_id, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
 #endif
 
-    if ((f == eTexFilter::Trilinear || f == eTexFilter::Bilinear) &&
-        (cubemap_ready_ == 0x3F)) {
+    if ((f == eTexFilter::Trilinear || f == eTexFilter::Bilinear) && (cubemap_ready_ == 0x3F)) {
         ren_glGenerateTextureMipmap_Comp(GL_TEXTURE_CUBE_MAP, tex_id);
     }
-#endif
+    #endif
 }
 
-void Ren::Texture2D::InitFromTGAFile(const void *data[6], MemoryAllocators *mem_allocs, const Tex2DParams &p,
-                                     ILog *log) {
-    std::unique_ptr<uint8_t[]> image_data[6];
-    const void *_image_data[6] = {};
+void Ren::Texture2D::InitFromTGAFile(const void *data[6], Buffer &sbuf, void *_cmd_buf, MemoryAllocators *mem_allocs,
+                                     const Tex2DParams &p, ILog *log) {
     int w = 0, h = 0;
     eTexFormat format = eTexFormat::Undefined;
+
+    uint8_t *stage_data = sbuf.Map(BufMapWrite);
+    uint32_t stage_off = 0;
+
+    int data_off[6] = {-1, -1, -1, -1, -1, -1};
+
     for (int i = 0; i < 6; i++) {
         if (data[i]) {
-            image_data[i] = ReadTGAFile(data[i], w, h, format);
-            _image_data[i] = image_data[i].get();
+            uint32_t data_size;
+            const bool res1 = ReadTGAFile(data[i], w, h, format, nullptr, data_size);
+            assert(res1);
+
+            assert(stage_off + data_size < sbuf.size());
+            const bool res2 = ReadTGAFile(data[i], w, h, format, &stage_data[stage_off], data_size);
+            assert(res2);
+
+            data_off[i] = int(stage_off);
+            stage_off += data_size;
         }
     }
+
+    sbuf.FlushMappedRange(0, stage_off);
+    sbuf.Unmap();
 
     Tex2DParams _p = p;
     _p.w = w;
     _p.h = h;
     _p.format = format;
 
-    InitFromRAWData(_image_data, mem_allocs, _p, log);
+    InitFromRAWData(sbuf, data_off, _cmd_buf, mem_allocs, _p, log);
 }
 
-void Ren::Texture2D::InitFromTGA_RGBEFile(const void *data[6], MemoryAllocators *mem_allocs, const Tex2DParams &p,
-                                          ILog *log) {
-    std::unique_ptr<uint16_t[]> image_data[6];
-    const void *_image_data[6] = {};
+void Ren::Texture2D::InitFromTGA_RGBEFile(const void *data[6], Buffer &sbuf, void *_cmd_buf,
+                                          MemoryAllocators *mem_allocs, const Tex2DParams &p, ILog *log) {
     int w = p.w, h = p.h;
+
+    uint8_t *stage_data = sbuf.Map(BufMapWrite);
+    uint32_t stage_off = 0;
+
+    int data_off[6];
+
     for (int i = 0; i < 6; i++) {
         if (data[i]) {
-            image_data[i] = ConvertRGBE_to_RGB16F((const uint8_t *)data[i], w, h);
-            _image_data[i] = image_data[i].get();
+            const uint32_t img_size = 3 * w * h * sizeof(uint16_t);
+            assert(stage_off + img_size <= sbuf.size());
+            ConvertRGBE_to_RGB16F((const uint8_t *)data[i], w, h, (uint16_t *)&stage_data[stage_off]);
+            data_off[i] = int(stage_off);
+            stage_off += img_size;
+        } else {
+            data_off[i] = -1;
         }
     }
+
+    sbuf.FlushMappedRange(0, stage_off);
+    sbuf.Unmap();
 
     Tex2DParams _p = p;
     _p.w = w;
     _p.h = h;
     _p.format = Ren::eTexFormat::RawRGB16F;
 
-    InitFromRAWData(_image_data, mem_allocs, _p, log);
+    InitFromRAWData(sbuf, data_off, _cmd_buf, mem_allocs, _p, log);
 }
 
-void Ren::Texture2D::InitFromPNGFile(const void *data[6], const int size[6], MemoryAllocators *mem_allocs,
-                                     const Tex2DParams &p, ILog *log) {
-    Free();
+void Ren::Texture2D::InitFromPNGFile(const void *data[6], const int size[6], Buffer &sbuf, void *_cmd_buf,
+                                     MemoryAllocators *mem_allocs, const Tex2DParams &p, ILog *log) {
+    uint8_t *stage_data = sbuf.Map(BufMapWrite);
+    uint32_t stage_off = 0;
 
-#if 0
-    GLuint tex_id;
-    glCreateTextures(GL_TEXTURE_CUBE_MAP, 1, &tex_id);
-#ifdef ENABLE_OBJ_LABELS
-    glObjectLabel(GL_TEXTURE, tex_id, -1, name_.c_str());
-#endif
+    int data_off[6] = {-1, -1, -1, -1, -1, -1};
 
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_CUBE_MAP, tex_id);
+    int width, height, channels;
+    for (int i = 0; i < 6; i++) {
+        if (data[i]) {
+            uint8_t *img_data = stbi_load_from_memory((const uint8_t *)data[i], size[i], &width, &height, &channels, 0);
 
-    params_ = p;
+            assert(stage_off + channels * width * height <= sbuf.size());
+            memcpy(&stage_data[stage_off], img_data, channels * width * height);
+            data_off[i] = int(stage_off);
+            stage_off += channels * width * height;
 
-    unsigned int handle = SOIL_load_OGL_cubemap_from_memory(
-        (const unsigned char *)data[0], size[0], (const unsigned char *)data[1], size[1],
-        (const unsigned char *)data[2], size[2], (const unsigned char *)data[3], size[3],
-        (const unsigned char *)data[4], size[4], (const unsigned char *)data[5], size[5],
-        0, tex_id, SOIL_FLAG_INVERT_Y);
-    assert(handle == tex_id);
+            free(img_data);
+        }
+    }
 
-    GLint w, h;
-    glGetTexLevelParameteriv(GL_TEXTURE_CUBE_MAP_POSITIVE_X, 0, GL_TEXTURE_WIDTH, &w);
-    glGetTexLevelParameteriv(GL_TEXTURE_CUBE_MAP_POSITIVE_X, 0, GL_TEXTURE_HEIGHT, &h);
+    sbuf.FlushMappedRange(0, stage_off);
+    sbuf.Unmap();
 
-    params_.w = int(w);
-    params_.h = int(h);
-    params_.cube = 1;
-#endif
+    Tex2DParams _p = p;
+    _p.w = width;
+    _p.h = height;
+    if (channels == 3) {
+        _p.format = Ren::eTexFormat::RawRGB888;
+    } else if (channels == 4) {
+        _p.format = Ren::eTexFormat::RawRGBA8888;
+    } else {
+        assert(false);
+    }
 
-    ApplySampling(p.sampling, log);
+    InitFromRAWData(sbuf, data_off, _cmd_buf, mem_allocs, _p, log);
 }
 
 void Ren::Texture2D::InitFromDDSFile(const void *data[6], const int size[6], MemoryAllocators *mem_allocs,
@@ -992,7 +1269,7 @@ void Ren::Texture2D::InitFromDDSFile(const void *data[6], const int size[6], Mem
     params_.cube = 1;
 #endif
 
-    ApplySampling(p.sampling, log);
+    // ApplySampling(p.sampling, log);
 }
 
 void Ren::Texture2D::InitFromKTXFile(const void *data[6], const int size[6], MemoryAllocators *mem_allocs,
@@ -1075,88 +1352,7 @@ void Ren::Texture2D::InitFromKTXFile(const void *data[6], const int size[6], Mem
     }
 #endif
 
-    ApplySampling(p.sampling, log);
-}
-
-void Ren::Texture2D::ApplySampling(SamplingParams sampling, ILog *log) {
-#if 0
-    const auto tex_id = GLuint(handle_.id);
-
-    if (!params_.cube) {
-        ren_glTextureParameteri_Comp(GL_TEXTURE_2D, tex_id, GL_TEXTURE_MIN_FILTER,
-                                     g_gl_min_filter[size_t(sampling.filter)]);
-        ren_glTextureParameteri_Comp(GL_TEXTURE_2D, tex_id, GL_TEXTURE_MAG_FILTER,
-                                     g_gl_mag_filter[size_t(sampling.filter)]);
-
-        ren_glTextureParameteri_Comp(GL_TEXTURE_2D, tex_id, GL_TEXTURE_WRAP_S,
-                                     g_gl_wrap_mode[size_t(sampling.repeat)]);
-        ren_glTextureParameteri_Comp(GL_TEXTURE_2D, tex_id, GL_TEXTURE_WRAP_T,
-                                     g_gl_wrap_mode[size_t(sampling.repeat)]);
-
-#ifndef __ANDROID__
-        ren_glTextureParameterf_Comp(
-            GL_TEXTURE_2D, tex_id, GL_TEXTURE_LOD_BIAS,
-            (params_.flags & eTexFlags::TexNoBias) ? 0.0f : sampling.lod_bias.to_float());
-#endif
-        ren_glTextureParameterf_Comp(GL_TEXTURE_2D, tex_id, GL_TEXTURE_MIN_LOD,
-                                     sampling.min_lod.to_float());
-        ren_glTextureParameterf_Comp(GL_TEXTURE_2D, tex_id, GL_TEXTURE_MAX_LOD,
-                                     sampling.max_lod.to_float());
-
-        ren_glTextureParameterf_Comp(GL_TEXTURE_2D, tex_id, GL_TEXTURE_MAX_ANISOTROPY_EXT,
-                                     AnisotropyLevel);
-
-        const bool custom_mip_filter =
-            (params_.flags & (eTexFlags::TexMIPMin | eTexFlags::TexMIPMax));
-
-        if (!IsCompressedFormat(params_.format) &&
-            (sampling.filter == eTexFilter::Trilinear ||
-             sampling.filter == eTexFilter::Bilinear) &&
-            !custom_mip_filter) {
-            if (!initialized_mips_) {
-                log->Error("Error generating mips from uninitilized data!");
-            } else if (initialized_mips_ != (1u << 0)) {
-                log->Warning("Overriding initialized mips!");
-            }
-
-            ren_glGenerateTextureMipmap_Comp(GL_TEXTURE_2D, tex_id);
-
-            const int mip_count = CalcMipCount(params_.w, params_.h, 1, sampling.filter);
-            initialized_mips_ = (1u << mip_count) - 1;
-        }
-
-        if (sampling.compare != eTexCompare::None) {
-            assert(IsDepthFormat(params_.format));
-            ren_glTextureParameteri_Comp(GL_TEXTURE_2D, tex_id, GL_TEXTURE_COMPARE_MODE,
-                                         GL_COMPARE_REF_TO_TEXTURE);
-            ren_glTextureParameteri_Comp(GL_TEXTURE_2D, tex_id, GL_TEXTURE_COMPARE_FUNC,
-                                         g_gl_compare_func[size_t(sampling.compare)]);
-        } else {
-            ren_glTextureParameteri_Comp(GL_TEXTURE_2D, tex_id, GL_TEXTURE_COMPARE_MODE,
-                                         GL_NONE);
-        }
-    } else {
-        ren_glTextureParameteri_Comp(GL_TEXTURE_CUBE_MAP, tex_id, GL_TEXTURE_MIN_FILTER,
-                                     g_gl_min_filter[size_t(sampling.filter)]);
-        ren_glTextureParameteri_Comp(GL_TEXTURE_CUBE_MAP, tex_id, GL_TEXTURE_MAG_FILTER,
-                                     g_gl_mag_filter[size_t(sampling.filter)]);
-
-        ren_glTextureParameteri_Comp(GL_TEXTURE_CUBE_MAP, tex_id, GL_TEXTURE_WRAP_S,
-                                     g_gl_wrap_mode[size_t(sampling.repeat)]);
-        ren_glTextureParameteri_Comp(GL_TEXTURE_CUBE_MAP, tex_id, GL_TEXTURE_WRAP_T,
-                                     g_gl_wrap_mode[size_t(sampling.repeat)]);
-        ren_glTextureParameteri_Comp(GL_TEXTURE_CUBE_MAP, tex_id, GL_TEXTURE_WRAP_R,
-                                     g_gl_wrap_mode[size_t(sampling.repeat)]);
-
-        if (!IsCompressedFormat(params_.format) &&
-            (sampling.filter == eTexFilter::Trilinear ||
-             sampling.filter == eTexFilter::Bilinear)) {
-            ren_glGenerateTextureMipmap_Comp(GL_TEXTURE_CUBE_MAP, tex_id);
-        }
-    }
-#endif
-
-    params_.sampling = sampling;
+    // ApplySampling(p.sampling, log);
 }
 
 void Ren::Texture2D::SetSubImage(const int level, const int offsetx, const int offsety, const int sizex,

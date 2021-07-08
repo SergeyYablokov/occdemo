@@ -165,6 +165,7 @@ void Ren::CheckError(const char *op, ILog *log) {
 
 void Ren::Context::BegSingleTimeCommands(void *cmd_buf) {}
 Ren::SyncFence Ren::Context::EndSingleTimeCommands(void *cmd_buf) { return MakeFence(); }
+void *Ren::Context::current_cmd_buf() { return nullptr; }
 
 #ifdef _MSC_VER
 #pragma warning(pop)

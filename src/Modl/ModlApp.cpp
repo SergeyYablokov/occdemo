@@ -289,8 +289,10 @@ int ModlApp::Init(const int w, const int h) {
         p.w = p.h = checker_res;
         p.format = Ren::eTexFormat::RawRGB888;
 
+        Ren::eTexLoadStatus status;
         checker_tex_ = ctx_.LoadTexture2D("__diag_checker", &checker_data[0], int(checker_data.size()), p,
-                                          ctx_.default_stage_bufs(), ctx_.default_mem_allocs(), nullptr);
+                                          ctx_.default_stage_bufs(), ctx_.default_mem_allocs(), &status);
+        assert(status == Ren::eTexLoadStatus::CreatedFromData);
     }
 
     return 0;
@@ -1639,8 +1641,10 @@ Ren::Tex2DRef ModlApp::OnTextureNeeded(const char *name) {
                                    ctx_.ProcessSingleTask([this, tex_name, data, size]() {
                                        Ren::Tex2DParams p;
                                        p.sampling.filter = Ren::eTexFilter::Trilinear;
+
+                                       Ren::eTexLoadStatus status;
                                        ctx_.LoadTexture2D(tex_name.c_str(), data, size, p, ctx_.default_stage_bufs(),
-                                                          ctx_.default_mem_allocs(), nullptr);
+                                                          ctx_.default_mem_allocs(), &status);
                                        LOGI("Texture %s loaded", tex_name.c_str());
                                    });
                                },
@@ -1679,9 +1683,9 @@ Ren::ProgramRef ModlApp::OnProgramNeeded(const char *name, const char *vs_shader
 
         Ren::eShaderLoadStatus sh_status;
         Ren::ShaderRef vs_ref = ctx_.LoadShaderGLSL(vs_shader, vs_src.c_str(), Ren::eShaderType::Vert, &sh_status);
-        assert(sh_status == Ren::eShaderLoadStatus::CreatedFromData);
+        assert(sh_status == Ren::eShaderLoadStatus::CreatedFromData || sh_status == Ren::eShaderLoadStatus::Found);
         Ren::ShaderRef fs_ref = ctx_.LoadShaderGLSL(fs_shader, fs_src.c_str(), Ren::eShaderType::Frag, &sh_status);
-        assert(sh_status == Ren::eShaderLoadStatus::CreatedFromData);
+        assert(sh_status == Ren::eShaderLoadStatus::CreatedFromData || sh_status == Ren::eShaderLoadStatus::Found);
 
         ret = ctx_.LoadProgram(name, vs_ref, fs_ref, {}, {}, &status);
         assert(status == Ren::eProgLoadStatus::CreatedFromData);

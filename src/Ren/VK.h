@@ -147,6 +147,9 @@
 #define vkCmdPushConstants ren_vkCmdPushConstants
 #define vkCmdBlitImage ren_vkCmdBlitImage
 #define vkCmdClearColorImage ren_vkCmdClearColorImage
+#define vkCmdCopyImage ren_vkCmdCopyImage
+
+#define vkSetDebugUtilsObjectNameEXT ren_vkSetDebugUtilsObjectNameEXT
 
 extern "C" {
 EXTERN_FUNC PFN_vkCreateInstance ren_vkCreateInstance;
@@ -289,6 +292,9 @@ EXTERN_FUNC PFN_vkCmdCopyBuffer ren_vkCmdCopyBuffer;
 EXTERN_FUNC PFN_vkCmdPushConstants ren_vkCmdPushConstants;
 EXTERN_FUNC PFN_vkCmdBlitImage ren_vkCmdBlitImage;
 EXTERN_FUNC PFN_vkCmdClearColorImage ren_vkCmdClearColorImage;
+EXTERN_FUNC PFN_vkCmdCopyImage ren_vkCmdCopyImage;
+
+EXTERN_FUNC PFN_vkSetDebugUtilsObjectNameEXT ren_vkSetDebugUtilsObjectNameEXT;
 }
 
 #define VK_API_VERSION_MAJOR(version) (((uint32_t)(version) >> 22) & 0x7FU)

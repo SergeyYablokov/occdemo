@@ -384,7 +384,7 @@ int Ren::TextureAtlasArray::Allocate(const Buffer &sbuf, int data_off, int data_
                 img_barrier.subresourceRange.baseMipLevel = 0;
                 img_barrier.subresourceRange.levelCount = 1;
                 img_barrier.subresourceRange.baseArrayLayer = 0;
-                img_barrier.subresourceRange.layerCount = uint32_t(layer_count_); // transition whole image
+                img_barrier.subresourceRange.layerCount = uint32_t(layer_count_); // transit the whole image
                 ++img_barriers_count;
             }
 

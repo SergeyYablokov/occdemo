@@ -60,14 +60,14 @@ class Texture2D : public RefCounter {
 
     void Free();
 
-    void InitFromRAWData(Buffer *sbuf, int data_off, const Tex2DParams &p, ILog *log);
+    void InitFromRAWData(const Buffer *sbuf, int data_off, const Tex2DParams &p, ILog *log);
     void InitFromTGAFile(const void *data, Buffer &sbuf, const Tex2DParams &p, ILog *log);
     void InitFromTGA_RGBEFile(const void *data, Buffer &sbuf, const Tex2DParams &p, ILog *log);
     void InitFromDDSFile(const void *data, int size, Buffer &sbuf, const Tex2DParams &p, ILog *log);
     void InitFromPNGFile(const void *data, int size, Buffer &sbuf, const Tex2DParams &p, ILog *log);
     void InitFromKTXFile(const void *data, int size, Buffer &sbuf, const Tex2DParams &p, ILog *log);
 
-    void InitFromRAWData(Buffer &sbuf, int data_off[6], const Tex2DParams &p, ILog *log);
+    void InitFromRAWData(const Buffer &sbuf, int data_off[6], const Tex2DParams &p, ILog *log);
     void InitFromTGAFile(const void *data[6], Buffer &sbuf, const Tex2DParams &p, ILog *log);
     void InitFromTGA_RGBEFile(const void *data[6], Buffer &sbuf, const Tex2DParams &p, ILog *log);
     void InitFromPNGFile(const void *data[6], const int size[6], Buffer &sbuf, const Tex2DParams &p, ILog *log);
@@ -103,7 +103,7 @@ class Texture2D : public RefCounter {
               MemoryAllocators *mem_allocs, eTexLoadStatus *load_status, ILog *log);
 
     void Realloc(int w, int h, int mip_count, int samples, Ren::eTexFormat format, Ren::eTexBlock block, bool is_srgb,
-                 ILog *log);
+                 void *_cmd_buf, MemoryAllocators *mem_allocs, ILog *log);
 
     TexHandle handle() const { return handle_; }
     uint32_t id() const { return handle_.id; }
@@ -166,8 +166,6 @@ uint32_t GLFormatFromTexFormat(eTexFormat format);
 uint32_t GLInternalFormatFromTexFormat(eTexFormat format, bool is_srgb);
 uint32_t GLTypeFromTexFormat(eTexFormat format);
 uint32_t GLBindTarget(eBindTarget binding);
-
-eTexFormat FormatFromGLInternalFormat(uint32_t gl_internal_format, eTexBlock *block, bool *is_srgb);
 
 void GLUnbindTextureUnits(int start, int count);
 } // namespace Ren

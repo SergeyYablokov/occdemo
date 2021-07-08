@@ -100,6 +100,8 @@ class Context : public TaskExecutor {
     void BegSingleTimeCommands(void *cmd_buf);
     SyncFence EndSingleTimeCommands(void *cmd_buf);
 
+    void *current_cmd_buf();
+
     TextureAtlasArray &texture_atlas() { return texture_atlas_; }
 
     void Resize(int w, int h);

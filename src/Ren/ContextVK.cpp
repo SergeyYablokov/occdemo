@@ -229,6 +229,8 @@ Ren::SyncFence Ren::Context::EndSingleTimeCommands(void *cmd_buf) {
     return SyncFence{api_ctx_->device, new_fence};
 }
 
+void *Ren::Context::current_cmd_buf() { return api_ctx_->draw_cmd_buf[backend_frame]; }
+
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif

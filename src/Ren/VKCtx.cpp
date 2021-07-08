@@ -50,7 +50,8 @@ bool Ren::InitVkInstance(VkInstance &instance, const char *enabled_layers[], con
 #elif defined(VK_USE_PLATFORM_MACOS_MVK)
         VK_MVK_MACOS_SURFACE_EXTENSION_NAME,
 #endif
-        VK_EXT_DEBUG_REPORT_EXTENSION_NAME
+        VK_EXT_DEBUG_REPORT_EXTENSION_NAME,
+        VK_EXT_DEBUG_UTILS_EXTENSION_NAME
     };
     const uint32_t number_required_extensions = sizeof(extensions) / sizeof(char *);
 

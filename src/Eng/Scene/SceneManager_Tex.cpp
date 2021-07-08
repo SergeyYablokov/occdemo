@@ -327,7 +327,8 @@ void SceneManager::ProcessPendingTextures(const int portion_size) {
                 const Ren::Tex2DParams &p = req->ref->params();
 
                 req->ref->Realloc(w, h, last_initialized_mip + 1 + req->mip_count_to_init, 1 /* samples */,
-                                  req->orig_format, req->orig_block, (p.flags & Ren::TexSRGB) != 0, ren_ctx_.log());
+                                  req->orig_format, req->orig_block, (p.flags & Ren::TexSRGB) != 0,
+                                  ren_ctx_.current_cmd_buf(), ren_ctx_.default_mem_allocs(), ren_ctx_.log());
 
                 int data_off = int(req->buf->data_off());
                 for (int i = int(req->mip_offset_to_init); i < int(req->mip_offset_to_init) + req->mip_count_to_init;
@@ -409,7 +410,7 @@ void SceneManager::ProcessPendingTextures(const int portion_size) {
             const int h = std::max(p.h >> p.mip_count, 1);
 
             req.ref->Realloc(w, h, 1 /* mip_count */, 1 /* samples */, p.format, p.block, p.flags & Ren::TexSRGB,
-                             ren_ctx_.log());
+                             ren_ctx_.current_cmd_buf(), ren_ctx_.default_mem_allocs(), ren_ctx_.log());
 
             p.sampling.min_lod.from_float(-1.0f);
             req.ref->SetSampling(p.sampling);
@@ -619,7 +620,7 @@ void SceneManager::ForceTextureReload() {
         const int h = std::max(p.h >> p.mip_count, 1);
 
         it->Realloc(w, h, 1 /* mip_count */, 1 /* samples */, p.format, p.block, p.flags & Ren::TexSRGB,
-                    ren_ctx_.log());
+                    ren_ctx_.current_cmd_buf(), ren_ctx_.default_mem_allocs(), ren_ctx_.log());
 
         p.sampling.min_lod.from_float(-1.0f);
         it->ApplySampling(p.sampling, ren_ctx_.log());

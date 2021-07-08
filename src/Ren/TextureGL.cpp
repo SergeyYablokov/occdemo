@@ -245,79 +245,79 @@ void Ren::Texture2D::Init(const Tex2DParams &p, MemoryAllocators *, ILog *log) {
     ready_ = true;
 }
 
-void Ren::Texture2D::Init(const void *data, const uint32_t size, const Tex2DParams &p, Buffer &stage_buf,
-                          void *_cmd_buf, MemoryAllocators *mem_allocs, eTexLoadStatus *load_status, ILog *log) {
+void Ren::Texture2D::Init(const void *data, const uint32_t size, const Tex2DParams &p, Buffer &sbuf, void *_cmd_buf,
+                          MemoryAllocators *mem_allocs, eTexLoadStatus *load_status, ILog *log) {
     assert(IsMainThread());
     if (!data) {
-        uint8_t *stage_data = stage_buf.Map(BufMapWrite);
+        uint8_t *stage_data = sbuf.Map(BufMapWrite);
         memcpy(stage_data, p.fallback_color, 4);
-        stage_buf.FlushMappedRange(0, 4);
-        stage_buf.Unmap();
+        sbuf.FlushMappedRange(0, 4);
+        sbuf.Unmap();
 
         Tex2DParams _p = p;
         _p.w = _p.h = 1;
         _p.mip_count = 1;
         _p.format = eTexFormat::RawRGBA8888;
-        InitFromRAWData(&stage_buf, 0, _p, log);
+        InitFromRAWData(&sbuf, 0, _p, log);
         // mark it as not ready
         ready_ = false;
         (*load_status) = eTexLoadStatus::CreatedDefault;
     } else {
         if (name_.EndsWith(".tga_rgbe") != 0 || name_.EndsWith(".TGA_RGBE") != 0) {
-            InitFromTGA_RGBEFile(data, stage_buf, p, log);
+            InitFromTGA_RGBEFile(data, sbuf, p, log);
         } else if (name_.EndsWith(".tga") != 0 || name_.EndsWith(".TGA") != 0) {
-            InitFromTGAFile(data, stage_buf, p, log);
+            InitFromTGAFile(data, sbuf, p, log);
         } else if (name_.EndsWith(".dds") != 0 || name_.EndsWith(".DDS") != 0) {
-            InitFromDDSFile(data, size, stage_buf, p, log);
+            InitFromDDSFile(data, size, sbuf, p, log);
         } else if (name_.EndsWith(".ktx") != 0 || name_.EndsWith(".KTX") != 0) {
-            InitFromKTXFile(data, size, stage_buf, p, log);
+            InitFromKTXFile(data, size, sbuf, p, log);
         } else if (name_.EndsWith(".png") != 0 || name_.EndsWith(".PNG") != 0) {
-            InitFromPNGFile(data, size, stage_buf, p, log);
+            InitFromPNGFile(data, size, sbuf, p, log);
         } else {
-            uint8_t *stage_data = stage_buf.Map(BufMapWrite);
+            uint8_t *stage_data = sbuf.Map(BufMapWrite);
             memcpy(stage_data, data, size);
-            stage_buf.FlushMappedRange(0, size);
-            stage_buf.Unmap();
+            sbuf.FlushMappedRange(0, size);
+            sbuf.Unmap();
 
-            InitFromRAWData(&stage_buf, 0, p, log);
+            InitFromRAWData(&sbuf, 0, p, log);
         }
         ready_ = true;
         (*load_status) = eTexLoadStatus::CreatedFromData;
     }
 }
 
-void Ren::Texture2D::Init(const void *data[6], const int size[6], const Tex2DParams &p, Buffer &stage_buf,
-                          void *_cmd_buf, MemoryAllocators *mem_allocs, eTexLoadStatus *load_status, ILog *log) {
+void Ren::Texture2D::Init(const void *data[6], const int size[6], const Tex2DParams &p, Buffer &sbuf, void *_cmd_buf,
+                          MemoryAllocators *mem_allocs, eTexLoadStatus *load_status, ILog *log) {
     assert(IsMainThread());
     if (!data) {
-        uint8_t *stage_data = stage_buf.Map(BufMapWrite);
+        uint8_t *stage_data = sbuf.Map(BufMapWrite);
         memcpy(stage_data, p.fallback_color, 4);
-        stage_buf.FlushMappedRange(0, 4);
-        stage_buf.Unmap();
+        sbuf.FlushMappedRange(0, 4);
+        sbuf.Unmap();
 
         int data_off[6] = {};
 
         Tex2DParams _p = p;
         _p.w = _p.h = 1;
         _p.format = eTexFormat::RawRGBA8888;
-        InitFromRAWData(stage_buf, data_off, _p, log);
+        InitFromRAWData(sbuf, data_off, _p, log);
         // mark it as not ready
         ready_ = false;
         cubemap_ready_ = 0;
         (*load_status) = eTexLoadStatus::CreatedDefault;
     } else {
         if (name_.EndsWith(".tga_rgbe") != 0 || name_.EndsWith(".TGA_RGBE") != 0) {
-            InitFromTGA_RGBEFile(data, stage_buf, p, log);
+            InitFromTGA_RGBEFile(data, sbuf, p, log);
         } else if (name_.EndsWith(".tga") != 0 || name_.EndsWith(".TGA") != 0) {
-            InitFromTGAFile(data, stage_buf, p, log);
+            InitFromTGAFile(data, sbuf, p, log);
         } else if (name_.EndsWith(".png") != 0 || name_.EndsWith(".PNG") != 0) {
-            InitFromPNGFile(data, size, stage_buf, p, log);
+            InitFromPNGFile(data, size, sbuf, p, log);
         } else if (name_.EndsWith(".ktx") != 0 || name_.EndsWith(".KTX") != 0) {
             InitFromKTXFile(data, size, p, log);
         } else if (name_.EndsWith(".dds") != 0 || name_.EndsWith(".DDS") != 0) {
             InitFromDDSFile(data, size, p, log);
         } else {
-            uint8_t *stage_data = stage_buf.Map(BufMapWrite);
+            uint8_t *stage_data = sbuf.Map(BufMapWrite);
             uint32_t stage_off = 0;
 
             int data_off[6];
@@ -330,10 +330,10 @@ void Ren::Texture2D::Init(const void *data[6], const int size[6], const Tex2DPar
                     data_off[i] = -1;
                 }
             }
-            stage_buf.FlushMappedRange(0, 4);
-            stage_buf.Unmap();
+            sbuf.FlushMappedRange(0, 4);
+            sbuf.Unmap();
 
-            InitFromRAWData(stage_buf, data_off, p, log);
+            InitFromRAWData(sbuf, data_off, p, log);
         }
 
         ready_ = (cubemap_ready_ & (1u << 0u)) == 1;
@@ -355,7 +355,8 @@ void Ren::Texture2D::Free() {
 }
 
 void Ren::Texture2D::Realloc(const int w, const int h, int mip_count, const int samples, const Ren::eTexFormat format,
-                             const Ren::eTexBlock block, const bool is_srgb, ILog *log) {
+                             const Ren::eTexBlock block, const bool is_srgb, void *_cmd_buf,
+                             MemoryAllocators *mem_allocs, ILog *log) {
     GLuint tex_id;
     glCreateTextures(samples > 1 ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D, 1, &tex_id);
 #ifdef ENABLE_OBJ_LABELS
@@ -422,7 +423,7 @@ void Ren::Texture2D::Realloc(const int w, const int h, int mip_count, const int 
     initialized_mips_ = new_initialized_mips;
 }
 
-void Ren::Texture2D::InitFromRAWData(Buffer *sbuf, int data_off, const Tex2DParams &p, ILog *log) {
+void Ren::Texture2D::InitFromRAWData(const Buffer *sbuf, int data_off, const Tex2DParams &p, ILog *log) {
     Free();
 
     GLuint tex_id;
@@ -562,7 +563,7 @@ void Ren::Texture2D::InitFromDDSFile(const void *data, const int size, Buffer &s
 
     Free();
     Realloc(int(header.dwWidth), int(header.dwHeight), int(header.dwMipMapCount), 1, format, block,
-            (p.flags & TexSRGB) != 0, log);
+            (p.flags & TexSRGB) != 0, nullptr, nullptr, log);
 
     params_.flags = p.flags;
     params_.block = block;
@@ -645,7 +646,7 @@ void Ren::Texture2D::InitFromKTXFile(const void *data, const int size, Buffer &s
 
     Free();
     Realloc(int(header.pixel_width), int(header.pixel_height), int(header.mipmap_levels_count), 1, format, block,
-            (p.flags & TexSRGB) != 0, log);
+            (p.flags & TexSRGB) != 0, nullptr, nullptr, log);
 
     params_.flags = p.flags;
     params_.block = block;
@@ -702,7 +703,7 @@ void Ren::Texture2D::InitFromKTXFile(const void *data, const int size, Buffer &s
     ApplySampling(p.sampling, log);
 }
 
-void Ren::Texture2D::InitFromRAWData(Buffer &sbuf, int data_off[6], const Tex2DParams &p, ILog *log) {
+void Ren::Texture2D::InitFromRAWData(const Buffer &sbuf, int data_off[6], const Tex2DParams &p, ILog *log) {
     assert(p.w > 0 && p.h > 0);
     Free();
 
@@ -1223,102 +1224,6 @@ uint32_t Ren::GLInternalFormatFromTexFormat(const eTexFormat format, const bool 
 uint32_t Ren::GLTypeFromTexFormat(const eTexFormat format) { return g_gl_types[size_t(format)]; }
 
 uint32_t Ren::GLBindTarget(const eBindTarget binding) { return gl_binding_targets[size_t(binding)]; }
-
-Ren::eTexFormat Ren::FormatFromGLInternalFormat(const uint32_t gl_internal_format, eTexBlock *block, bool *is_srgb) {
-    (*is_srgb) = false;
-
-    switch (gl_internal_format) {
-    case GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT:
-        (*is_srgb) = true;
-    case GL_COMPRESSED_RGBA_S3TC_DXT1_EXT:
-        (*block) = eTexBlock::_4x4;
-        return eTexFormat::Compressed_DXT1;
-    case GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT:
-        (*is_srgb) = true;
-    case GL_COMPRESSED_RGBA_S3TC_DXT3_EXT:
-        (*block) = eTexBlock::_4x4;
-        return eTexFormat::Compressed_DXT3;
-    case GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT:
-        (*is_srgb) = true;
-    case GL_COMPRESSED_RGBA_S3TC_DXT5_EXT:
-        (*block) = eTexBlock::_4x4;
-        return eTexFormat::Compressed_DXT5;
-    case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_4x4_KHR:
-        (*is_srgb) = true;
-    case GL_COMPRESSED_RGBA_ASTC_4x4_KHR:
-        (*block) = eTexBlock::_4x4;
-        return eTexFormat::Compressed_ASTC;
-    case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_5x4_KHR:
-        (*is_srgb) = true;
-    case GL_COMPRESSED_RGBA_ASTC_5x4_KHR:
-        (*block) = eTexBlock::_5x4;
-        return eTexFormat::Compressed_ASTC;
-    case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_5x5_KHR:
-        (*is_srgb) = true;
-    case GL_COMPRESSED_RGBA_ASTC_5x5_KHR:
-        (*block) = eTexBlock::_5x5;
-        return eTexFormat::Compressed_ASTC;
-    case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_6x5_KHR:
-        (*is_srgb) = true;
-    case GL_COMPRESSED_RGBA_ASTC_6x5_KHR:
-        (*block) = eTexBlock::_6x5;
-        return eTexFormat::Compressed_ASTC;
-    case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_6x6_KHR:
-        (*is_srgb) = true;
-    case GL_COMPRESSED_RGBA_ASTC_6x6_KHR:
-        (*block) = eTexBlock::_6x6;
-        return eTexFormat::Compressed_ASTC;
-    case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_8x5_KHR:
-        (*is_srgb) = true;
-    case GL_COMPRESSED_RGBA_ASTC_8x5_KHR:
-        (*block) = eTexBlock::_8x5;
-        return eTexFormat::Compressed_ASTC;
-    case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_8x6_KHR:
-        (*is_srgb) = true;
-    case GL_COMPRESSED_RGBA_ASTC_8x6_KHR:
-        (*block) = eTexBlock::_8x6;
-        return eTexFormat::Compressed_ASTC;
-    case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_8x8_KHR:
-        (*is_srgb) = true;
-    case GL_COMPRESSED_RGBA_ASTC_8x8_KHR:
-        (*block) = eTexBlock::_8x8;
-        return eTexFormat::Compressed_ASTC;
-    case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x5_KHR:
-        (*is_srgb) = true;
-    case GL_COMPRESSED_RGBA_ASTC_10x5_KHR:
-        (*block) = eTexBlock::_10x5;
-        return eTexFormat::Compressed_ASTC;
-    case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x6_KHR:
-        (*is_srgb) = true;
-    case GL_COMPRESSED_RGBA_ASTC_10x6_KHR:
-        (*block) = eTexBlock::_10x6;
-        return eTexFormat::Compressed_ASTC;
-    case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x8_KHR:
-        (*is_srgb) = true;
-    case GL_COMPRESSED_RGBA_ASTC_10x8_KHR:
-        (*block) = eTexBlock::_10x8;
-        return eTexFormat::Compressed_ASTC;
-    case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x10_KHR:
-        (*is_srgb) = true;
-    case GL_COMPRESSED_RGBA_ASTC_10x10_KHR:
-        (*block) = eTexBlock::_10x10;
-        return eTexFormat::Compressed_ASTC;
-    case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_12x10_KHR:
-        (*is_srgb) = true;
-    case GL_COMPRESSED_RGBA_ASTC_12x10_KHR:
-        (*block) = eTexBlock::_12x10;
-        return eTexFormat::Compressed_ASTC;
-    case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_12x12_KHR:
-        (*is_srgb) = true;
-    case GL_COMPRESSED_RGBA_ASTC_12x12_KHR:
-        (*block) = eTexBlock::_12x12;
-        return eTexFormat::Compressed_ASTC;
-    default:
-        assert(false && "Unsupported format!");
-    }
-
-    return eTexFormat::Undefined;
-}
 
 void Ren::GLUnbindTextureUnits(const int start, const int count) {
     for (int i = start; i < start + count; i++) {

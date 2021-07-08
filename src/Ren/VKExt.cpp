@@ -176,6 +176,7 @@ bool Ren::LoadVulkan(ILog *log) {
     LOAD_VK_FUN(vkCmdPushConstants)
     LOAD_VK_FUN(vkCmdBlitImage)
     LOAD_VK_FUN(vkCmdClearColorImage)
+    LOAD_VK_FUN(vkCmdCopyImage)
 
 #if defined(VK_USE_PLATFORM_WIN32_KHR)
     LOAD_VK_FUN(vkCreateWin32SurfaceKHR)
@@ -204,7 +205,7 @@ bool Ren::LoadVulkanExtensions(VkInstance instance, ILog *log) {
     LOAD_VK_FUN(vkCreateDebugReportCallbackEXT)
     LOAD_VK_FUN(vkDestroyDebugReportCallbackEXT)
     LOAD_VK_FUN(vkDebugReportMessageEXT)
-    LOAD_VK_FUN(vkDebugReportMessageEXT)
+    LOAD_VK_FUN(vkSetDebugUtilsObjectNameEXT);
 
     LOAD_VK_FUN(vkDeviceWaitIdle)
 
