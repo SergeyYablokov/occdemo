@@ -186,8 +186,8 @@ class Context : public TaskExecutor {
     void ReleaseDefaultBuffers();
     void ReleaseAll();
 
-    int backend_frame = 0;
     int frontend_frame = 0;
+    int backend_frame() const;
 
 #if defined(USE_GL_RENDER)
     struct { // NOLINT

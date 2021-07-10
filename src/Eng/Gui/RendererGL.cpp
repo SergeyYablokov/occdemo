@@ -83,16 +83,19 @@ Gui::Renderer::Renderer(Ren::Context &ctx, const JsObject &config) : ctx_(ctx) {
     vao_.Setup(attribs, 3, index_buf_->handle());
 }
 
-Gui::Renderer::~Renderer() = default;
+Gui::Renderer::~Renderer() {
+    vertex_stage_buf_->Unmap();
+    index_stage_buf_->Unmap();
+}
 
 void Gui::Renderer::Draw(const int w, const int h) {
 #ifndef NDEBUG
-    if (buf_range_fences_[ctx_.backend_frame]) {
-        const Ren::WaitResult res = buf_range_fences_[ctx_.backend_frame].ClientWaitSync(0);
+    if (buf_range_fences_[ctx_.backend_frame()]) {
+        const Ren::WaitResult res = buf_range_fences_[ctx_.backend_frame()].ClientWaitSync(0);
         if (res != Ren::WaitResult::Success) {
             ctx_.log()->Error("[Gui::Renderer::Draw]: Buffers are still in use!");
         }
-        buf_range_fences_[ctx_.backend_frame] = {};
+        buf_range_fences_[ctx_.backend_frame()] = {};
     }
 #endif
 
@@ -104,21 +107,21 @@ void Gui::Renderer::Draw(const int w, const int h) {
     const GLbitfield BufRangeBindFlags = GLbitfield(GL_MAP_WRITE_BIT) | GLbitfield(GL_MAP_INVALIDATE_RANGE_BIT) |
                                          GLbitfield(GL_MAP_UNSYNCHRONIZED_BIT) | GLbitfield(GL_MAP_FLUSH_EXPLICIT_BIT);
 
-    if (vtx_count_[ctx_.backend_frame]) {
+    if (vtx_count_[ctx_.backend_frame()]) {
         //
         // Update stage buffer
         //
         glBindBuffer(GL_COPY_READ_BUFFER, vertex_stage_buf_->id());
 
-        const size_t vertex_buf_mem_offset = GLintptr(ctx_.backend_frame) * MaxVerticesPerRange * sizeof(vertex_t);
-        const size_t vertex_buf_mem_size = vtx_count_[ctx_.backend_frame] * sizeof(vertex_t);
+        const size_t vertex_buf_mem_offset = GLintptr(ctx_.backend_frame()) * MaxVerticesPerRange * sizeof(vertex_t);
+        const size_t vertex_buf_mem_size = vtx_count_[ctx_.backend_frame()] * sizeof(vertex_t);
         if (ctx_.capabilities.persistent_buf_mapping) {
             glFlushMappedBufferRange(GL_COPY_READ_BUFFER, vertex_buf_mem_offset, vertex_buf_mem_size);
         } else {
             void *pinned_mem = glMapBufferRange(GL_COPY_READ_BUFFER, vertex_buf_mem_offset,
                                                 MaxVerticesPerRange * sizeof(vertex_t), BufRangeBindFlags);
             if (pinned_mem) {
-                memcpy(pinned_mem, vtx_stage_data_ + size_t(ctx_.backend_frame) * MaxVerticesPerRange,
+                memcpy(pinned_mem, vtx_stage_data_ + size_t(ctx_.backend_frame()) * MaxVerticesPerRange,
                        vertex_buf_mem_size);
                 glFlushMappedBufferRange(GL_COPY_READ_BUFFER, 0, vertex_buf_mem_size);
                 glUnmapBuffer(GL_COPY_READ_BUFFER);
@@ -138,22 +141,22 @@ void Gui::Renderer::Draw(const int w, const int h) {
         glBindBuffer(GL_COPY_WRITE_BUFFER, 0);
     }
 
-    const size_t index_buf_mem_offset = size_t(ctx_.backend_frame) * MaxIndicesPerRange * sizeof(uint16_t);
+    const size_t index_buf_mem_offset = size_t(ctx_.backend_frame()) * MaxIndicesPerRange * sizeof(uint16_t);
 
-    if (ndx_count_[ctx_.backend_frame]) {
+    if (ndx_count_[ctx_.backend_frame()]) {
         //
         // Update stage buffer
         //
         glBindBuffer(GL_COPY_READ_BUFFER, index_stage_buf_->id());
 
-        const size_t index_buf_mem_size = ndx_count_[ctx_.backend_frame] * sizeof(uint16_t);
+        const size_t index_buf_mem_size = ndx_count_[ctx_.backend_frame()] * sizeof(uint16_t);
         if (ctx_.capabilities.persistent_buf_mapping) {
             glFlushMappedBufferRange(GL_COPY_READ_BUFFER, index_buf_mem_offset, index_buf_mem_size);
         } else {
             void *pinned_mem = glMapBufferRange(GL_COPY_READ_BUFFER, index_buf_mem_offset,
                                                 MaxIndicesPerRange * sizeof(uint16_t), BufRangeBindFlags);
             if (pinned_mem) {
-                memcpy(pinned_mem, ndx_stage_data_ + size_t(ctx_.backend_frame) * MaxIndicesPerRange,
+                memcpy(pinned_mem, ndx_stage_data_ + size_t(ctx_.backend_frame()) * MaxIndicesPerRange,
                        index_buf_mem_size);
                 glFlushMappedBufferRange(GL_COPY_READ_BUFFER, 0, index_buf_mem_size);
                 glUnmapBuffer(GL_COPY_READ_BUFFER);
@@ -189,18 +192,18 @@ void Gui::Renderer::Draw(const int w, const int h) {
     glActiveTexture(GL_TEXTURE0 + TEX_ATLAS_SLOT);
     glBindTexture(GL_TEXTURE_2D_ARRAY, GLuint(ctx_.texture_atlas().tex_id()));
 
-    glDrawElements(GL_TRIANGLES, ndx_count_[ctx_.backend_frame], GL_UNSIGNED_SHORT,
+    glDrawElements(GL_TRIANGLES, ndx_count_[ctx_.backend_frame()], GL_UNSIGNED_SHORT,
                    reinterpret_cast<const GLvoid *>(uintptr_t(0)));
 
     glBindVertexArray(0);
     glUseProgram(0);
 
-    vtx_count_[ctx_.backend_frame] = 0;
-    ndx_count_[ctx_.backend_frame] = 0;
+    vtx_count_[ctx_.backend_frame()] = 0;
+    ndx_count_[ctx_.backend_frame()] = 0;
 
 #ifndef NDEBUG
-    assert(!buf_range_fences_[ctx_.backend_frame]);
-    buf_range_fences_[ctx_.backend_frame] = Ren::MakeFence();
+    assert(!buf_range_fences_[ctx_.backend_frame()]);
+    buf_range_fences_[ctx_.backend_frame()] = Ren::MakeFence();
 #endif
 }
 

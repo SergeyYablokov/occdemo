@@ -506,3 +506,5 @@ void Ren::Context::ReleaseAll() {
     texture_atlas_ = {};
     default_memory_allocs_.reset();
 }
+
+int Ren::Context::backend_frame() const { return api_ctx_->backend_frame; }

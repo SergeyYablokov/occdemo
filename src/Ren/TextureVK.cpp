@@ -336,7 +336,7 @@ void Ren::Texture2D::Init(const void *data[6], const int size[6], const Tex2DPar
         } else if (name_.EndsWith(".png") != 0 || name_.EndsWith(".PNG") != 0) {
             InitFromPNGFile(data, size, sbuf, _cmd_buf, mem_allocs, p, log);
         } else if (name_.EndsWith(".ktx") != 0 || name_.EndsWith(".KTX") != 0) {
-            InitFromKTXFile(data, size, mem_allocs, p, log);
+            InitFromKTXFile(data, size, sbuf, _cmd_buf, mem_allocs, p, log);
         } else if (name_.EndsWith(".dds") != 0 || name_.EndsWith(".DDS") != 0) {
             InitFromDDSFile(data, size, sbuf, _cmd_buf, mem_allocs, p, log);
         } else {
@@ -372,8 +372,11 @@ void Ren::Texture2D::Free() {
     if (params_.format != eTexFormat::Undefined && !(params_.flags & TexNoOwnership)) {
         assert(IsMainThread());
 
-        vkDestroyImageView(api_ctx_->device, handle_.view, nullptr);
-        vkDestroyImage(api_ctx_->device, handle_.img, nullptr);
+        api_ctx_->image_views_to_destroy[api_ctx_->backend_frame].push_back(handle_.view);
+        api_ctx_->images_to_destroy[api_ctx_->backend_frame].push_back(handle_.img);
+
+        //vkDestroyImageView(api_ctx_->device, handle_.view, nullptr);
+        //vkDestroyImage(api_ctx_->device, handle_.img, nullptr);
 
         handle_ = {};
         params_.format = eTexFormat::Undefined;
@@ -404,8 +407,12 @@ bool Ren::Texture2D::Realloc(const int w, const int h, int mip_count, const int 
         }
         img_info.tiling = VK_IMAGE_TILING_OPTIMAL;
         img_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-        img_info.usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT |
-                         VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+        img_info.usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+
+        if (!IsCompressedFormat(format)) {
+            img_info.usage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+        }
+
         img_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
         img_info.samples = VkSampleCountFlagBits(samples);
         img_info.flags = 0;
@@ -435,8 +442,7 @@ bool Ren::Texture2D::Realloc(const int w, const int h, int mip_count, const int 
 
         const VkDeviceSize aligned_offset = AlignTo(VkDeviceSize(new_alloc.alloc_off), tex_mem_req.alignment);
 
-        res =
-            vkBindImageMemory(api_ctx_->device, handle_.img, new_alloc.owner->mem(new_alloc.block_ndx), aligned_offset);
+        res = vkBindImageMemory(api_ctx_->device, new_image, new_alloc.owner->mem(new_alloc.block_ndx), aligned_offset);
         if (res != VK_SUCCESS) {
             log->Error("Failed to bind memory!");
             return false;
@@ -446,7 +452,7 @@ bool Ren::Texture2D::Realloc(const int w, const int h, int mip_count, const int 
     { // create new image view
         VkImageViewCreateInfo view_info = {};
         view_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-        view_info.image = handle_.img;
+        view_info.image = new_image;
         view_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
         view_info.format = g_vk_formats[size_t(format)];
         if (is_srgb) {
@@ -473,6 +479,10 @@ bool Ren::Texture2D::Realloc(const int w, const int h, int mip_count, const int 
         log->Info("Alloc %s %ix%i (%i mips)", name_.c_str(), w, h, mip_count);
     }
 #endif
+
+    this->layout = VK_IMAGE_LAYOUT_UNDEFINED;
+    this->last_access_mask = 0;
+    this->last_stage_mask = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
 
     const TexHandle new_handle = {new_image, new_image_view, TextureHandleCounter++};
     uint16_t new_initialized_mips = 0;
@@ -867,6 +877,9 @@ void Ren::Texture2D::InitFromDDSFile(const void *data, const int size, Buffer &s
         reg.imageSubresource.baseArrayLayer = 0;
         reg.imageSubresource.layerCount = 1;
 
+        reg.imageOffset = {0, 0, 0};
+        reg.imageExtent = {uint32_t(w), uint32_t(h), 1};
+
         initialized_mips_ |= (1u << i);
 
         data_off += len;
@@ -1003,6 +1016,9 @@ void Ren::Texture2D::InitFromKTXFile(const void *data, const int size, Buffer &s
         reg.imageSubresource.mipLevel = i;
         reg.imageSubresource.baseArrayLayer = 0;
         reg.imageSubresource.layerCount = 1;
+
+        reg.imageOffset = {0, 0, 0};
+        reg.imageExtent = {uint32_t(w), uint32_t(h), 1};
 
         initialized_mips_ |= (1u << i);
         data_offset += img_size;
@@ -1482,75 +1498,206 @@ void Ren::Texture2D::InitFromDDSFile(const void *data[6], const int size[6], Buf
     ApplySampling(p.sampling, log);
 }
 
-void Ren::Texture2D::InitFromKTXFile(const void *data[6], const int size[6], MemoryAllocators *mem_allocs,
-                                     const Tex2DParams &p, ILog *log) {
-    (void)size;
-
+void Ren::Texture2D::InitFromKTXFile(const void *data[6], const int size[6], Buffer &sbuf, void *_cmd_buf,
+                                     MemoryAllocators *mem_allocs, const Tex2DParams &p, ILog *log) {
     Free();
 
-#if 0
-    GLuint tex_id;
-    glCreateTextures(GL_TEXTURE_CUBE_MAP, 1, &tex_id);
-#ifdef ENABLE_OBJ_LABELS
-    glObjectLabel(GL_TEXTURE, tex_id, -1, name_.c_str());
-#endif
+    const auto *first_header = reinterpret_cast<const KTXHeader *>(data[0]);
 
-    handle_ = {tex_id, TextureHandleCounter++};
+    uint8_t *stage_data = sbuf.Map(BufMapWrite);
+    uint32_t data_off[6] = {};
+    uint32_t stage_len = 0;
+
+    for (int i = 0; i < 6; ++i) {
+        const auto *_data = (const uint8_t *)data[i];
+        const auto *this_header = reinterpret_cast<const KTXHeader *>(_data);
+
+        // make sure all images have same properties
+        if (this_header->pixel_width != first_header->pixel_width) {
+            log->Error("Image width mismatch %i, expected %i", int(this_header->pixel_width),
+                       int(first_header->pixel_width));
+            continue;
+        }
+        if (this_header->pixel_height != first_header->pixel_height) {
+            log->Error("Image height mismatch %i, expected %i", int(this_header->pixel_height),
+                       int(first_header->pixel_height));
+            continue;
+        }
+        if (this_header->gl_internal_format != first_header->gl_internal_format) {
+            log->Error("Internal format mismatch %i, expected %i", int(this_header->gl_internal_format),
+                       int(first_header->gl_internal_format));
+            continue;
+        }
+
+        memcpy(stage_data + stage_len, _data, size[i]);
+
+        data_off[i] = stage_len;
+        stage_len += size[i];
+    }
+
+    sbuf.FlushMappedRange(0, stage_len);
+    sbuf.Unmap();
+
+    handle_.generation = TextureHandleCounter++;
     params_ = p;
+    params_.cube = 1;
     initialized_mips_ = 0;
 
-    KTXHeader first_header;
-    memcpy(&first_header, data[0], sizeof(KTXHeader));
-
     bool is_srgb_format;
-    params_.format = FormatFromGLInternalFormat(first_header.gl_internal_format,
-                                                &params_.block, &is_srgb_format);
+    params_.format = FormatFromGLInternalFormat(first_header->gl_internal_format, &params_.block, &is_srgb_format);
 
     if (is_srgb_format && (params_.flags & TexSRGB) == 0) {
         log->Warning("Loading SRGB texture as non-SRGB!");
     }
 
-    params_.w = int(first_header.pixel_width);
-    params_.h = int(first_header.pixel_height);
-    params_.cube = true;
+    { // create image
+        VkImageCreateInfo img_info = {};
+        img_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+        img_info.imageType = VK_IMAGE_TYPE_2D;
+        img_info.extent.width = uint32_t(p.w);
+        img_info.extent.height = uint32_t(p.h);
+        img_info.extent.depth = 1;
+        img_info.mipLevels = first_header->mipmap_levels_count;
+        img_info.arrayLayers = 6;
+        img_info.format = g_vk_formats[size_t(params_.format)];
+        img_info.tiling = VK_IMAGE_TILING_OPTIMAL;
+        img_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        img_info.usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+        img_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        img_info.samples = VK_SAMPLE_COUNT_1_BIT;
+        img_info.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
 
-    glBindTexture(GL_TEXTURE_CUBE_MAP, tex_id);
+        VkResult res = vkCreateImage(api_ctx_->device, &img_info, nullptr, &handle_.img);
+        if (res != VK_SUCCESS) {
+            log->Error("Failed to create image!");
+            return;
+        }
 
-    for (int j = 0; j < 6; j++) {
-        const auto *_data = (const uint8_t *)data[j];
+#ifdef ENABLE_OBJ_LABELS
+        VkDebugUtilsObjectNameInfoEXT name_info = {};
+        name_info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+        name_info.objectType = VK_OBJECT_TYPE_IMAGE;
+        name_info.objectHandle = uint64_t(handle_.img);
+        name_info.pObjectName = name_.c_str();
+        vkSetDebugUtilsObjectNameEXT(api_ctx_->device, &name_info);
+#endif
+
+        VkMemoryRequirements tex_mem_req;
+        vkGetImageMemoryRequirements(api_ctx_->device, handle_.img, &tex_mem_req);
+
+        alloc_ = mem_allocs->Allocate(
+            uint32_t(tex_mem_req.size), uint32_t(tex_mem_req.alignment),
+            FindMemoryType(&api_ctx_->mem_properties, tex_mem_req.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT),
+            name_.c_str());
+
+        const VkDeviceSize aligned_offset = AlignTo(VkDeviceSize(alloc_.alloc_off), tex_mem_req.alignment);
+
+        res = vkBindImageMemory(api_ctx_->device, handle_.img, alloc_.owner->mem(alloc_.block_ndx), aligned_offset);
+        if (res != VK_SUCCESS) {
+            log->Error("Failed to bind memory!");
+            return;
+        }
+    }
+
+    { // create default image view
+        VkImageViewCreateInfo view_info = {};
+        view_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+        view_info.image = handle_.img;
+        view_info.viewType = VK_IMAGE_VIEW_TYPE_CUBE;
+        view_info.format = g_vk_formats[size_t(p.format)];
+        view_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        view_info.subresourceRange.baseMipLevel = 0;
+        view_info.subresourceRange.levelCount = first_header->mipmap_levels_count;
+        view_info.subresourceRange.baseArrayLayer = 0;
+        view_info.subresourceRange.layerCount = 6;
+
+        const VkResult res = vkCreateImageView(api_ctx_->device, &view_info, nullptr, &handle_.view);
+        if (res != VK_SUCCESS) {
+            log->Error("Failed to create image view!");
+            return;
+        }
+    }
+
+    assert(p.samples == 1);
+    assert(sbuf.type() == eBufType::Stage);
+    VkCommandBuffer cmd_buf = reinterpret_cast<VkCommandBuffer>(_cmd_buf);
+
+    VkBufferMemoryBarrier stage_barrier = {};
+    stage_barrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+    stage_barrier.srcAccessMask = sbuf.last_access_mask;
+    stage_barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+    stage_barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    stage_barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    stage_barrier.buffer = sbuf.handle().buf;
+    stage_barrier.offset = VkDeviceSize(0);
+    stage_barrier.size = VkDeviceSize(sbuf.size());
+
+    VkImageMemoryBarrier img_barrier = {};
+    img_barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+    img_barrier.srcAccessMask = this->last_access_mask;
+    img_barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+    img_barrier.oldLayout = this->layout;
+    img_barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+    img_barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    img_barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    img_barrier.image = handle_.img;
+    img_barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    img_barrier.subresourceRange.baseMipLevel = 0;
+    img_barrier.subresourceRange.levelCount = first_header->mipmap_levels_count; // transit whole image
+    img_barrier.subresourceRange.baseArrayLayer = 0;
+    img_barrier.subresourceRange.layerCount = 6;
+
+    vkCmdPipelineBarrier(cmd_buf, sbuf.last_stage_mask | this->last_stage_mask, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0,
+                         nullptr, 1, &stage_barrier, 1, &img_barrier);
+
+    VkBufferImageCopy regions[6 * 16] = {};
+    int regions_count = 0;
+
+    for (int i = 0; i < 6; ++i) {
+        const auto *_data = (const uint8_t *)data[i];
 
 #ifndef NDEBUG
-        KTXHeader this_header;
-        memcpy(&this_header, data[j], sizeof(KTXHeader));
+        const auto *this_header = reinterpret_cast<const KTXHeader *>(data[i]);
 
         // make sure all images have same properties
-        if (this_header.pixel_width != first_header.pixel_width) {
-            log->Error("Image width mismatch %i, expected %i",
-                       int(this_header.pixel_width), int(first_header.pixel_width));
+        if (this_header->pixel_width != first_header->pixel_width) {
+            log->Error("Image width mismatch %i, expected %i", int(this_header->pixel_width),
+                       int(first_header->pixel_width));
             continue;
         }
-        if (this_header.pixel_height != first_header.pixel_height) {
-            log->Error("Image height mismatch %i, expected %i",
-                       int(this_header.pixel_height), int(first_header.pixel_height));
+        if (this_header->pixel_height != first_header->pixel_height) {
+            log->Error("Image height mismatch %i, expected %i", int(this_header->pixel_height),
+                       int(first_header->pixel_height));
             continue;
         }
-        if (this_header.gl_internal_format != first_header.gl_internal_format) {
-            log->Error("Internal format mismatch %i, expected %i",
-                       int(this_header.gl_internal_format),
-                       int(first_header.gl_internal_format));
+        if (this_header->gl_internal_format != first_header->gl_internal_format) {
+            log->Error("Internal format mismatch %i, expected %i", int(this_header->gl_internal_format),
+                       int(first_header->gl_internal_format));
             continue;
         }
 #endif
         int data_offset = sizeof(KTXHeader);
         int _w = params_.w, _h = params_.h;
 
-        for (int i = 0; i < int(first_header.mipmap_levels_count); i++) {
+        for (int j = 0; j < int(first_header->mipmap_levels_count); j++) {
             uint32_t img_size;
             memcpy(&img_size, &_data[data_offset], sizeof(uint32_t));
             data_offset += sizeof(uint32_t);
-            glCompressedTexImage2D(GLenum(GL_TEXTURE_CUBE_MAP_POSITIVE_X + j), i,
-                                   GLenum(first_header.gl_internal_format), _w, _h, 0,
-                                   GLsizei(img_size), &_data[data_offset]);
+
+            auto &reg = regions[regions_count++];
+
+            reg.bufferOffset = VkDeviceSize(data_off[i] + data_offset);
+            reg.bufferRowLength = 0;
+            reg.bufferImageHeight = 0;
+
+            reg.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+            reg.imageSubresource.mipLevel = uint32_t(j);
+            reg.imageSubresource.baseArrayLayer = i;
+            reg.imageSubresource.layerCount = 1;
+
+            reg.imageOffset = {0, 0, 0};
+            reg.imageExtent = {uint32_t(_w), uint32_t(_h), 1};
+
             data_offset += img_size;
 
             _w = std::max(_w / 2, 1);
@@ -1560,9 +1707,18 @@ void Ren::Texture2D::InitFromKTXFile(const void *data[6], const int size[6], Mem
             data_offset += pad;
         }
     }
-#endif
 
-    // ApplySampling(p.sampling, log);
+    vkCmdCopyBufferToImage(cmd_buf, sbuf.handle().buf, handle_.img, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, regions_count,
+                           regions);
+
+    sbuf.last_access_mask = VK_ACCESS_TRANSFER_READ_BIT;
+    sbuf.last_stage_mask = VK_PIPELINE_STAGE_TRANSFER_BIT;
+
+    this->layout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+    this->last_access_mask = VK_ACCESS_TRANSFER_WRITE_BIT;
+    this->last_stage_mask = VK_PIPELINE_STAGE_TRANSFER_BIT;
+
+    ApplySampling(p.sampling, log);
 }
 
 void Ren::Texture2D::SetSubImage(const int level, const int offsetx, const int offsety, const int sizex,
@@ -1593,40 +1749,73 @@ void Ren::Texture2D::SetSubImage(const int level, const int offsetx, const int o
     }
 }
 
-Ren::SyncFence Ren::Texture2D::SetSubImage(const int level, const int offsetx, const int offsety, const int sizex,
-                                           const int sizey, const Ren::eTexFormat format, const Buffer &sbuf,
-                                           const int data_off, const int data_len) {
+void Ren::Texture2D::SetSubImage(const int level, const int offsetx, const int offsety, const int sizex,
+                                 const int sizey, const Ren::eTexFormat format, const Buffer &sbuf, void *_cmd_buf,
+                                 const int data_off, const int data_len) {
     assert(format == params_.format);
     assert(params_.samples == 1);
     assert(offsetx >= 0 && offsetx + sizex <= std::max(params_.w >> level, 1));
     assert(offsety >= 0 && offsety + sizey <= std::max(params_.h >> level, 1));
 
-#if 0
-    glBindBuffer(GL_PIXEL_UNPACK_BUFFER, sbuf.id());
+    assert(sbuf.type() == eBufType::Stage);
+    VkCommandBuffer cmd_buf = reinterpret_cast<VkCommandBuffer>(_cmd_buf);
 
-    if (IsCompressedFormat(format)) {
-        ren_glCompressedTextureSubImage2D_Comp(
-            GL_TEXTURE_2D, GLuint(handle_.id), GLint(level), GLint(offsetx),
-            GLint(offsety), GLsizei(sizex), GLsizei(sizey),
-            GLInternalFormatFromTexFormat(format, (params_.flags & TexSRGB) != 0),
-            GLsizei(data_len), reinterpret_cast<const void *>(uintptr_t(data_off)));
-    } else {
-        ren_glTextureSubImage2D_Comp(GL_TEXTURE_2D, GLuint(handle_.id), level, offsetx,
-                                     offsety, sizex, sizey, GLFormatFromTexFormat(format),
-                                     GLTypeFromTexFormat(format),
-                                     reinterpret_cast<const void *>(uintptr_t(data_off)));
-    }
+    VkBufferMemoryBarrier stage_barrier = {};
+    stage_barrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+    stage_barrier.srcAccessMask = sbuf.last_access_mask;
+    stage_barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+    stage_barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    stage_barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    stage_barrier.buffer = sbuf.handle().buf;
+    stage_barrier.offset = VkDeviceSize(0);
+    stage_barrier.size = VkDeviceSize(sbuf.size());
 
-    glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
-#endif
+    VkImageMemoryBarrier img_barrier = {};
+    img_barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+    img_barrier.srcAccessMask = this->last_access_mask;
+    img_barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+    img_barrier.oldLayout = this->layout;
+    img_barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+    img_barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    img_barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    img_barrier.image = handle_.img;
+    img_barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    img_barrier.subresourceRange.baseMipLevel = 0;
+    img_barrier.subresourceRange.levelCount = params_.mip_count; // transit whole image
+    img_barrier.subresourceRange.baseArrayLayer = 0;
+    img_barrier.subresourceRange.layerCount = 1;
+
+    vkCmdPipelineBarrier(cmd_buf, sbuf.last_stage_mask | this->last_stage_mask, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0,
+                         nullptr, 1, &stage_barrier, 1, &img_barrier);
+
+    VkBufferImageCopy region = {};
+
+    region.bufferOffset = VkDeviceSize(data_off);
+    region.bufferRowLength = 0;
+    region.bufferImageHeight = 0;
+
+    region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    region.imageSubresource.mipLevel = uint32_t(level);
+    region.imageSubresource.baseArrayLayer = 0;
+    region.imageSubresource.layerCount = 1;
+
+    region.imageOffset = {int32_t(offsetx), int32_t(offsety), 0};
+    region.imageExtent = {uint32_t(sizex), uint32_t(sizey), 1};
+
+    vkCmdCopyBufferToImage(cmd_buf, sbuf.handle().buf, handle_.img, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+
+    sbuf.last_access_mask = VK_ACCESS_TRANSFER_READ_BIT;
+    sbuf.last_stage_mask = VK_PIPELINE_STAGE_TRANSFER_BIT;
+
+    this->layout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+    this->last_access_mask = VK_ACCESS_TRANSFER_WRITE_BIT;
+    this->last_stage_mask = VK_PIPELINE_STAGE_TRANSFER_BIT;
 
     if (offsetx == 0 && offsety == 0 && sizex == std::max(params_.w >> level, 1) &&
         sizey == std::max(params_.h >> level, 1)) {
         // consider this level initialized
         initialized_mips_ |= (1u << level);
     }
-
-    return MakeFence();
 }
 
 void Ren::Texture2D::DownloadTextureData(const eTexFormat format, void *out_data) const {

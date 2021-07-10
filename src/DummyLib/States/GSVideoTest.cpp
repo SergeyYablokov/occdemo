@@ -169,6 +169,8 @@ void GSVideoTest::Exit() {
             tex_update_done_[i].wait();
 #endif
         }
+        y_sbuf_[i].Unmap();
+        uv_sbuf_[i].Unmap();
     }
 
     DestroyVideoTextures();
@@ -550,15 +552,15 @@ void GSVideoTest::UpdateVideoTextureData(const int tex_index, const int frame_in
 
     const uint32_t y_buf_chunk_size = tex_w * tex_h, uv_buf_chunk_size = 2 * (tex_w / 2) * (tex_h / 2);
 
-    y_sbuf_[tex_index].FlushMappedRange(frame_index * y_buf_chunk_size, y_buf_chunk_size);
+    //y_sbuf_[tex_index].FlushMappedRange(frame_index * y_buf_chunk_size, y_buf_chunk_size);
     y_tex_[tex_index][frame_index]->SetSubImage(0, 0 /* offsetx */, 0 /* offsety */, tex_w, tex_h,
-                                                Ren::eTexFormat::RawR8, y_sbuf_[tex_index],
+                                                Ren::eTexFormat::RawR8, y_sbuf_[tex_index], ren_ctx_->current_cmd_buf(),
                                                 frame_index * y_buf_chunk_size, y_buf_chunk_size);
 
-    uv_sbuf_[tex_index].FlushMappedRange(frame_index * uv_buf_chunk_size, uv_buf_chunk_size);
-    uv_tex_[tex_index][frame_index]->SetSubImage(0, 0 /* offsetx */, 0 /* offsety */, tex_w / 2, tex_h / 2,
-                                                 Ren::eTexFormat::RawRG88, uv_sbuf_[tex_index],
-                                                 frame_index * uv_buf_chunk_size, uv_buf_chunk_size);
+    //uv_sbuf_[tex_index].FlushMappedRange(frame_index * uv_buf_chunk_size, uv_buf_chunk_size);
+    uv_tex_[tex_index][frame_index]->SetSubImage(
+        0, 0 /* offsetx */, 0 /* offsety */, tex_w / 2, tex_h / 2, Ren::eTexFormat::RawRG88, uv_sbuf_[tex_index],
+        ren_ctx_->current_cmd_buf(), frame_index * uv_buf_chunk_size, uv_buf_chunk_size);
 
     __itt_task_end(__g_itt_domain);
 }

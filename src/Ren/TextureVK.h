@@ -94,8 +94,8 @@ class Texture2D : public RefCounter {
                          MemoryAllocators *mem_allocs, const Tex2DParams &p, ILog *log);
     void InitFromDDSFile(const void *data[6], const int size[6], Buffer &sbuf, void *_cmd_buf,
                          MemoryAllocators *mem_allocs, const Tex2DParams &p, ILog *log);
-    void InitFromKTXFile(const void *data[6], const int size[6], MemoryAllocators *mem_allocs, const Tex2DParams &p,
-                         ILog *log);
+    void InitFromKTXFile(const void *data[6], const int size[6], Buffer &sbuf, void *_cmd_buf,
+                         MemoryAllocators *mem_allocs, const Tex2DParams &p, ILog *log);
 
   public:
     uint32_t first_user = 0xffffffff;
@@ -141,8 +141,8 @@ class Texture2D : public RefCounter {
 
     void SetSubImage(int level, int offsetx, int offsety, int sizex, int sizey, Ren::eTexFormat format,
                      const void *data, int data_len);
-    SyncFence SetSubImage(int level, int offsetx, int offsety, int sizex, int sizey, Ren::eTexFormat format,
-                          const Buffer &sbuf, int data_off, int data_len);
+    void SetSubImage(int level, int offsetx, int offsety, int sizex, int sizey, Ren::eTexFormat format,
+                     const Buffer &sbuf, void *_cmd_buf, int data_off, int data_len);
 
     void DownloadTextureData(eTexFormat format, void *out_data) const;
 

@@ -667,3 +667,14 @@ void Ren::EndSingleTimeCommands(VkDevice device, VkQueue cmd_queue, VkCommandBuf
 void Ren::FreeSingleTimeCommandBuffer(VkDevice device, VkCommandPool temp_command_pool, VkCommandBuffer command_buf) {
     vkFreeCommandBuffers(device, temp_command_pool, 1, &command_buf);
 }
+
+void Ren::DestroyDeferredResources(ApiContext *api_ctx, int i) {
+    for (VkImageView view : api_ctx->image_views_to_destroy[i]) {
+        vkDestroyImageView(api_ctx->device, view, nullptr);
+    }
+    api_ctx->image_views_to_destroy[i].clear();
+    for (VkImage img : api_ctx->images_to_destroy[i]) {
+        vkDestroyImage(api_ctx->device, img, nullptr);
+    }
+    api_ctx->images_to_destroy[i].clear();
+}

@@ -735,7 +735,7 @@ void GSBaseState::Draw() {
             }
 
             // Target frontend to next frame
-            ren_ctx_->frontend_frame = (ren_ctx_->backend_frame + 1) % Ren::MaxFramesInFlight;
+            ren_ctx_->frontend_frame = (ren_ctx_->backend_frame() + 1) % Ren::MaxFramesInFlight;
 
             notified_ = true;
             thr_notify_.notify_one();
@@ -745,7 +745,7 @@ void GSBaseState::Draw() {
             // Gather drawables for list 0
             UpdateFrame(0);
             // Target frontend to current frame
-            ren_ctx_->frontend_frame = ren_ctx_->backend_frame;
+            ren_ctx_->frontend_frame = ren_ctx_->backend_frame();
             back_list = 0;
         }
 

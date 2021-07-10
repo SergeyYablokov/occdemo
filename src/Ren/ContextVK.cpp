@@ -35,6 +35,8 @@ Ren::Context::~Context() {
         vkDeviceWaitIdle(api_ctx_->device);
 
         for (int i = 0; i < MaxFramesInFlight; ++i) {
+            DestroyDeferredResources(api_ctx_.get(), i);
+
             vkDestroyFence(api_ctx_->device, api_ctx_->in_flight_fences[i], nullptr);
             vkDestroySemaphore(api_ctx_->device, api_ctx_->render_finished_semaphores[i], nullptr);
             vkDestroySemaphore(api_ctx_->device, api_ctx_->image_avail_semaphores[i], nullptr);
@@ -229,7 +231,7 @@ Ren::SyncFence Ren::Context::EndSingleTimeCommands(void *cmd_buf) {
     return SyncFence{api_ctx_->device, new_fence};
 }
 
-void *Ren::Context::current_cmd_buf() { return api_ctx_->draw_cmd_buf[backend_frame]; }
+void *Ren::Context::current_cmd_buf() { return api_ctx_->draw_cmd_buf[api_ctx_->backend_frame]; }
 
 #ifdef _MSC_VER
 #pragma warning(pop)

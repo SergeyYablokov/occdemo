@@ -118,7 +118,7 @@ void SceneManager::TextureLoaderProc() {
         }
 
 #if defined(USE_VK_RENDER)
-        continue;
+        // continue;
 #endif
 
         __itt_task_begin(__g_itt_domain, __itt_null, __itt_null, itt_read_file_str);
@@ -326,9 +326,12 @@ void SceneManager::ProcessPendingTextures(const int portion_size) {
 
                 const Ren::Tex2DParams &p = req->ref->params();
 
+                //stage_buf->fence.ClientWaitSync();
+                ren_ctx_.BegSingleTimeCommands(stage_buf->cmd_buf);
+
                 req->ref->Realloc(w, h, last_initialized_mip + 1 + req->mip_count_to_init, 1 /* samples */,
-                                  req->orig_format, req->orig_block, (p.flags & Ren::TexSRGB) != 0,
-                                  ren_ctx_.current_cmd_buf(), ren_ctx_.default_mem_allocs(), ren_ctx_.log());
+                                  req->orig_format, req->orig_block, (p.flags & Ren::TexSRGB) != 0, stage_buf->cmd_buf,
+                                  ren_ctx_.default_mem_allocs(), ren_ctx_.log());
 
                 int data_off = int(req->buf->data_off());
                 for (int i = int(req->mip_offset_to_init); i < int(req->mip_offset_to_init) + req->mip_count_to_init;
@@ -339,13 +342,15 @@ void SceneManager::ProcessPendingTextures(const int portion_size) {
                     }
                     const int data_len = Ren::GetMipDataLenBytes(w, h, req->orig_format, req->orig_block);
 
-                    stage_buf->fence = req->ref->SetSubImage(i - req->mip_offset_to_init, 0, 0, w, h, req->orig_format,
-                                                             stage_buf->stage_buf(), data_off, data_len);
-
+                    req->ref->SetSubImage(i - req->mip_offset_to_init, 0, 0, w, h, req->orig_format,
+                                          stage_buf->stage_buf(), stage_buf->cmd_buf, data_off, data_len);
+                    
                     data_off += data_len;
                     w = std::max(w / 2, 1);
                     h = std::max(h / 2, 1);
                 }
+
+                stage_buf->fence = ren_ctx_.EndSingleTimeCommands(stage_buf->cmd_buf);
 
                 { // offset min lod to account for newly allocated mip levels
                     Ren::SamplingParams cur_sampling = req->ref->params().sampling;

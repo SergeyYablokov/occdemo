@@ -34,6 +34,12 @@ struct ApiContext {
     VkSemaphore image_avail_semaphores[MaxFramesInFlight] = {};
     VkSemaphore render_finished_semaphores[MaxFramesInFlight] = {};
     VkFence in_flight_fences[MaxFramesInFlight] = {};
+
+    int backend_frame = 0;
+
+    // resources scheduled for deferred destruction
+    SmallVector<VkImage, 32> images_to_destroy[MaxFramesInFlight];
+    SmallVector<VkImageView, 32> image_views_to_destroy[MaxFramesInFlight];
 };
 
 class ILog;
@@ -65,4 +71,6 @@ void EndSingleTimeCommands(VkDevice device, VkQueue cmd_queue, VkCommandBuffer c
 void EndSingleTimeCommands(VkDevice device, VkQueue cmd_queue, VkCommandBuffer command_buf,
                            VkCommandPool temp_command_pool, VkFence fence_to_insert);
 void FreeSingleTimeCommandBuffer(VkDevice device, VkCommandPool temp_command_pool, VkCommandBuffer command_buf);
+
+void DestroyDeferredResources(ApiContext *api_ctx, int i);
 } // namespace Ren

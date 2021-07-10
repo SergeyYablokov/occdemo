@@ -382,14 +382,14 @@ void Gui::Renderer::Draw(const int w, const int h) {
     using namespace UIRendererConstants;
 
     Ren::ApiContext *api_ctx = ctx_.api_ctx();
-    VkCommandBuffer cmd_buf = api_ctx->draw_cmd_buf[ctx_.backend_frame];
+    VkCommandBuffer cmd_buf = api_ctx->draw_cmd_buf[api_ctx->backend_frame];
 
     //
     // Update buffers
     //
-    if (vtx_count_[ctx_.backend_frame]) {
-        const uint32_t data_offset = uint32_t(ctx_.backend_frame) * MaxVerticesPerRange * sizeof(vertex_t);
-        const uint32_t data_size = uint32_t(vtx_count_[ctx_.backend_frame]) * sizeof(vertex_t);
+    if (vtx_count_[api_ctx->backend_frame]) {
+        const uint32_t data_offset = uint32_t(api_ctx->backend_frame) * MaxVerticesPerRange * sizeof(vertex_t);
+        const uint32_t data_size = uint32_t(vtx_count_[api_ctx->backend_frame]) * sizeof(vertex_t);
 
         vertex_stage_buf_->FlushMappedRange(data_offset, data_size);
 
@@ -434,9 +434,9 @@ void Gui::Renderer::Draw(const int w, const int h) {
         vertex_buf_->last_stage_mask = VK_PIPELINE_STAGE_TRANSFER_BIT;
     }
 
-    if (ndx_count_[ctx_.backend_frame]) {
-        const uint32_t data_offset = uint32_t(ctx_.backend_frame) * MaxIndicesPerRange * sizeof(uint16_t);
-        const uint32_t data_size = uint32_t(ndx_count_[ctx_.backend_frame]) * sizeof(uint16_t);
+    if (ndx_count_[api_ctx->backend_frame]) {
+        const uint32_t data_offset = uint32_t(api_ctx->backend_frame) * MaxIndicesPerRange * sizeof(uint16_t);
+        const uint32_t data_size = uint32_t(ndx_count_[api_ctx->backend_frame]) * sizeof(uint16_t);
 
         index_stage_buf_->FlushMappedRange(data_offset, data_size);
 
@@ -520,7 +520,7 @@ void Gui::Renderer::Draw(const int w, const int h) {
     Ren::TexHandle color_attachment;
     color_attachment.view = api_ctx->present_image_views[api_ctx->active_present_image];
 
-    if (!framebuffers_[ctx_.backend_frame].Setup(api_ctx, render_pass_, w, h, color_attachment, {}, {},
+    if (!framebuffers_[api_ctx->backend_frame].Setup(api_ctx, render_pass_, w, h, color_attachment, {}, {},
                                                             false)) {
         ctx_.log()->Error("Failed to create framebuffer!");
     }
@@ -532,7 +532,7 @@ void Gui::Renderer::Draw(const int w, const int h) {
     VkRenderPassBeginInfo render_pass_begin_info = {};
     render_pass_begin_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
     render_pass_begin_info.renderPass = render_pass_;
-    render_pass_begin_info.framebuffer = framebuffers_[ctx_.backend_frame].handle();
+    render_pass_begin_info.framebuffer = framebuffers_[api_ctx->backend_frame].handle();
     render_pass_begin_info.renderArea = {0, 0, uint32_t(w), uint32_t(h)};
 
     vkCmdBeginRenderPass(cmd_buf, &render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
@@ -554,7 +554,7 @@ void Gui::Renderer::Draw(const int w, const int h) {
     vkCmdBindIndexBuffer(cmd_buf, index_buf_->vk_handle(), 0, VK_INDEX_TYPE_UINT16);
 
     vkCmdDrawIndexed(cmd_buf,
-                     ndx_count_[ctx_.backend_frame], // index count
+                     ndx_count_[api_ctx->backend_frame], // index count
                      1,                              // instance count
                      0,                              // first index
                      0,                              // vertex offset
@@ -562,8 +562,8 @@ void Gui::Renderer::Draw(const int w, const int h) {
 
     vkCmdEndRenderPass(cmd_buf);
 
-    vtx_count_[ctx_.backend_frame] = 0;
-    ndx_count_[ctx_.backend_frame] = 0;
+    vtx_count_[api_ctx->backend_frame] = 0;
+    ndx_count_[api_ctx->backend_frame] = 0;
 }
 
 #undef VTX_POS_LOC

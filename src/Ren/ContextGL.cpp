@@ -101,7 +101,7 @@ bool Ren::Context::Init(int w, int h, ILog *log, const char *) {
 #endif
 
     capabilities.spirv = IsExtensionSupported("GL_ARB_gl_spirv");
-    capabilities.persistent_buf_mapping = false; // IsExtensionSupported("GL_ARB_buffer_storage");
+    capabilities.persistent_buf_mapping = IsExtensionSupported("GL_ARB_buffer_storage");
 
     const bool bindless_texture_arb = IsExtensionSupported("GL_ARB_bindless_texture");
     const bool bindless_texture_nv = IsExtensionSupported("GL_NV_bindless_texture");

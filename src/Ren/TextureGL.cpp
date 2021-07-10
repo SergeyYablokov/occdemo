@@ -965,8 +965,6 @@ void Ren::Texture2D::InitFromDDSFile(const void *data[6], const int size[6], Buf
 
 void Ren::Texture2D::InitFromKTXFile(const void *data[6], const int size[6], Buffer &sbuf, const Tex2DParams &p,
                                      ILog *log) {
-    (void)size;
-
     Free();
 
     const auto *first_header = reinterpret_cast<const KTXHeader *>(data[0]);
@@ -1172,7 +1170,7 @@ void Ren::Texture2D::SetSubImage(const int level, const int offsetx, const int o
 
 Ren::SyncFence Ren::Texture2D::SetSubImage(const int level, const int offsetx, const int offsety, const int sizex,
                                            const int sizey, const Ren::eTexFormat format, const Buffer &sbuf,
-                                           const int data_off, const int data_len) {
+                                           void *_cmd_buf, const int data_off, const int data_len) {
     assert(format == params_.format);
     assert(params_.samples == 1);
     assert(offsetx >= 0 && offsetx + sizex <= std::max(params_.w >> level, 1));
