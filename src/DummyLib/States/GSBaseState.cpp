@@ -764,7 +764,6 @@ void GSBaseState::Draw() {
 void GSBaseState::DrawUI(Gui::Renderer *r, Gui::BaseElement *root) {
     using namespace GSBaseStateInternal;
 
-#if defined(USE_GL_RENDER)
     const float font_height = font_->height(root);
     const uint8_t text_color[4] = {255, 255, 255, 255};
 
@@ -811,7 +810,6 @@ void GSBaseState::DrawUI(Gui::Renderer *r, Gui::BaseElement *root) {
         debug_ui_->UpdateInfo(front_info, back_info, items_info, *swap_interval_, render_flags);
         debug_ui_->Draw(r);
     }
-#endif
 }
 
 void GSBaseState::UpdateFixed(const uint64_t dt_us) {
