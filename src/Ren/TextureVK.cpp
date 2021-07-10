@@ -338,7 +338,7 @@ void Ren::Texture2D::Init(const void *data[6], const int size[6], const Tex2DPar
         } else if (name_.EndsWith(".ktx") != 0 || name_.EndsWith(".KTX") != 0) {
             InitFromKTXFile(data, size, mem_allocs, p, log);
         } else if (name_.EndsWith(".dds") != 0 || name_.EndsWith(".DDS") != 0) {
-            InitFromDDSFile(data, size, mem_allocs, p, log);
+            InitFromDDSFile(data, size, sbuf, _cmd_buf, mem_allocs, p, log);
         } else {
             uint8_t *stage_data = sbuf.Map(BufMapWrite);
             uint32_t stage_off = 0;
@@ -687,7 +687,7 @@ void Ren::Texture2D::InitFromRAWData(Buffer *sbuf, int data_off, void *_cmd_buf,
         img_barrier.image = handle_.img;
         img_barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
         img_barrier.subresourceRange.baseMipLevel = 0;
-        img_barrier.subresourceRange.levelCount = mip_count; // transition whole image
+        img_barrier.subresourceRange.levelCount = mip_count; // transit whole image
         img_barrier.subresourceRange.baseArrayLayer = 0;
         img_barrier.subresourceRange.layerCount = 1;
 
@@ -803,8 +803,6 @@ void Ren::Texture2D::InitFromDDSFile(const void *data, const int size, Buffer &s
     params_.flags = p.flags;
     params_.block = block;
     params_.sampling = p.sampling;
-
-    // const GLuint internal_format = GLInternalFormatFromTexFormat(params_.format, (p.flags & TexSRGB) != 0);
 
     int w = params_.w, h = params_.h;
     uint32_t bytes_left = uint32_t(size) - sizeof(DDSHeader);
@@ -1026,71 +1024,141 @@ void Ren::Texture2D::InitFromRAWData(Buffer &sbuf, int data_off[6], void *_cmd_b
                                      const Tex2DParams &p, ILog *log) {
     assert(p.w > 0 && p.h > 0);
     Free();
-    #if 0
-    GLuint tex_id;
-    glCreateTextures(GL_TEXTURE_CUBE_MAP, 1, &tex_id);
-#ifdef ENABLE_OBJ_LABELS
-    glObjectLabel(GL_TEXTURE, tex_id, -1, name_.c_str());
-#endif
 
-    handle_ = {tex_id, TextureHandleCounter++};
+    handle_.generation = TextureHandleCounter++;
     params_ = p;
+    initialized_mips_ = 0;
 
-    const auto format = (GLenum)GLFormatFromTexFormat(params_.format),
-               internal_format = (GLenum)GLInternalFormatFromTexFormat(params_.format, (p.flags & TexSRGB) != 0),
-               type = (GLenum)GLTypeFromTexFormat(params_.format);
+    const int mip_count = CalcMipCount(p.w, p.h, 1, p.sampling.filter);
 
-    const int w = p.w, h = p.h;
-    const eTexFilter f = params_.sampling.filter;
+    { // create image
+        VkImageCreateInfo img_info = {};
+        img_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+        img_info.imageType = VK_IMAGE_TYPE_2D;
+        img_info.extent.width = uint32_t(p.w);
+        img_info.extent.height = uint32_t(p.h);
+        img_info.extent.depth = 1;
+        img_info.mipLevels = mip_count;
+        img_info.arrayLayers = 1;
+        img_info.format = g_vk_formats[size_t(p.format)];
+        img_info.tiling = VK_IMAGE_TILING_OPTIMAL;
+        img_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        img_info.usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT |
+                         VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+        img_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        img_info.samples = VkSampleCountFlagBits(p.samples);
+        img_info.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
 
-    auto mip_count = (GLsizei)CalcMipCount(w, h, 1, f);
-
-    // allocate all mip levels
-    ren_glTextureStorage2D_Comp(GL_TEXTURE_CUBE_MAP, tex_id, mip_count, internal_format, w, h);
-
-    glBindBuffer(GL_PIXEL_UNPACK_BUFFER, sbuf.id());
-
-    for (unsigned i = 0; i < 6; i++) {
-        if (data_off[i] == -1) {
-            continue;
-        } else {
-            cubemap_ready_ |= (1u << i);
+        VkResult res = vkCreateImage(api_ctx_->device, &img_info, nullptr, &handle_.img);
+        if (res != VK_SUCCESS) {
+            log->Error("Failed to create image!");
+            return;
         }
 
-        if (format != 0xffffffff && internal_format != 0xffffffff && type != 0xffffffff) {
-            ren_glTextureSubImage3D_Comp(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, tex_id, 0, 0, 0, i, w, h, 1, format, type,
-                                         reinterpret_cast<const GLvoid *>(uintptr_t(data_off[i])));
-        }
-    }
-
-    glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
-
-    if (f == eTexFilter::NoFilter) {
-        ren_glTextureParameteri_Comp(GL_TEXTURE_CUBE_MAP, tex_id, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        ren_glTextureParameteri_Comp(GL_TEXTURE_CUBE_MAP, tex_id, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    } else if (f == eTexFilter::Bilinear) {
-        ren_glTextureParameteri_Comp(GL_TEXTURE_CUBE_MAP, tex_id, GL_TEXTURE_MIN_FILTER,
-                                     (cubemap_ready_ == 0x3F) ? GL_LINEAR_MIPMAP_NEAREST : GL_LINEAR);
-        ren_glTextureParameteri_Comp(GL_TEXTURE_CUBE_MAP, tex_id, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    } else if (f == eTexFilter::Trilinear) {
-        ren_glTextureParameteri_Comp(GL_TEXTURE_CUBE_MAP, tex_id, GL_TEXTURE_MIN_FILTER,
-                                     (cubemap_ready_ == 0x3F) ? GL_LINEAR_MIPMAP_LINEAR : GL_LINEAR);
-        ren_glTextureParameteri_Comp(GL_TEXTURE_CUBE_MAP, tex_id, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    } else if (f == eTexFilter::BilinearNoMipmap) {
-        ren_glTextureParameteri_Comp(GL_TEXTURE_CUBE_MAP, tex_id, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        ren_glTextureParameteri_Comp(GL_TEXTURE_CUBE_MAP, tex_id, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    }
-
-    ren_glTextureParameteri_Comp(GL_TEXTURE_CUBE_MAP, tex_id, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    ren_glTextureParameteri_Comp(GL_TEXTURE_CUBE_MAP, tex_id, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-#if !defined(GL_ES_VERSION_2_0) && !defined(__EMSCRIPTEN__)
-    ren_glTextureParameteri_Comp(GL_TEXTURE_CUBE_MAP, tex_id, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+#ifdef ENABLE_OBJ_LABELS
+        VkDebugUtilsObjectNameInfoEXT name_info = {};
+        name_info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+        name_info.objectType = VK_OBJECT_TYPE_IMAGE;
+        name_info.objectHandle = uint64_t(handle_.img);
+        name_info.pObjectName = name_.c_str();
+        vkSetDebugUtilsObjectNameEXT(api_ctx_->device, &name_info);
 #endif
 
-    if ((f == eTexFilter::Trilinear || f == eTexFilter::Bilinear) && (cubemap_ready_ == 0x3F)) {
-        ren_glGenerateTextureMipmap_Comp(GL_TEXTURE_CUBE_MAP, tex_id);
+        VkMemoryRequirements tex_mem_req;
+        vkGetImageMemoryRequirements(api_ctx_->device, handle_.img, &tex_mem_req);
+
+        alloc_ = mem_allocs->Allocate(
+            uint32_t(tex_mem_req.size), uint32_t(tex_mem_req.alignment),
+            FindMemoryType(&api_ctx_->mem_properties, tex_mem_req.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT),
+            name_.c_str());
+
+        const VkDeviceSize aligned_offset = AlignTo(VkDeviceSize(alloc_.alloc_off), tex_mem_req.alignment);
+
+        res = vkBindImageMemory(api_ctx_->device, handle_.img, alloc_.owner->mem(alloc_.block_ndx), aligned_offset);
+        if (res != VK_SUCCESS) {
+            log->Error("Failed to bind memory!");
+            return;
+        }
     }
-    #endif
+
+    { // create default image view
+        VkImageViewCreateInfo view_info = {};
+        view_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+        view_info.image = handle_.img;
+        view_info.viewType = VK_IMAGE_VIEW_TYPE_CUBE;
+        view_info.format = g_vk_formats[size_t(p.format)];
+        view_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        view_info.subresourceRange.baseMipLevel = 0;
+        view_info.subresourceRange.levelCount = mip_count;
+        view_info.subresourceRange.baseArrayLayer = 0;
+        view_info.subresourceRange.layerCount = 1;
+
+        const VkResult res = vkCreateImageView(api_ctx_->device, &view_info, nullptr, &handle_.view);
+        if (res != VK_SUCCESS) {
+            log->Error("Failed to create image view!");
+            return;
+        }
+    }
+
+    assert(p.samples == 1);
+    assert(sbuf.type() == eBufType::Stage);
+    VkCommandBuffer cmd_buf = reinterpret_cast<VkCommandBuffer>(_cmd_buf);
+
+    VkBufferMemoryBarrier stage_barrier = {};
+    stage_barrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+    stage_barrier.srcAccessMask = sbuf.last_access_mask;
+    stage_barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+    stage_barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    stage_barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    stage_barrier.buffer = sbuf.handle().buf;
+    stage_barrier.offset = VkDeviceSize(0);
+    stage_barrier.size = VkDeviceSize(sbuf.size());
+
+    VkImageMemoryBarrier img_barrier = {};
+    img_barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+    img_barrier.srcAccessMask = this->last_access_mask;
+    img_barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+    img_barrier.oldLayout = this->layout;
+    img_barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+    img_barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    img_barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    img_barrier.image = handle_.img;
+    img_barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    img_barrier.subresourceRange.baseMipLevel = 0;
+    img_barrier.subresourceRange.levelCount = mip_count; // transit whole image
+    img_barrier.subresourceRange.baseArrayLayer = 0;
+    img_barrier.subresourceRange.layerCount = 1;
+
+    vkCmdPipelineBarrier(cmd_buf, sbuf.last_stage_mask | this->last_stage_mask, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0,
+                         nullptr, 1, &stage_barrier, 1, &img_barrier);
+
+    VkBufferImageCopy regions[6] = {};
+    for (int i = 0; i < 6; i++) {
+        regions[i].bufferOffset = VkDeviceSize(data_off[i]);
+        regions[i].bufferRowLength = 0;
+        regions[i].bufferImageHeight = 0;
+
+        regions[i].imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        regions[i].imageSubresource.mipLevel = 0;
+        regions[i].imageSubresource.baseArrayLayer = i;
+        regions[i].imageSubresource.layerCount = 1;
+
+        regions[i].imageOffset = {0, 0, 0};
+        regions[i].imageExtent = {uint32_t(p.w), uint32_t(p.h), 1};
+    }
+
+    vkCmdCopyBufferToImage(cmd_buf, sbuf.handle().buf, handle_.img, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 6, regions);
+
+    sbuf.last_access_mask = VK_ACCESS_TRANSFER_READ_BIT;
+    sbuf.last_stage_mask = VK_PIPELINE_STAGE_TRANSFER_BIT;
+
+    this->layout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+    this->last_access_mask = VK_ACCESS_TRANSFER_WRITE_BIT;
+    this->last_stage_mask = VK_PIPELINE_STAGE_TRANSFER_BIT;
+
+    initialized_mips_ |= (1u << 0);
+
+    ApplySampling(p.sampling, log);
 }
 
 void Ren::Texture2D::InitFromTGAFile(const void *data[6], Buffer &sbuf, void *_cmd_buf, MemoryAllocators *mem_allocs,
@@ -1199,77 +1267,219 @@ void Ren::Texture2D::InitFromPNGFile(const void *data[6], const int size[6], Buf
     InitFromRAWData(sbuf, data_off, _cmd_buf, mem_allocs, _p, log);
 }
 
-void Ren::Texture2D::InitFromDDSFile(const void *data[6], const int size[6], MemoryAllocators *mem_allocs,
-                                     const Tex2DParams &p, ILog *log) {
+void Ren::Texture2D::InitFromDDSFile(const void *data[6], const int size[6], Buffer &sbuf, void *_cmd_buf,
+                                     MemoryAllocators *mem_allocs, const Tex2DParams &p, ILog *log) {
     assert(p.w > 0 && p.h > 0);
     Free();
 
-#if 0
-    GLuint tex_id;
-    glCreateTextures(GL_TEXTURE_CUBE_MAP, 1, &tex_id);
-#ifdef ENABLE_OBJ_LABELS
-    glObjectLabel(GL_TEXTURE, tex_id, -1, name_.c_str());
-#endif
+    uint8_t *stage_data = sbuf.Map(BufMapWrite);
+    uint32_t data_off[6] = {};
+    uint32_t stage_len = 0;
 
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_CUBE_MAP, tex_id);
+    eTexFormat first_format = eTexFormat::None;
+    uint32_t first_mip_count = 0;
+    int first_block_size_bytes = 0;
 
-    handle_ = {tex_id, TextureHandleCounter++};
+    for (int i = 0; i < 6; ++i) {
+        const DDSHeader *header = reinterpret_cast<const DDSHeader *>(data[i]);
+
+        eTexFormat format;
+        eTexBlock block;
+        int block_size_bytes;
+        const int px_format = int(header->sPixelFormat.dwFourCC >> 24u) - '0';
+        switch (px_format) {
+        case 1:
+            format = eTexFormat::Compressed_DXT1;
+            block = eTexBlock::_4x4;
+            block_size_bytes = 8;
+            break;
+        case 3:
+            format = eTexFormat::Compressed_DXT3;
+            block = eTexBlock::_4x4;
+            block_size_bytes = 16;
+            break;
+        case 5:
+            format = eTexFormat::Compressed_DXT5;
+            block = eTexBlock::_4x4;
+            block_size_bytes = 16;
+            break;
+        default:
+            log->Error("Unknow DDS pixel format %i", px_format);
+            return;
+        }
+
+        if (i == 0) {
+            first_format = format;
+            first_mip_count = header->dwMipMapCount;
+            first_block_size_bytes = block_size_bytes;
+        } else {
+            assert(format == first_format);
+            assert(first_mip_count == header->dwMipMapCount);
+            assert(block_size_bytes == first_block_size_bytes);
+        }
+
+        memcpy(stage_data + stage_len, data[i], size[i]);
+
+        data_off[i] = stage_len;
+        stage_len += size[i];
+    }
+
+    sbuf.FlushMappedRange(0, stage_len);
+    sbuf.Unmap();
+
+    handle_.generation = TextureHandleCounter++;
     params_ = p;
+    params_.cube = 1;
     initialized_mips_ = 0;
 
-    for (int i = 0; i < 6; i++) {
-        DDSHeader header = {};
-        memcpy(&header, data[i], sizeof(DDSHeader));
+    { // create image
+        VkImageCreateInfo img_info = {};
+        img_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+        img_info.imageType = VK_IMAGE_TYPE_2D;
+        img_info.extent.width = uint32_t(p.w);
+        img_info.extent.height = uint32_t(p.h);
+        img_info.extent.depth = 1;
+        img_info.mipLevels = first_mip_count;
+        img_info.arrayLayers = 6;
+        img_info.format = g_vk_formats[size_t(first_format)];
+        img_info.tiling = VK_IMAGE_TILING_OPTIMAL;
+        img_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        img_info.usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+        img_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        img_info.samples = VK_SAMPLE_COUNT_1_BIT;
+        img_info.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
 
-        const uint8_t *pdata = (uint8_t *)data[i] + sizeof(DDSHeader);
+        VkResult res = vkCreateImage(api_ctx_->device, &img_info, nullptr, &handle_.img);
+        if (res != VK_SUCCESS) {
+            log->Error("Failed to create image!");
+            return;
+        }
+
+#ifdef ENABLE_OBJ_LABELS
+        VkDebugUtilsObjectNameInfoEXT name_info = {};
+        name_info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+        name_info.objectType = VK_OBJECT_TYPE_IMAGE;
+        name_info.objectHandle = uint64_t(handle_.img);
+        name_info.pObjectName = name_.c_str();
+        vkSetDebugUtilsObjectNameEXT(api_ctx_->device, &name_info);
+#endif
+
+        VkMemoryRequirements tex_mem_req;
+        vkGetImageMemoryRequirements(api_ctx_->device, handle_.img, &tex_mem_req);
+
+        alloc_ = mem_allocs->Allocate(
+            uint32_t(tex_mem_req.size), uint32_t(tex_mem_req.alignment),
+            FindMemoryType(&api_ctx_->mem_properties, tex_mem_req.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT),
+            name_.c_str());
+
+        const VkDeviceSize aligned_offset = AlignTo(VkDeviceSize(alloc_.alloc_off), tex_mem_req.alignment);
+
+        res = vkBindImageMemory(api_ctx_->device, handle_.img, alloc_.owner->mem(alloc_.block_ndx), aligned_offset);
+        if (res != VK_SUCCESS) {
+            log->Error("Failed to bind memory!");
+            return;
+        }
+    }
+
+    { // create default image view
+        VkImageViewCreateInfo view_info = {};
+        view_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+        view_info.image = handle_.img;
+        view_info.viewType = VK_IMAGE_VIEW_TYPE_CUBE;
+        view_info.format = g_vk_formats[size_t(p.format)];
+        view_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        view_info.subresourceRange.baseMipLevel = 0;
+        view_info.subresourceRange.levelCount = first_mip_count;
+        view_info.subresourceRange.baseArrayLayer = 0;
+        view_info.subresourceRange.layerCount = 6;
+
+        const VkResult res = vkCreateImageView(api_ctx_->device, &view_info, nullptr, &handle_.view);
+        if (res != VK_SUCCESS) {
+            log->Error("Failed to create image view!");
+            return;
+        }
+    }
+
+    assert(p.samples == 1);
+    assert(sbuf.type() == eBufType::Stage);
+    VkCommandBuffer cmd_buf = reinterpret_cast<VkCommandBuffer>(_cmd_buf);
+
+    VkBufferMemoryBarrier stage_barrier = {};
+    stage_barrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+    stage_barrier.srcAccessMask = sbuf.last_access_mask;
+    stage_barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+    stage_barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    stage_barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    stage_barrier.buffer = sbuf.handle().buf;
+    stage_barrier.offset = VkDeviceSize(0);
+    stage_barrier.size = VkDeviceSize(sbuf.size());
+
+    VkImageMemoryBarrier img_barrier = {};
+    img_barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+    img_barrier.srcAccessMask = this->last_access_mask;
+    img_barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+    img_barrier.oldLayout = this->layout;
+    img_barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+    img_barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    img_barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    img_barrier.image = handle_.img;
+    img_barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    img_barrier.subresourceRange.baseMipLevel = 0;
+    img_barrier.subresourceRange.levelCount = first_mip_count; // transit whole image
+    img_barrier.subresourceRange.baseArrayLayer = 0;
+    img_barrier.subresourceRange.layerCount = 6;
+
+    vkCmdPipelineBarrier(cmd_buf, sbuf.last_stage_mask | this->last_stage_mask, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0,
+                         nullptr, 1, &stage_barrier, 1, &img_barrier);
+
+    VkBufferImageCopy regions[6 * 16] = {};
+    int regions_count = 0;
+
+    for (int i = 0; i < 6; i++) {
+        const auto *header = reinterpret_cast<const DDSHeader *>(data[i]);
+
+        int offset = sizeof(DDSHeader);
         int data_len = size[i] - int(sizeof(DDSHeader));
 
-        for (uint32_t j = 0; j < header.dwMipMapCount; j++) {
-            const int width = std::max(int(header.dwWidth >> j), 1),
-                      height = std::max(int(header.dwHeight >> j), 1);
+        for (uint32_t j = 0; j < header->dwMipMapCount; j++) {
+            const int width = std::max(int(header->dwWidth >> j), 1), height = std::max(int(header->dwHeight >> j), 1);
 
-            GLenum format = 0;
-            int block_size = 0;
-
-            switch ((header.sPixelFormat.dwFourCC >> 24u) - '0') {
-            case 1:
-                format = GL_COMPRESSED_RGBA_S3TC_DXT1_EXT;
-                block_size = 8;
-                break;
-            case 3:
-                format = GL_COMPRESSED_RGBA_S3TC_DXT3_EXT;
-                block_size = 16;
-                break;
-            case 5:
-                format = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
-                block_size = 16;
-                break;
-            default:
-                log->Error("Unknown DDS format %i",
-                           int((header.sPixelFormat.dwFourCC >> 24u) - '0'));
-                break;
-            }
-
-            const int image_len = ((width + 3) / 4) * ((height + 3) / 4) * block_size;
+            const int image_len = ((width + 3) / 4) * ((height + 3) / 4) * first_block_size_bytes;
             if (image_len > data_len) {
-                log->Error("Insufficient data length, bytes left %i, expected %i",
-                           data_len, image_len);
+                log->Error("Insufficient data length, bytes left %i, expected %i", data_len, image_len);
                 break;
             }
 
-            glCompressedTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, j, format, width,
-                                   height, 0, image_len, pdata);
+            auto &reg = regions[regions_count++];
 
-            pdata += image_len;
+            reg.bufferOffset = VkDeviceSize(data_off[i] + offset);
+            reg.bufferRowLength = 0;
+            reg.bufferImageHeight = 0;
+
+            reg.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+            reg.imageSubresource.mipLevel = uint32_t(j);
+            reg.imageSubresource.baseArrayLayer = i;
+            reg.imageSubresource.layerCount = 1;
+
+            reg.imageOffset = {0, 0, 0};
+            reg.imageExtent = {uint32_t(width), uint32_t(height), 1};
+
+            offset += image_len;
             data_len -= image_len;
         }
     }
 
-    params_.cube = 1;
-#endif
+    vkCmdCopyBufferToImage(cmd_buf, sbuf.handle().buf, handle_.img, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, regions_count,
+                           regions);
 
-    // ApplySampling(p.sampling, log);
+    sbuf.last_access_mask = VK_ACCESS_TRANSFER_READ_BIT;
+    sbuf.last_stage_mask = VK_PIPELINE_STAGE_TRANSFER_BIT;
+
+    this->layout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+    this->last_access_mask = VK_ACCESS_TRANSFER_WRITE_BIT;
+    this->last_stage_mask = VK_PIPELINE_STAGE_TRANSFER_BIT;
+
+    ApplySampling(p.sampling, log);
 }
 
 void Ren::Texture2D::InitFromKTXFile(const void *data[6], const int size[6], MemoryAllocators *mem_allocs,

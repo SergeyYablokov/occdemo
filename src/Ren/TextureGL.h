@@ -71,8 +71,8 @@ class Texture2D : public RefCounter {
     void InitFromTGAFile(const void *data[6], Buffer &sbuf, const Tex2DParams &p, ILog *log);
     void InitFromTGA_RGBEFile(const void *data[6], Buffer &sbuf, const Tex2DParams &p, ILog *log);
     void InitFromPNGFile(const void *data[6], const int size[6], Buffer &sbuf, const Tex2DParams &p, ILog *log);
-    void InitFromDDSFile(const void *data[6], const int size[6], const Tex2DParams &p, ILog *log);
-    void InitFromKTXFile(const void *data[6], const int size[6], const Tex2DParams &p, ILog *log);
+    void InitFromDDSFile(const void *data[6], const int size[6], Buffer &sbuf, const Tex2DParams &p, ILog *log);
+    void InitFromKTXFile(const void *data[6], const int size[6], Buffer &sbuf, const Tex2DParams &p, ILog *log);
 
   public:
     uint32_t first_user = 0xffffffff;

@@ -41,7 +41,7 @@ bool Ren::InitVkInstance(VkInstance &instance, const char *enabled_layers[], con
 #endif
     }
 
-    const char *extensions[] = {
+    const char *desired_extensions[] = {
         VK_KHR_SURFACE_EXTENSION_NAME,
 #if defined(VK_USE_PLATFORM_WIN32_KHR)
         VK_KHR_WIN32_SURFACE_EXTENSION_NAME,
@@ -53,7 +53,8 @@ bool Ren::InitVkInstance(VkInstance &instance, const char *enabled_layers[], con
         VK_EXT_DEBUG_REPORT_EXTENSION_NAME,
         VK_EXT_DEBUG_UTILS_EXTENSION_NAME
     };
-    const uint32_t number_required_extensions = sizeof(extensions) / sizeof(char *);
+    const uint32_t number_required_extensions = 2;
+    const uint32_t number_optional_extensions = 2;
 
     { // Find required extensions
         uint32_t ext_count = 0;
@@ -62,16 +63,28 @@ bool Ren::InitVkInstance(VkInstance &instance, const char *enabled_layers[], con
         SmallVector<VkExtensionProperties, 16> extensions_available(ext_count);
         vkEnumerateInstanceExtensionProperties(nullptr, &ext_count, &extensions_available[0]);
 
-        uint32_t found_extensions = 0;
+        uint32_t found_required_extensions = 0;
         for (uint32_t i = 0; i < ext_count; i++) {
             for (uint32_t j = 0; j < number_required_extensions; j++) {
-                if (strcmp(extensions_available[i].extensionName, extensions[j]) == 0) {
-                    found_extensions++;
+                if (strcmp(extensions_available[i].extensionName, desired_extensions[j]) == 0) {
+                    found_required_extensions++;
                 }
             }
         }
-        if (found_extensions != number_required_extensions) {
-            log->Error("Could not find debug extension");
+        if (found_required_extensions != number_required_extensions) {
+            log->Error("Not all required extensions were found!");
+            log->Error("\tRequested:");
+            for (int i = 0; i < number_required_extensions; ++i) {
+                log->Error("\t\t%s", desired_extensions[i]);
+            }
+            log->Error("\tFound:");
+            for (uint32_t i = 0; i < ext_count; i++) {
+                for (uint32_t j = 0; j < number_required_extensions; j++) {
+                    if (strcmp(extensions_available[i].extensionName, desired_extensions[j]) == 0) {
+                        log->Error("\t\t%s", desired_extensions[i]);
+                    }
+                }
+            }
             return false;
         }
     }
@@ -87,8 +100,8 @@ bool Ren::InitVkInstance(VkInstance &instance, const char *enabled_layers[], con
     instance_info.pApplicationInfo = &app_info;
     instance_info.enabledLayerCount = enabled_layers_count;
     instance_info.ppEnabledLayerNames = enabled_layers;
-    instance_info.enabledExtensionCount = number_required_extensions;
-    instance_info.ppEnabledExtensionNames = extensions;
+    instance_info.enabledExtensionCount = number_required_extensions + number_optional_extensions;
+    instance_info.ppEnabledExtensionNames = desired_extensions;
 
     VkResult res = vkCreateInstance(&instance_info, nullptr, &instance);
     if (res != VK_SUCCESS) {
@@ -138,7 +151,7 @@ bool Ren::InitVkSurface(VkSurfaceKHR &surface, VkInstance instance, ILog *log) {
     VkMacOSSurfaceCreateInfoMVK surface_create_info = {};
     surface_create_info.sType = VK_STRUCTURE_TYPE_MACOS_SURFACE_CREATE_INFO_MVK;
     surface_create_info.pView = g_metal_layer;
-    
+
     VkResult res = vkCreateMacOSSurfaceMVK(instance, &surface_create_info, nullptr, &surface);
     if (res != VK_SUCCESS) {
         log->Error("Could not create surface");

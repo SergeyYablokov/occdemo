@@ -226,3 +226,17 @@ Ren::eTexFormat Ren::FormatFromGLInternalFormat(const uint32_t gl_internal_forma
 
     return eTexFormat::Undefined;
 }
+
+int Ren::BlockLenFromGLInternalFormat(uint32_t gl_internal_format) {
+    switch (gl_internal_format) {
+    case GL_COMPRESSED_RGBA_S3TC_DXT1_EXT:
+        return 8;
+    case GL_COMPRESSED_RGBA_S3TC_DXT3_EXT:
+        return 16;
+    case GL_COMPRESSED_RGBA_S3TC_DXT5_EXT:
+        return 16;
+    default:
+        assert(false);
+    }
+    return -1;
+}

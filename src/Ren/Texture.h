@@ -19,6 +19,7 @@ inline int GetMipDataLenBytes(const int w, const int h, const eTexFormat format,
 uint32_t EstimateMemory(const Tex2DParams &params);
 
 eTexFormat FormatFromGLInternalFormat(uint32_t gl_internal_format, eTexBlock *block, bool *is_srgb);
+int BlockLenFromGLInternalFormat(uint32_t gl_internal_format);
 } // namespace Ren
 
 #if defined(USE_GL_RENDER)

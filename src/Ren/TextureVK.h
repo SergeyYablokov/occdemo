@@ -92,8 +92,8 @@ class Texture2D : public RefCounter {
                               const Tex2DParams &p, ILog *log);
     void InitFromPNGFile(const void *data[6], const int size[6], Buffer &sbuf, void *_cmd_buf,
                          MemoryAllocators *mem_allocs, const Tex2DParams &p, ILog *log);
-    void InitFromDDSFile(const void *data[6], const int size[6], MemoryAllocators *mem_allocs, const Tex2DParams &p,
-                         ILog *log);
+    void InitFromDDSFile(const void *data[6], const int size[6], Buffer &sbuf, void *_cmd_buf,
+                         MemoryAllocators *mem_allocs, const Tex2DParams &p, ILog *log);
     void InitFromKTXFile(const void *data[6], const int size[6], MemoryAllocators *mem_allocs, const Tex2DParams &p,
                          ILog *log);
 
