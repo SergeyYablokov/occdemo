@@ -35,7 +35,7 @@ struct TexHandle {
     uint32_t generation = 0; // used to identify unique texture (name can be reused)
 
     TexHandle() = default;
-    // TexHandle(const uint32_t _id, const uint32_t _gen) : id(_id), generation(_gen) {}
+    TexHandle(VkImage _img, VkImageView _view, uint32_t _generation) : img(_img), view(_view), generation(_generation) {}
 
     explicit operator bool() const { return false; }
 };
