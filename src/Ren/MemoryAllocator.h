@@ -80,6 +80,12 @@ class MemoryAllocator {
 
     MemAllocation Allocate(uint32_t size, uint32_t alignment, const char *tag);
     void Free(uint32_t block_ndx, uint32_t alloc_off);
+
+    void Print(ILog *log) const {
+        for (const auto &block : blocks_) {
+            block.alloc.PrintNode(0, "", true, log);
+        }
+    }
 };
 
 class MemoryAllocators {
@@ -113,6 +119,8 @@ class MemoryAllocators {
 
         return allocators_[alloc_index].Allocate(size, alignment, tag);
     }
+
+    void Print(ILog *log);
 };
 } // namespace Ren
 

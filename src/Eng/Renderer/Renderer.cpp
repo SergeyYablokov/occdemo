@@ -370,7 +370,6 @@ void Renderer::ExecuteDrawList(const DrawList &list, const PersistentBuffers &pe
     { // Setup render passes
         rp_builder_.Reset();
 
-#if defined(USE_GL_RENDER) // gl-only for now
         //
         // Update buffers
         //
@@ -379,6 +378,7 @@ void Renderer::ExecuteDrawList(const DrawList &list, const PersistentBuffers &pe
         RenderPassBase *rp_head = &rp_update_buffers_;
         RenderPassBase *rp_tail = &rp_update_buffers_;
 
+#if defined(USE_GL_RENDER) // gl-only for now
         //
         // Skinning and blend shapes
         //
@@ -642,6 +642,7 @@ void Renderer::ExecuteDrawList(const DrawList &list, const PersistentBuffers &pe
             rp_tail->p_next = &rp_debug_textures_;
             rp_tail = rp_tail->p_next;
         }
+#endif
 
         //
         // Compile and execute
@@ -650,7 +651,6 @@ void Renderer::ExecuteDrawList(const DrawList &list, const PersistentBuffers &pe
 
         rp_builder_.Compile(rp_head);
         rp_builder_.Execute(rp_head);
-#endif
     }
 
     { // store matrix to use it in next frame

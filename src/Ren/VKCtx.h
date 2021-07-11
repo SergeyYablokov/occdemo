@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Common.h"
+#include "MemoryAllocator.h"
 #include "SmallVector.h"
 #include "VK.h"
 
@@ -38,8 +39,11 @@ struct ApiContext {
     int backend_frame = 0;
 
     // resources scheduled for deferred destruction
-    SmallVector<VkImage, 32> images_to_destroy[MaxFramesInFlight];
-    SmallVector<VkImageView, 32> image_views_to_destroy[MaxFramesInFlight];
+    SmallVector<VkImage, 128> images_to_destroy[MaxFramesInFlight];
+    SmallVector<VkImageView, 128> image_views_to_destroy[MaxFramesInFlight];
+    SmallVector<MemAllocation, 128> allocs_to_free[MaxFramesInFlight];
+    SmallVector<VkBuffer, 128> bufs_to_destroy[MaxFramesInFlight];
+    SmallVector<VkDeviceMemory, 128> mem_to_free[MaxFramesInFlight];
 };
 
 class ILog;

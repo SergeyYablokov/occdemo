@@ -111,7 +111,7 @@ void RpUpdateBuffers::Execute(RpBuilder &builder) {
         }
 
         Ren::CopyBufferToBuffer(*skin_transforms_stage_buf_, ctx.backend_frame() * SkinTransformsBufChunkSize,
-                                *skin_transforms_buf.ref, 0, skin_transforms_mem_size);
+                                *skin_transforms_buf.ref, 0, skin_transforms_mem_size, ctx.current_cmd_buf());
     }
 
     RpAllocBuf &shape_keys_buf = builder.GetWriteBuffer(shape_keys_buf_);
@@ -129,7 +129,7 @@ void RpUpdateBuffers::Execute(RpBuilder &builder) {
         }
 
         Ren::CopyBufferToBuffer(*shape_keys_stage_buf_, ctx.backend_frame() * ShapeKeysBufChunkSize,
-                                *shape_keys_buf.ref, 0, shape_keys_mem_size);
+                                *shape_keys_buf.ref, 0, shape_keys_mem_size, ctx.current_cmd_buf());
     }
 
     RpAllocBuf &instances_buf = builder.GetWriteBuffer(instances_buf_);
@@ -153,7 +153,7 @@ void RpUpdateBuffers::Execute(RpBuilder &builder) {
         }
 
         Ren::CopyBufferToBuffer(*instances_stage_buf_, ctx.backend_frame() * InstanceDataBufChunkSize,
-                                *instances_buf.ref, 0, instance_mem_size);
+                                *instances_buf.ref, 0, instance_mem_size, ctx.current_cmd_buf());
     }
 
     RpAllocBuf &cells_buf = builder.GetWriteBuffer(cells_buf_);
@@ -177,7 +177,7 @@ void RpUpdateBuffers::Execute(RpBuilder &builder) {
         }
 
         Ren::CopyBufferToBuffer(*cells_stage_buf_, ctx.backend_frame() * CellsBufChunkSize, *cells_buf.ref, 0,
-                                cells_mem_size);
+                                cells_mem_size, ctx.current_cmd_buf());
     }
 
     RpAllocBuf &lights_buf = builder.GetWriteBuffer(lights_buf_);
@@ -201,7 +201,7 @@ void RpUpdateBuffers::Execute(RpBuilder &builder) {
         }
 
         Ren::CopyBufferToBuffer(*lights_stage_buf_, ctx.backend_frame() * LightsBufChunkSize, *lights_buf.ref, 0,
-                                lights_mem_size);
+                                lights_mem_size, ctx.current_cmd_buf());
     }
 
     RpAllocBuf &decals_buf = builder.GetWriteBuffer(decals_buf_);
@@ -225,7 +225,7 @@ void RpUpdateBuffers::Execute(RpBuilder &builder) {
         }
 
         Ren::CopyBufferToBuffer(*decals_stage_buf_, ctx.backend_frame() * DecalsBufChunkSize, *decals_buf.ref, 0,
-                                decals_mem_size);
+                                decals_mem_size, ctx.current_cmd_buf());
     }
 
     RpAllocBuf &items_buf = builder.GetWriteBuffer(items_buf_);
@@ -249,7 +249,7 @@ void RpUpdateBuffers::Execute(RpBuilder &builder) {
         }
 
         Ren::CopyBufferToBuffer(*items_stage_buf_, ctx.backend_frame() * ItemsBufChunkSize, *items_buf.ref, 0,
-                                items_mem_size);
+                                items_mem_size, ctx.current_cmd_buf());
     } else {
         uint8_t *stage_mem =
             items_stage_buf_->MapRange(Ren::BufMapWrite, ctx.backend_frame() * ItemsBufChunkSize, ItemsBufChunkSize);
@@ -263,7 +263,7 @@ void RpUpdateBuffers::Execute(RpBuilder &builder) {
         }
 
         Ren::CopyBufferToBuffer(*items_stage_buf_, ctx.backend_frame() * ItemsBufChunkSize, *items_buf.ref, 0,
-                                sizeof(ItemData));
+                                sizeof(ItemData), ctx.current_cmd_buf());
     }
 
     //
@@ -342,6 +342,6 @@ void RpUpdateBuffers::Execute(RpBuilder &builder) {
         }
 
         Ren::CopyBufferToBuffer(*shared_data_stage_buf_, ctx.backend_frame() * SharedDataBlockSize,
-                                *unif_shared_data_buf.ref, 0, SharedDataBlockSize);
+                                *unif_shared_data_buf.ref, 0, SharedDataBlockSize, ctx.current_cmd_buf());
     }
 }

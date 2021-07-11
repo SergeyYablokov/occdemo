@@ -118,7 +118,7 @@ bool Ren::LinearAlloc::Free_Node(int i) {
     return true;
 }
 
-void Ren::LinearAlloc::PrintNode(int i, std::string prefix, bool is_tail, ILog *log) {
+void Ren::LinearAlloc::PrintNode(int i, std::string prefix, bool is_tail, ILog *log) const {
     const auto &node = nodes_[i];
     if (is_tail) {
         if (!node.has_children() && node.is_free) {

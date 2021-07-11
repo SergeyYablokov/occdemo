@@ -112,7 +112,7 @@ class Buffer : public RefCounter, public LinearAlloc {
 };
 
 void CopyBufferToBuffer(Buffer &src, uint32_t src_offset, Buffer &dst, uint32_t dst_offset, uint32_t size,
-                        void *cmd_buf = nullptr);
+                        void *_cmd_buf);
 
 #if defined(USE_GL_RENDER)
 void GLUnbindBufferUnits(int start, int count);

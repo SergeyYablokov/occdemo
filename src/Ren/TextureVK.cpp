@@ -368,15 +368,12 @@ void Ren::Texture2D::Init(const void *data[6], const int size[6], const Tex2DPar
 }
 
 void Ren::Texture2D::Free() {
-    alloc_ = {};
     if (params_.format != eTexFormat::Undefined && !(params_.flags & TexNoOwnership)) {
         assert(IsMainThread());
 
         api_ctx_->image_views_to_destroy[api_ctx_->backend_frame].push_back(handle_.view);
         api_ctx_->images_to_destroy[api_ctx_->backend_frame].push_back(handle_.img);
-
-        //vkDestroyImageView(api_ctx_->device, handle_.view, nullptr);
-        //vkDestroyImage(api_ctx_->device, handle_.img, nullptr);
+        api_ctx_->allocs_to_free[api_ctx_->backend_frame].emplace_back(std::move(alloc_));
 
         handle_ = {};
         params_.format = eTexFormat::Undefined;
@@ -433,7 +430,7 @@ bool Ren::Texture2D::Realloc(const int w, const int h, int mip_count, const int 
 #endif
 
         VkMemoryRequirements tex_mem_req;
-        vkGetImageMemoryRequirements(api_ctx_->device, handle_.img, &tex_mem_req);
+        vkGetImageMemoryRequirements(api_ctx_->device, new_image, &tex_mem_req);
 
         new_alloc = mem_allocs->Allocate(
             uint32_t(tex_mem_req.size), uint32_t(tex_mem_req.alignment),
@@ -576,6 +573,7 @@ bool Ren::Texture2D::Realloc(const int w, const int h, int mip_count, const int 
     Free();
 
     handle_ = new_handle;
+    alloc_ = std::move(new_alloc);
     params_.w = w;
     params_.h = h;
     if (is_srgb) {

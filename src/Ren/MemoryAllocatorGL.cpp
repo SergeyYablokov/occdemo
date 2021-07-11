@@ -1,8 +1,6 @@
 #include "MemoryAllocator.h"
 
-void Ren::MemAllocation::Release() {
-    
-}
+void Ren::MemAllocation::Release() {}
 
 Ren::MemoryAllocator::MemoryAllocator(const char name[32], ApiContext *api_ctx, const uint32_t initial_block_size,
                                       uint32_t mem_type_index, const float growth_factor)
@@ -27,3 +25,5 @@ void Ren::MemoryAllocator::Free(uint32_t block_ndx, uint32_t alloc_off) {
     assert(node_ndx != -1);
     blocks_[block_ndx].alloc.Free_Node(node_ndx);
 }
+
+void Ren::MemoryAllocators::Print(ILog *log) {}

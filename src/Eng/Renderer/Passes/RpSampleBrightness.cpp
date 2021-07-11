@@ -24,9 +24,8 @@ void RpSampleBrightness::LazyInit(Ren::Context &ctx, ShaderLoader &sh, RpAllocTe
         blit_red_prog_ = sh.LoadProgram(ctx, "blit_red", "internal/blit.vert.glsl", "internal/blit_reduced.frag.glsl");
         assert(blit_red_prog_->ready());
 
-#if defined(USE_GL_RENDER)
-        InitPBO();
-#endif
+        readback_buf_ = ctx.CreateBuffer("Brightness Readback", Ren::eBufType::Stage,
+                                         GLsizeiptr(4) * res_[0] * res_[1] * sizeof(float) * Ren::MaxFramesInFlight);
 
         initialized_ = true;
     }

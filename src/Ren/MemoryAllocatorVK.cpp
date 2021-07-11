@@ -90,3 +90,12 @@ void Ren::MemoryAllocator::Free(uint32_t block_ndx, uint32_t alloc_off) {
     assert(node_ndx != -1);
     blocks_[block_ndx].alloc.Free_Node(node_ndx);
 }
+
+void Ren::MemoryAllocators::Print(ILog *log) {
+    log->Info("=================================================================");
+    log->Info("MemAllocs %s", name_);
+    for (const auto &alloc : allocators_) {
+        alloc.Print(log);
+    }
+    log->Info("=================================================================");
+}

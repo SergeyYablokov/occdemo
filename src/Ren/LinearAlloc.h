@@ -43,7 +43,7 @@ class LinearAlloc {
     int Find_r(int i, uint32_t offset) const;
     bool Free_Node(int i);
 
-    void PrintNode(int i, std::string prefix, bool is_tail, ILog *log);
+    void PrintNode(int i, std::string prefix, bool is_tail, ILog *log) const;
 
     void Clear();
 };

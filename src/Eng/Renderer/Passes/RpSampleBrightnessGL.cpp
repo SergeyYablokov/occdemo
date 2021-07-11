@@ -33,34 +33,13 @@ const float MaxValue = 64.0f;
 const float AvgAlpha = 1.0f / 64.0f;
 } // namespace RpSampleBrightnessInternal
 
-void RpSampleBrightness::InitPBO() {
-    { // Create pbo for reading back frame brightness
-        for (uint32_t &pbo : reduce_pbo_) {
-            GLuint reduce_pbo;
-            glGenBuffers(1, &reduce_pbo);
-            glBindBuffer(GL_PIXEL_PACK_BUFFER, reduce_pbo);
-            glBufferData(GL_PIXEL_PACK_BUFFER, GLsizeiptr(4) * res_[0] * res_[1] * sizeof(float), nullptr,
-                         GL_DYNAMIC_READ);
-
-            glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
-            pbo = (uint32_t)reduce_pbo;
-        }
-    }
-}
-
-void RpSampleBrightness::DestroyPBO() {
-    for (uint32_t pbo : reduce_pbo_) {
-        auto _pbo = (GLuint)pbo;
-        glDeleteBuffers(1, &_pbo);
-    }
-}
-
 void RpSampleBrightness::Execute(RpBuilder &builder) {
     using namespace RpSampleBrightnessInternal;
 
     RpAllocTex &reduced_tex = builder.GetWriteTexture(reduced_tex_);
 
-    LazyInit(builder.ctx(), builder.sh(), reduced_tex);
+    Ren::Context &ctx = builder.ctx();
+    LazyInit(ctx, builder.sh(), reduced_tex);
 
     const auto offset_step = Ren::Vec2f{1.0f / float(res_[0]), 1.0f / float(res_[1])};
 
@@ -90,19 +69,19 @@ void RpSampleBrightness::Execute(RpBuilder &builder) {
 
     float lum = 0.0f;
 
+    const uint32_t read_size = 4 * res_[0] * res_[1] * sizeof(float);
+
     { // Retrieve result of glReadPixels call from previous frame
-        glBindBuffer(GL_PIXEL_PACK_BUFFER, (GLuint)reduce_pbo_[cur_reduce_pbo_]);
-        auto *reduced_pixels = (float *)glMapBufferRange(
-            GL_PIXEL_PACK_BUFFER, 0, GLsizeiptr(4) * res_[0] * res_[1] * sizeof(float), GL_MAP_READ_BIT);
+        auto *reduced_pixels =
+            (float *)readback_buf_->MapRange(Ren::BufMapRead, read_size * ctx.backend_frame(), read_size);
         if (reduced_pixels) {
             for (int i = 0; i < 4 * res_[0] * res_[1]; i += 4) {
                 if (!std::isnan(reduced_pixels[i])) {
                     lum += std::min(reduced_pixels[i], MaxValue);
                 }
             }
-            glUnmapBuffer(GL_PIXEL_PACK_BUFFER);
+            readback_buf_->Unmap();
         }
-        glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
     }
 
     lum /= float(res_[0] * res_[1]);
@@ -112,13 +91,12 @@ void RpSampleBrightness::Execute(RpBuilder &builder) {
         glBindFramebuffer(GL_FRAMEBUFFER, reduced_fb_.id());
         glReadBuffer(GL_COLOR_ATTACHMENT0);
 
-        glBindBuffer(GL_PIXEL_PACK_BUFFER, GLuint(reduce_pbo_[cur_reduce_pbo_]));
+        glBindBuffer(GL_PIXEL_PACK_BUFFER, GLuint(readback_buf_->id()));
 
-        glReadPixels(0, 0, res_[0], res_[1], GL_RGBA, GL_FLOAT, nullptr);
+        glReadPixels(0, 0, res_[0], res_[1], GL_RGBA, GL_FLOAT,
+                     reinterpret_cast<GLvoid *>(uintptr_t(read_size * ctx.backend_frame())));
 
         glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-        cur_reduce_pbo_ = (cur_reduce_pbo_ + 1) % frame_sync_window_;
     }
 }

@@ -519,6 +519,7 @@ void SceneManager::ClearScene() {
     scene_data_.name = {};
 
     ren_ctx_.default_vertex_buf1()->Print(ren_ctx_.log());
+    ren_ctx_.default_mem_allocs()->Print(ren_ctx_.log());
 
     for (auto &obj : scene_data_.objects) {
         while (obj.comp_mask) {
@@ -557,7 +558,8 @@ void SceneManager::ClearScene() {
     changed_objects_.clear();
     last_changed_objects_.clear();
 
-    ren_ctx_.default_vertex_buf1()->Print(ren_ctx_.log());
+    //ren_ctx_.default_vertex_buf1()->Print(ren_ctx_.log());
+    ren_ctx_.default_mem_allocs()->Print(ren_ctx_.log());
 
     ray_scene_ = {};
 }

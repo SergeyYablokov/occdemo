@@ -179,7 +179,7 @@ uint8_t *Ren::Buffer::MapRange(const uint8_t dir, const uint32_t offset, const u
     }
 #endif
 
-    GLbitfield buf_map_range_flags = GLbitfield(GL_MAP_UNSYNCHRONIZED_BIT) | GLbitfield(GL_MAP_FLUSH_EXPLICIT_BIT);
+    GLbitfield buf_map_range_flags = 0;
 
     if (persistent) {
         buf_map_range_flags |= GLbitfield(GL_MAP_PERSISTENT_BIT);
@@ -190,7 +190,8 @@ uint8_t *Ren::Buffer::MapRange(const uint8_t dir, const uint32_t offset, const u
     }
 
     if (dir & BufMapWrite) {
-        buf_map_range_flags |= GLbitfield(GL_MAP_WRITE_BIT);
+        buf_map_range_flags |=
+            GLbitfield(GL_MAP_UNSYNCHRONIZED_BIT) | GLbitfield(GL_MAP_WRITE_BIT) | GLbitfield(GL_MAP_FLUSH_EXPLICIT_BIT);
         if ((dir & BufMapRead) == 0) {
             // write only case
             buf_map_range_flags |= GLbitfield(GL_MAP_INVALIDATE_RANGE_BIT);
@@ -228,6 +229,14 @@ void Ren::Buffer::Unmap() {
     mapped_ptr_ = nullptr;
 }
 
+void Ren::Buffer::Print(ILog *log) {
+    log->Info("=================================================================");
+    log->Info("Buffer %s, %f MB, %i nodes", name_.c_str(), float(size_) / (1024.0f * 1024.0f), int(nodes_.size()));
+    PrintNode(0, "", true, log);
+    log->Info("=================================================================");
+}
+
+
 void Ren::CopyBufferToBuffer(Buffer &src, uint32_t src_offset, Buffer &dst, uint32_t dst_offset, uint32_t size,
                              void *cmd_buf) {
     glBindBuffer(GL_COPY_READ_BUFFER, GLuint(src.id()));
@@ -243,11 +252,4 @@ void Ren::GLUnbindBufferUnits(int start, int count) {
         glBindBufferBase(GL_UNIFORM_BUFFER, i, 0);
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, i, 0);
     }
-}
-
-void Ren::Buffer::Print(ILog *log) {
-    log->Info("=================================================================");
-    log->Info("Buffer %s, %f MB, %i nodes", name_.c_str(), float(size_) / (1024.0f * 1024.0f), int(nodes_.size()));
-    PrintNode(0, "", true, log);
-    log->Info("=================================================================");
 }

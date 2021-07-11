@@ -677,4 +677,14 @@ void Ren::DestroyDeferredResources(ApiContext *api_ctx, int i) {
         vkDestroyImage(api_ctx->device, img, nullptr);
     }
     api_ctx->images_to_destroy[i].clear();
+    api_ctx->allocs_to_free[i].clear();
+
+    for (VkBuffer buf : api_ctx->bufs_to_destroy[i]) {
+        vkDestroyBuffer(api_ctx->device, buf, nullptr);
+    }
+    api_ctx->bufs_to_destroy[i].clear();
+
+    for (VkDeviceMemory mem : api_ctx->mem_to_free[i]) {
+        vkFreeMemory(api_ctx->device, mem, nullptr);
+    }
 }

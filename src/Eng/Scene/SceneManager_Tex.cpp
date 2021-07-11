@@ -117,10 +117,6 @@ void SceneManager::TextureLoaderProc() {
             requested_textures_.pop_front();
         }
 
-#if defined(USE_VK_RENDER)
-        // continue;
-#endif
-
         __itt_task_begin(__g_itt_domain, __itt_null, __itt_null, itt_read_file_str);
 
         req->buf->set_data_len(0);

@@ -42,6 +42,8 @@ Ren::Context::~Context() {
             vkDestroySemaphore(api_ctx_->device, api_ctx_->image_avail_semaphores[i], nullptr);
         }
 
+        default_memory_allocs_.reset();
+
         vkFreeCommandBuffers(api_ctx_->device, api_ctx_->command_pool, 1, &api_ctx_->setup_cmd_buf);
         vkFreeCommandBuffers(api_ctx_->device, api_ctx_->command_pool, MaxFramesInFlight, &api_ctx_->draw_cmd_buf[0]);
 

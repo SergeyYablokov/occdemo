@@ -30,8 +30,8 @@
 #include "Renderer/Passes/RpSSAO.cpp"
 #include "Renderer/Passes/RpTAA.cpp"
 #include "Renderer/Passes/RpTransparent.cpp"
-#include "Renderer/Passes/RpUpdateBuffers.cpp"
 #endif
+#include "Renderer/Passes/RpUpdateBuffers.cpp"
 
 #if defined(USE_GL_RENDER)
 #include "Renderer/FrameBufGL.cpp"

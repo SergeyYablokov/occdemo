@@ -206,8 +206,9 @@ void Ren::Buffer::Resize(uint32_t new_size) {
 void Ren::Buffer::Free() {
     assert(mapped_offset_ == 0xffffffff && !mapped_ptr_);
     if (handle_.buf != VK_NULL_HANDLE) {
-        vkDestroyBuffer(api_ctx_->device, handle_.buf, nullptr);
-        vkFreeMemory(api_ctx_->device, mem_, nullptr);
+        api_ctx_->bufs_to_destroy[api_ctx_->backend_frame].push_back(handle_.buf);
+        api_ctx_->mem_to_free[api_ctx_->backend_frame].push_back(mem_);
+
         handle_ = {};
         size_ = 0;
         LinearAlloc::Clear();
@@ -246,6 +247,9 @@ uint8_t *Ren::Buffer::MapRange(const uint8_t dir, const uint32_t offset, const u
 }
 
 void Ren::Buffer::FlushMappedRange(uint32_t offset, uint32_t size) {
+    // offset argument is relative to mapped range
+    offset += mapped_offset_;
+
     const uint32_t align_to = uint32_t(api_ctx_->device_properties.limits.nonCoherentAtomSize);
     const uint32_t offset_aligned = offset - (offset % align_to);
     const uint32_t size_aligned = align_to * ((size + (offset % align_to) + align_to - 1) / align_to);
@@ -284,4 +288,47 @@ void Ren::Buffer::Print(ILog *log) {
     log->Info("Buffer %s, %f MB, %i nodes", name_.c_str(), float(size_) / (1024.0f * 1024.0f), int(nodes_.size()));
     PrintNode(0, "", true, log);
     log->Info("=================================================================");
+}
+
+void Ren::CopyBufferToBuffer(Buffer &src, uint32_t src_offset, Buffer &dst, uint32_t dst_offset, uint32_t size,
+                             void *_cmd_buf) {
+    VkCommandBuffer cmd_buf = reinterpret_cast<VkCommandBuffer>(_cmd_buf);
+
+    int barriers_count = 0;
+    VkBufferMemoryBarrier barriers[2] = {};
+    barriers[0].sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+    barriers[0].srcAccessMask = src.last_access_mask;
+    barriers[0].dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+    barriers[0].srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    barriers[0].dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    barriers[0].buffer = src.handle().buf;
+    barriers[0].offset = VkDeviceSize{src_offset};
+    barriers[0].size = VkDeviceSize{size};
+    ++barriers_count;
+
+    barriers[1].sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+    barriers[1].srcAccessMask = dst.last_access_mask;
+    barriers[1].dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+    barriers[1].srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    barriers[1].dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    barriers[1].buffer = dst.handle().buf;
+    barriers[1].offset = VkDeviceSize{dst_offset};
+    barriers[1].size = VkDeviceSize{size};
+    ++barriers_count;
+
+    vkCmdPipelineBarrier(cmd_buf, src.last_stage_mask | dst.last_stage_mask, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0,
+                         nullptr, barriers_count, barriers, 0, nullptr);
+
+    VkBufferCopy region_to_copy = {};
+    region_to_copy.srcOffset = VkDeviceSize{src_offset};
+    region_to_copy.dstOffset = VkDeviceSize{dst_offset};
+    region_to_copy.size = VkDeviceSize{size};
+
+    vkCmdCopyBuffer(cmd_buf, src.handle().buf, dst.handle().buf, 1, &region_to_copy);
+
+    src.last_access_mask = VK_ACCESS_TRANSFER_READ_BIT;
+    src.last_stage_mask = VK_PIPELINE_STAGE_TRANSFER_BIT;
+
+    dst.last_access_mask = VK_ACCESS_TRANSFER_WRITE_BIT;
+    dst.last_stage_mask = VK_PIPELINE_STAGE_TRANSFER_BIT;
 }
