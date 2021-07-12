@@ -1855,6 +1855,7 @@ Ren::Texture1D &Ren::Texture1D::operator=(Texture1D &&rhs) noexcept {
     buf_ = std::move(rhs.buf_);
     params_ = exchange(rhs.params_, {});
     name_ = std::move(rhs.name_);
+    buf_view_ = exchange(rhs.buf_view_, {});
 
     return (*this);
 }
@@ -1863,19 +1864,17 @@ void Ren::Texture1D::Init(BufferRef buf, const eTexFormat format, const uint32_t
                           ILog *log) {
     Free();
 
-#if 0
-    GLuint tex_id;
-    glGenTextures(1, &tex_id);
-    glBindTexture(GL_TEXTURE_BUFFER, tex_id);
+    VkBufferViewCreateInfo view_info = {};
+    view_info.sType = VK_STRUCTURE_TYPE_BUFFER_VIEW_CREATE_INFO;
+    view_info.buffer = buf->handle().buf;
+    view_info.format = g_vk_formats[size_t(format)];
+    view_info.offset = VkDeviceSize(offset);
+    view_info.range = VkDeviceSize(size);
 
-    glTexBufferRange(GL_TEXTURE_BUFFER,
-                     GLInternalFormatFromTexFormat(format, false /* is_srgb */),
-                     GLuint(buf->id()), offset, size);
+    const VkResult res = vkCreateBufferView(buf->api_ctx()->device, &view_info, nullptr, &buf_view_);
+    assert(res == VK_SUCCESS);
 
-    glBindTexture(GL_TEXTURE_BUFFER, 0);
-
-    handle_ = {uint32_t(tex_id), TextureHandleCounter++};
-#endif
+    handle_.generation = TextureHandleCounter++;
     buf_ = std::move(buf);
     params_.offset = offset;
     params_.size = size;
@@ -1888,6 +1887,11 @@ void Ren::Texture1D::Free() {
         // auto tex_id = GLuint(handle_.id);
         // glDeleteTextures(1, &tex_id);
         handle_ = {};
+    }
+    if (buf_) {
+        buf_->api_ctx()->buf_views_to_destroy[buf_->api_ctx()->backend_frame].push_back(buf_view_);
+        buf_view_ = {};
+        buf_ = {};
     }
 }
 

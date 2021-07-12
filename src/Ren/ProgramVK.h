@@ -44,9 +44,11 @@ class Program : public RefCounter {
     Program &operator=(const Program &rhs) = delete;
     Program &operator=(Program &&rhs) noexcept;
 
-    // uint32_t id() const { return id_; }
     uint32_t flags() const { return flags_; }
-    bool ready() const { return false; }
+    bool ready() const {
+        return (shaders_[int(eShaderType::Vert)] && shaders_[int(eShaderType::Frag)]) ||
+               shaders_[int(eShaderType::Comp)];
+    }
     bool has_tessellation() const { return shaders_[int(eShaderType::Tesc)] && shaders_[int(eShaderType::Tese)]; }
     const String &name() const { return name_; }
 

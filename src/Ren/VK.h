@@ -102,6 +102,9 @@
 #define vkBindBufferMemory ren_vkBindBufferMemory
 #define vkDestroyBuffer ren_vkDestroyBuffer
 
+#define vkCreateBufferView ren_vkCreateBufferView
+#define vkDestroyBufferView ren_vkDestroyBufferView
+
 #define vkMapMemory ren_vkMapMemory
 #define vkUnmapMemory ren_vkUnmapMemory
 #define vkFlushMappedMemoryRanges ren_vkFlushMappedMemoryRanges
@@ -117,6 +120,7 @@
 #define vkDestroyPipelineLayout ren_vkDestroyPipelineLayout
 
 #define vkCreateGraphicsPipelines ren_vkCreateGraphicsPipelines
+#define vkCreateComputePipelines ren_vkCreateComputePipelines
 #define vkDestroyPipeline ren_vkDestroyPipeline
 
 #define vkCreateSemaphore ren_vkCreateSemaphore
@@ -148,6 +152,7 @@
 #define vkCmdBlitImage ren_vkCmdBlitImage
 #define vkCmdClearColorImage ren_vkCmdClearColorImage
 #define vkCmdCopyImage ren_vkCmdCopyImage
+#define vkCmdDispatch ren_vkCmdDispatch
 
 #define vkSetDebugUtilsObjectNameEXT ren_vkSetDebugUtilsObjectNameEXT
 
@@ -247,6 +252,9 @@ EXTERN_FUNC PFN_vkGetBufferMemoryRequirements ren_vkGetBufferMemoryRequirements;
 EXTERN_FUNC PFN_vkBindBufferMemory ren_vkBindBufferMemory;
 EXTERN_FUNC PFN_vkDestroyBuffer ren_vkDestroyBuffer;
 
+EXTERN_FUNC PFN_vkCreateBufferView ren_vkCreateBufferView;
+EXTERN_FUNC PFN_vkDestroyBufferView ren_vkDestroyBufferView;
+
 EXTERN_FUNC PFN_vkMapMemory ren_vkMapMemory;
 EXTERN_FUNC PFN_vkUnmapMemory ren_vkUnmapMemory;
 EXTERN_FUNC PFN_vkFlushMappedMemoryRanges ren_vkFlushMappedMemoryRanges;
@@ -262,6 +270,7 @@ EXTERN_FUNC PFN_vkCreatePipelineLayout ren_vkCreatePipelineLayout;
 EXTERN_FUNC PFN_vkDestroyPipelineLayout ren_vkDestroyPipelineLayout;
 
 EXTERN_FUNC PFN_vkCreateGraphicsPipelines ren_vkCreateGraphicsPipelines;
+EXTERN_FUNC PFN_vkCreateComputePipelines ren_vkCreateComputePipelines;
 EXTERN_FUNC PFN_vkDestroyPipeline ren_vkDestroyPipeline;
 
 EXTERN_FUNC PFN_vkCreateSemaphore ren_vkCreateSemaphore;
@@ -293,6 +302,7 @@ EXTERN_FUNC PFN_vkCmdPushConstants ren_vkCmdPushConstants;
 EXTERN_FUNC PFN_vkCmdBlitImage ren_vkCmdBlitImage;
 EXTERN_FUNC PFN_vkCmdClearColorImage ren_vkCmdClearColorImage;
 EXTERN_FUNC PFN_vkCmdCopyImage ren_vkCmdCopyImage;
+EXTERN_FUNC PFN_vkCmdDispatch ren_vkCmdDispatch;
 
 EXTERN_FUNC PFN_vkSetDebugUtilsObjectNameEXT ren_vkSetDebugUtilsObjectNameEXT;
 }

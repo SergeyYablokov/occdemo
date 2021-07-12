@@ -80,34 +80,6 @@ void Ren::Program::Init(ShaderRef cs_ref, eProgLoadStatus *status, ILog *log) {
         return;
     }
 
-    /*GLuint program = glCreateProgram();
-    if (program) {
-        glAttachShader(program, (GLuint)cs_ref->id());
-        glLinkProgram(program);
-        GLint link_status = GL_FALSE;
-        glGetProgramiv(program, GL_LINK_STATUS, &link_status);
-        if (link_status != GL_TRUE) {
-            GLint buf_len = 0;
-            glGetProgramiv(program, GL_INFO_LOG_LENGTH, &buf_len);
-            if (buf_len) {
-                std::unique_ptr<char[]> buf(new char[buf_len]);
-                if (buf) {
-                    glGetProgramInfoLog(program, buf_len, nullptr, buf.get());
-                    log->Error("Could not link program: %s", buf.get());
-                }
-            }
-            glDeleteProgram(program);
-            program = 0;
-        } else {
-#ifdef ENABLE_OBJ_LABELS
-            glObjectLabel(GL_PROGRAM, program, -1, name_.c_str());
-#endif
-        }
-    } else {
-        log->Error("glCreateProgram failed");
-    }*/
-
-    // id_ = uint32_t(program);
     // store shader
     shaders_[int(eShaderType::Comp)] = std::move(cs_ref);
 

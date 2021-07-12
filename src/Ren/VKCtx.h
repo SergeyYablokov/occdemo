@@ -43,6 +43,7 @@ struct ApiContext {
     SmallVector<VkImageView, 128> image_views_to_destroy[MaxFramesInFlight];
     SmallVector<MemAllocation, 128> allocs_to_free[MaxFramesInFlight];
     SmallVector<VkBuffer, 128> bufs_to_destroy[MaxFramesInFlight];
+    SmallVector<VkBufferView, 128> buf_views_to_destroy[MaxFramesInFlight];
     SmallVector<VkDeviceMemory, 128> mem_to_free[MaxFramesInFlight];
 };
 

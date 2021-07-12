@@ -55,3 +55,7 @@ void RpSkinning::Execute(RpBuilder &builder) {
         glMemoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
     }
 }
+
+bool RpSkinning::InitPipeline(Ren::Context &ctx) { return true; }
+
+RpSkinning::~RpSkinning() = default;

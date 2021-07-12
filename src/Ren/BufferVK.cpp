@@ -12,11 +12,11 @@ VkBufferUsageFlags GetVkBufferUsageFlags(const eBufType type) {
     VkBufferUsageFlags flags = VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
 
     if (type == eBufType::VertexAttribs) {
-        flags |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+        flags |= (VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
     } else if (type == eBufType::VertexIndices) {
         flags |= VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
     } else if (type == eBufType::Texture) {
-        flags |= VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT;
+        flags |= (VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
     } else if (type == eBufType::Storage) {
         flags |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
     } else if (type == eBufType::Stage) {

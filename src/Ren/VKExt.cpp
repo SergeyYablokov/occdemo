@@ -139,6 +139,9 @@ bool Ren::LoadVulkan(ILog *log) {
     LOAD_VK_FUN(vkBindBufferMemory)
     LOAD_VK_FUN(vkDestroyBuffer)
 
+    LOAD_VK_FUN(vkCreateBufferView)
+    LOAD_VK_FUN(vkDestroyBufferView)
+
     LOAD_VK_FUN(vkMapMemory)
     LOAD_VK_FUN(vkUnmapMemory)
     LOAD_VK_FUN(vkFlushMappedMemoryRanges)
@@ -149,8 +152,11 @@ bool Ren::LoadVulkan(ILog *log) {
     LOAD_VK_FUN(vkDestroyDescriptorSetLayout)
     LOAD_VK_FUN(vkCreatePipelineLayout)
     LOAD_VK_FUN(vkDestroyPipelineLayout)
+
     LOAD_VK_FUN(vkCreateGraphicsPipelines)
+    LOAD_VK_FUN(vkCreateComputePipelines)
     LOAD_VK_FUN(vkDestroyPipeline)
+
     LOAD_VK_FUN(vkCreateSemaphore)
     LOAD_VK_FUN(vkDestroySemaphore)
     LOAD_VK_FUN(vkCreateSampler)
@@ -177,6 +183,7 @@ bool Ren::LoadVulkan(ILog *log) {
     LOAD_VK_FUN(vkCmdBlitImage)
     LOAD_VK_FUN(vkCmdClearColorImage)
     LOAD_VK_FUN(vkCmdCopyImage)
+    LOAD_VK_FUN(vkCmdDispatch)
 
 #if defined(VK_USE_PLATFORM_WIN32_KHR)
     LOAD_VK_FUN(vkCreateWin32SurfaceKHR)

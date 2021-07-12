@@ -172,8 +172,8 @@ class Renderer {
     RpBuilder rp_builder_;
 
     RpUpdateBuffers rp_update_buffers_;
-#if defined(USE_GL_RENDER)
     RpSkinning rp_skinning_;
+#if defined(USE_GL_RENDER)
     RpShadowMaps rp_shadow_maps_ = {SHADOWMAP_WIDTH, SHADOWMAP_HEIGHT};
     RpSkydome rp_skydome_;
     RpDepthFill rp_depth_fill_;

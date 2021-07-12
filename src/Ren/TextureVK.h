@@ -164,6 +164,8 @@ class Texture1D : public RefCounter {
     Texture1DParams params_;
     String name_;
 
+    VkBufferView buf_view_ = VK_NULL_HANDLE;
+
     void Free();
 
   public:

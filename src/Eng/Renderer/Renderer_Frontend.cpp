@@ -147,10 +147,6 @@ void Renderer::GatherDrawables(const SceneData &scene, const Ren::Camera &cam, D
     list.visible_textures.count = 0;
     list.desired_textures.count = 0;
 
-#if defined(USE_VK_RENDER)
-    return;
-#endif
-
     const bool culling_enabled = (list.render_flags & EnableCulling) != 0;
     const bool lighting_enabled = (list.render_flags & EnableLights) != 0;
     const bool decals_enabled = (list.render_flags & EnableDecals) != 0;

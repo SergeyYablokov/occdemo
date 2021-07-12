@@ -95,19 +95,14 @@ Gui::Renderer::Renderer(Ren::Context &ctx, const JsObject &config) : ctx_(ctx) {
     }
 
     { // create descriptor set layout
-        VkDescriptorSetLayoutBinding layout_binding;
-
-        // sampler layout binding
-        layout_binding.binding = TEX_ATLAS_SLOT;
-        layout_binding.descriptorCount = 1;
-        layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        layout_binding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-        layout_binding.pImmutableSamplers = nullptr;
+        const VkDescriptorSetLayoutBinding layout_bindings[] = {
+            // texture atlas
+            {TEX_ATLAS_SLOT, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr}};
 
         VkDescriptorSetLayoutCreateInfo layout_info = {};
         layout_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
         layout_info.bindingCount = 1;
-        layout_info.pBindings = &layout_binding;
+        layout_info.pBindings = layout_bindings;
 
         const VkResult res = vkCreateDescriptorSetLayout(api_ctx->device, &layout_info, nullptr, &desc_set_layout_);
         assert(res == VK_SUCCESS && "Failed to create descriptor set layout!");
@@ -520,8 +515,7 @@ void Gui::Renderer::Draw(const int w, const int h) {
     Ren::TexHandle color_attachment;
     color_attachment.view = api_ctx->present_image_views[api_ctx->active_present_image];
 
-    if (!framebuffers_[api_ctx->backend_frame].Setup(api_ctx, render_pass_, w, h, color_attachment, {}, {},
-                                                            false)) {
+    if (!framebuffers_[api_ctx->backend_frame].Setup(api_ctx, render_pass_, w, h, color_attachment, {}, {}, false)) {
         ctx_.log()->Error("Failed to create framebuffer!");
     }
 
@@ -555,10 +549,10 @@ void Gui::Renderer::Draw(const int w, const int h) {
 
     vkCmdDrawIndexed(cmd_buf,
                      ndx_count_[api_ctx->backend_frame], // index count
-                     1,                              // instance count
-                     0,                              // first index
-                     0,                              // vertex offset
-                     0);                             // first instance
+                     1,                                  // instance count
+                     0,                                  // first index
+                     0,                                  // vertex offset
+                     0);                                 // first instance
 
     vkCmdEndRenderPass(cmd_buf);
 

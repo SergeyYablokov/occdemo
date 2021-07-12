@@ -25,5 +25,7 @@ void RpSkinning::LazyInit(Ren::Context &ctx, ShaderLoader &sh) {
     skinning_prog_ = sh.LoadProgram(ctx, "skinning_prog", "internal/skinning.comp.glsl");
     assert(skinning_prog_->ready());
 
+    InitPipeline(ctx);
+
     initialized = true;
 }

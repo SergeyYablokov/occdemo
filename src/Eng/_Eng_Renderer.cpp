@@ -25,7 +25,9 @@
 #include "Renderer/Passes/RpResolve.cpp"
 #include "Renderer/Passes/RpSampleBrightness.cpp"
 #include "Renderer/Passes/RpShadowMaps.cpp"
+#endif
 #include "Renderer/Passes/RpSkinning.cpp"
+#if defined(USE_GL_RENDER) // temporarily gl-only
 #include "Renderer/Passes/RpSkydome.cpp"
 #include "Renderer/Passes/RpSSAO.cpp"
 #include "Renderer/Passes/RpTAA.cpp"
@@ -49,4 +51,5 @@
 #include "Renderer/FrameBufVK.cpp"
 #include "Renderer/PrimDrawVK.cpp"
 #include "Renderer/RendererVK.cpp"
+#include "Renderer/Passes/RpSkinningVK.cpp"
 #endif

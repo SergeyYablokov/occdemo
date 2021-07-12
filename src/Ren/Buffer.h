@@ -81,6 +81,7 @@ class Buffer : public RefCounter, public LinearAlloc {
 
     BufHandle handle() const { return handle_; }
 #if defined(USE_VK_RENDER)
+    ApiContext *api_ctx() const { return api_ctx_; }
     VkBuffer vk_handle() const { return handle_.buf; }
     VkDeviceMemory mem() const { return mem_; }
 #elif defined(USE_GL_RENDER) || defined(USE_SW_RENDER)
