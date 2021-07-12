@@ -284,7 +284,7 @@ void Ren::Mesh::Init(const float *positions, const int vtx_count, const uint32_t
     flags_ = 0;
     ready_ = true;
 
-    attribs_buf1_.offset = vertex_buf1->AllocRegion(attribs_buf1_.size, name_.c_str(), &stage_buf);
+    attribs_buf1_.offset = vertex_buf1->AllocRegion(attribs_buf1_.size, name_.c_str(), &stage_buf, cmd_buf);
     attribs_buf1_.buf = std::move(vertex_buf1);
 
     // allocate empty data in buffer 2 (for index matching)

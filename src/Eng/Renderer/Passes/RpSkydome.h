@@ -20,7 +20,14 @@ class RpSkydome : public RenderPassBase {
 
     // lazily initialized data
     Ren::MeshRef skydome_mesh_;
-#if defined(USE_GL_RENDER)
+#if defined(USE_VK_RENDER)
+    Ren::ApiContext *api_ctx_ = nullptr;
+    VkDescriptorSetLayout desc_set_layout_ = VK_NULL_HANDLE;
+    VkDescriptorPool desc_pool_ = VK_NULL_HANDLE;
+    VkDescriptorSet desc_set_[Ren::MaxFramesInFlight] = {};
+    VkPipelineLayout pipeline_layout_ = VK_NULL_HANDLE;
+    VkPipeline pipeline_ = VK_NULL_HANDLE;
+#elif defined(USE_GL_RENDER)
     Ren::Vao skydome_vao_;
     Ren::Framebuffer cached_fb_;
 #endif
@@ -35,6 +42,7 @@ class RpSkydome : public RenderPassBase {
                   RpAllocTex &depth_tex);
     void DrawSkydome(RpBuilder &builder);
 
+    bool InitPipeline(Ren::Context &ctx);
   public:
     ~RpSkydome();
 

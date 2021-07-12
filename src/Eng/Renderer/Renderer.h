@@ -173,9 +173,10 @@ class Renderer {
 
     RpUpdateBuffers rp_update_buffers_;
     RpSkinning rp_skinning_;
+    RpSkydome rp_skydome_;
 #if defined(USE_GL_RENDER)
     RpShadowMaps rp_shadow_maps_ = {SHADOWMAP_WIDTH, SHADOWMAP_HEIGHT};
-    RpSkydome rp_skydome_;
+    //RpSkydome rp_skydome_;
     RpDepthFill rp_depth_fill_;
     RpDownColor rp_down_color_ = {prim_draw_};
     RpDownDepth rp_down_depth_ = {prim_draw_};

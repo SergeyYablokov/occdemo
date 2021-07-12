@@ -180,7 +180,8 @@ elseif(${RENDERER} STREQUAL "VK")
                         Scene/ProbeStorageVK.cpp
                         Scene/SceneManagerVK.cpp)
     set(PASS_SOURCES ${PASS_SOURCES}
-                        Renderer/Passes/RpSkinningVK.cpp)
+                        Renderer/Passes/RpSkinningVK.cpp
+                        Renderer/Passes/RpSkydomeVK.cpp)
 elseif(${RENDERER} STREQUAL "SW")
     set(RENDERER_SOURCES ${RENDERER_SOURCES}
                         Renderer/RendererSW.cpp)

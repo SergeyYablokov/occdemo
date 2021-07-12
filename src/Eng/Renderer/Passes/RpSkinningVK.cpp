@@ -150,12 +150,6 @@ void RpSkinning::Execute(RpBuilder &builder) {
                                    push_constant_data);
 
                 vkCmdDispatch(cmd_buf, (sr.vertex_count + SkinLocalGroupSize - 1) / SkinLocalGroupSize, 1, 1);
-
-                // glUniform4ui(0, sr.in_vtx_offset, non_shapekeyed_vertex_count, sr.xform_offset, sr.out_vtx_offset);
-                // glUniform4ui(1, 0, 0, 0, 0);
-                // glUniform4ui(2, 0, 0, 0, 0);
-
-                // glDispatchCompute((sr.vertex_count + SkinLocalGroupSize - 1) / SkinLocalGroupSize, 1, 1);
             }
 
             if (sr.shape_keyed_vertex_count) {
@@ -173,61 +167,15 @@ void RpSkinning::Execute(RpBuilder &builder) {
 
                 vkCmdDispatch(cmd_buf, (sr.shape_keyed_vertex_count + SkinLocalGroupSize - 1) / SkinLocalGroupSize, 1,
                               1);
-
-                // glUniform4ui(0, sr.in_vtx_offset + non_shapekeyed_vertex_count, sr.shape_keyed_vertex_count,
-                //             sr.xform_offset, sr.out_vtx_offset + non_shapekeyed_vertex_count);
-                // glUniform4ui(1, sr.shape_key_offset_curr, sr.shape_key_count_curr, sr.delta_offset, 0);
-                // glUniform4ui(2, sr.shape_key_offset_prev, sr.shape_key_count_prev, sr.delta_offset, 0);
-
-                // glDispatchCompute((sr.shape_keyed_vertex_count + SkinLocalGroupSize - 1) / SkinLocalGroupSize, 1, 1);
             }
         }
-
-        /*const GLuint vertex_buf1_id = vtx_buf1_->id();
-        const GLuint vertex_buf2_id = vtx_buf2_->id();
-        const GLuint delta_buf_id = delta_buf_->id();
-        const GLuint skin_vtx_buf_id = skin_vtx_buf_->id();
-
-        const int SkinLocalGroupSize = 128;
-        const Ren::Program *p = skinning_prog_.get();
-
-        glUseProgram(p->id());
-        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, skin_vtx_buf_id);
-        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, GLuint(skin_transforms_buf.ref->id()));
-        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, GLuint(shape_keys_buf.ref->id()));
-        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, delta_buf_id);
-        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, vertex_buf1_id);
-        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, vertex_buf2_id);
-
-        for (uint32_t i = 0; i < skin_regions_.count; i++) {
-            const SkinRegion &sr = skin_regions_.data[i];
-
-            const uint32_t non_shapekeyed_vertex_count = sr.vertex_count - sr.shape_keyed_vertex_count;
-
-            if (non_shapekeyed_vertex_count) {
-                glUniform4ui(0, sr.in_vtx_offset, non_shapekeyed_vertex_count, sr.xform_offset, sr.out_vtx_offset);
-                glUniform4ui(1, 0, 0, 0, 0);
-                glUniform4ui(2, 0, 0, 0, 0);
-
-                glDispatchCompute((sr.vertex_count + SkinLocalGroupSize - 1) / SkinLocalGroupSize, 1, 1);
-            }
-
-            if (sr.shape_keyed_vertex_count) {
-                glUniform4ui(0, sr.in_vtx_offset + non_shapekeyed_vertex_count, sr.shape_keyed_vertex_count,
-                             sr.xform_offset, sr.out_vtx_offset + non_shapekeyed_vertex_count);
-                glUniform4ui(1, sr.shape_key_offset_curr, sr.shape_key_count_curr, sr.delta_offset, 0);
-                glUniform4ui(2, sr.shape_key_offset_prev, sr.shape_key_count_prev, sr.delta_offset, 0);
-
-                glDispatchCompute((sr.shape_keyed_vertex_count + SkinLocalGroupSize - 1) / SkinLocalGroupSize, 1, 1);
-            }
-        }
-
-        glMemoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);*/
     }
 }
 
 bool RpSkinning::InitPipeline(Ren::Context &ctx) {
     Ren::ApiContext *api_ctx = ctx.api_ctx();
+
+    api_ctx_ = api_ctx;
 
     { // create descriptor set layout
         const VkDescriptorSetLayoutBinding layout_bindings[6] = {
@@ -268,7 +216,10 @@ bool RpSkinning::InitPipeline(Ren::Context &ctx) {
         pool_info.maxSets = Ren::MaxFramesInFlight;
 
         const VkResult res = vkCreateDescriptorPool(api_ctx->device, &pool_info, nullptr, &desc_pool_);
-        assert(res == VK_SUCCESS && "Failed to create descriptor pool!");
+        if (res != VK_SUCCESS) {
+            ctx.log()->Error("Failed to create descriptor pool!");
+            return false;
+        }
     }
 
     { // create descriptor set
@@ -284,7 +235,10 @@ bool RpSkinning::InitPipeline(Ren::Context &ctx) {
         alloc_info.pSetLayouts = desc_set_layouts;
 
         const VkResult res = vkAllocateDescriptorSets(api_ctx->device, &alloc_info, desc_set_);
-        assert(res == VK_SUCCESS && "Failed to allocate descriptor sets!");
+        if (res != VK_SUCCESS) {
+            ctx.log()->Error("Failed to allocate descriptor sets!");
+            return false;
+        }
     }
 
     { // create pipeline layout
@@ -331,4 +285,17 @@ bool RpSkinning::InitPipeline(Ren::Context &ctx) {
     return true;
 }
 
-RpSkinning::~RpSkinning() {}
+RpSkinning::~RpSkinning() {
+    if (desc_set_layout_) {
+        vkDestroyDescriptorSetLayout(api_ctx_->device, desc_set_layout_, nullptr);
+    }
+    if (desc_pool_) {
+        vkDestroyDescriptorPool(api_ctx_->device, desc_pool_, nullptr);
+    }
+    if (pipeline_layout_) {
+        vkDestroyPipelineLayout(api_ctx_->device, pipeline_layout_, nullptr);
+    }
+    if (pipeline_) {
+        vkDestroyPipeline(api_ctx_->device, pipeline_, nullptr);
+    }
+}

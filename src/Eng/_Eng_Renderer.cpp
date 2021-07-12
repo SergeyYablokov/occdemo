@@ -27,8 +27,8 @@
 #include "Renderer/Passes/RpShadowMaps.cpp"
 #endif
 #include "Renderer/Passes/RpSkinning.cpp"
-#if defined(USE_GL_RENDER) // temporarily gl-only
 #include "Renderer/Passes/RpSkydome.cpp"
+#if defined(USE_GL_RENDER) // temporarily gl-only
 #include "Renderer/Passes/RpSSAO.cpp"
 #include "Renderer/Passes/RpTAA.cpp"
 #include "Renderer/Passes/RpTransparent.cpp"
@@ -52,4 +52,5 @@
 #include "Renderer/PrimDrawVK.cpp"
 #include "Renderer/RendererVK.cpp"
 #include "Renderer/Passes/RpSkinningVK.cpp"
+#include "Renderer/Passes/RpSkydomeVK.cpp"
 #endif

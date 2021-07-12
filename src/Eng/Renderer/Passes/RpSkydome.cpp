@@ -78,11 +78,14 @@ void RpSkydome::LazyInit(Ren::Context &ctx, ShaderLoader &sh, RpAllocTex &color_
                                      __skydome_indices_count, &status);
         assert(status == Ren::eMeshLoadStatus::CreatedFromData);
 
+        InitPipeline(ctx);
+
         initialized = true;
     }
 
     const int buf1_stride = 16, buf2_stride = 16;
 
+#if defined(USE_GL_RENDER)
     const Ren::VtxAttribDesc attribs[] = {{skydome_mesh_->attribs_buf1_handle(), REN_VTX_POS_LOC, 3,
                                            Ren::eType::Float32, buf1_stride,
                                            uintptr_t(skydome_mesh_->attribs_buf1().offset)}};
@@ -95,6 +98,7 @@ void RpSkydome::LazyInit(Ren::Context &ctx, ShaderLoader &sh, RpAllocTex &color_
                           depth_tex.ref->handle(), depth_tex.ref->handle(), view_state_->is_multisampled)) {
         ctx.log()->Error("RpSkydome: fbo init failed!");
     }
+#endif
 }
 
 RpSkydome::~RpSkydome() = default;

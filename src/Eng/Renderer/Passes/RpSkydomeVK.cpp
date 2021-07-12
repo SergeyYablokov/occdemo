@@ -32,14 +32,14 @@ void RpSkydome::DrawSkydome(RpBuilder &builder) {
     rast_state.Apply();
 
     RpAllocBuf &unif_shared_data_buf = builder.GetReadBuffer(shared_data_buf_);
-    glBindBufferBase(GL_UNIFORM_BUFFER, REN_UB_SHARED_DATA_LOC, GLuint(unif_shared_data_buf.ref->id()));
+    // glBindBufferBase(GL_UNIFORM_BUFFER, REN_UB_SHARED_DATA_LOC, GLuint(unif_shared_data_buf.ref->id()));
 
 #if defined(REN_DIRECT_DRAWING)
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    // glBindFramebuffer(GL_FRAMEBUFFER, 0);
 #else
-    glBindFramebuffer(GL_FRAMEBUFFER, GLuint(cached_fb_.id()));
+    // glBindFramebuffer(GL_FRAMEBUFFER, GLuint(cached_fb_.id()));
 #endif
-    glUseProgram(skydome_prog_->id());
+    /*glUseProgram(skydome_prog_->id());
 
     glBindVertexArray(skydome_vao_.id());
 
@@ -61,7 +61,31 @@ void RpSkydome::DrawSkydome(RpBuilder &builder) {
 
     glDisable(GL_STENCIL_TEST);
 
-    glEnable(GL_MULTISAMPLE);
+    glEnable(GL_MULTISAMPLE);*/
 }
 
-bool RpSkydome::InitPipeline(Ren::Context &ctx) { return true; }
+bool RpSkydome::InitPipeline(Ren::Context &ctx) {
+    Ren::ApiContext *api_ctx = ctx.api_ctx();
+
+    { // create descriptor set layout
+        const VkDescriptorSetLayoutBinding layout_bindings[] = {
+            // shared data
+            {REN_UB_SHARED_DATA_LOC, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1,
+             VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, nullptr},
+            // environemnt cubemap
+            {REN_BASE0_TEX_SLOT, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr}};
+
+        VkDescriptorSetLayoutCreateInfo layout_info = {};
+        layout_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+        layout_info.bindingCount = 2;
+        layout_info.pBindings = layout_bindings;
+
+        const VkResult res = vkCreateDescriptorSetLayout(api_ctx->device, &layout_info, nullptr, &desc_set_layout_);
+        if (res != VK_SUCCESS) {
+            ctx.log()->Error("Failed to create descriptor set layout!");
+            return false;
+        }
+    }
+
+    return true;
+}

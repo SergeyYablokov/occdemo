@@ -396,6 +396,7 @@ void Renderer::ExecuteDrawList(const DrawList &list, const PersistentBuffers &pe
                               noise_tex_->handle());
         rp_tail->p_next = &rp_shadow_maps_;
         rp_tail = rp_tail->p_next;
+#endif
 
         //
         // Skydome drawing
@@ -409,6 +410,7 @@ void Renderer::ExecuteDrawList(const DrawList &list, const PersistentBuffers &pe
             // TODO: ...
         }
 
+#if defined(USE_GL_RENDER) // gl-only for now
         //
         // Depth prepass
         //
