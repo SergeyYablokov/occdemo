@@ -74,7 +74,7 @@ void RpDebugEllipsoids::DrawProbes(RpBuilder &builder) {
 
         const PrimDraw::Uniform uniforms[] = {{REN_U_M_MATRIX_LOC, &world_from_object}};
 
-        prim_draw_.DrawPrim(PrimDraw::ePrim::Sphere, {draw_fb_.id(), 0}, ellipsoid_prog_.get(), bindings,
+        prim_draw_.DrawPrim(PrimDraw::ePrim::Sphere, {&draw_fb_, 0}, ellipsoid_prog_.get(), bindings,
                             sizeof(bindings) / sizeof(bindings[0]), uniforms, sizeof(uniforms) / sizeof(uniforms[0]));
     }
 }

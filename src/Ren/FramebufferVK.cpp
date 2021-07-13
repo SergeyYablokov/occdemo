@@ -2,7 +2,7 @@
 
 #include "VKCtx.h"
 
-Ren::Framebuffer& Ren::Framebuffer::operator=(Framebuffer&& rhs) noexcept {
+Ren::Framebuffer &Ren::Framebuffer::operator=(Framebuffer &&rhs) noexcept {
     if (&rhs == this) {
         return (*this);
     }
@@ -46,11 +46,25 @@ bool Ren::Framebuffer::Setup(ApiContext *api_ctx, void *renderpass, int w, int h
     }
 
     api_ctx_ = api_ctx;
+    color_attachments_.clear();
 
     SmallVector<VkImageView, 4> image_views;
     for (int i = 0; i < color_attachments_count; i++) {
-        image_views.push_back(color_attachments[i].view);
+        if (color_attachments[i].view) {
+            image_views.push_back(color_attachments[i].view);
+        }
+        color_attachments_.push_back(color_attachments[i]);
     }
+
+    if (depth_attachment.view) {
+        image_views.push_back(depth_attachment.view);
+    }
+    depth_attachment_ = depth_attachment;
+
+    if (stencil_attachment.view && stencil_attachment.view != depth_attachment.view) {
+        image_views.push_back(stencil_attachment.view);
+    }
+    stencil_attachment_ = stencil_attachment;
 
     VkFramebufferCreateInfo framebuf_create_info = {};
     framebuf_create_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;

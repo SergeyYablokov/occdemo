@@ -50,7 +50,7 @@ void RpFXAA::Execute(RpBuilder &builder) {
         {0, Ren::Vec4f{0.0f, 0.0f, 1.0f, 1.0f}},
         {12, Ren::Vec2f{1.0f / float(view_state_->scr_res[0]), 1.0f / float(view_state_->scr_res[1])}}};
 
-    prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, {output_fb_.id(), 0}, blit_prog, bindings, 2, uniforms, 2);
+    prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, {&output_fb_, 0}, blit_prog, bindings, 2, uniforms, 2);
 }
 
 void RpFXAA::LazyInit(Ren::Context &ctx, ShaderLoader &sh, RpAllocTex *output_tex) {

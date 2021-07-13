@@ -90,7 +90,7 @@ void RpReflections::Execute(RpBuilder &builder) {
         const PrimDraw::Uniform uniforms[] = {
             {0, Ren::Vec4f{0.0f, 0.0f, float(view_state_->act_res[0]), float(view_state_->act_res[1])}}};
 
-        prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, {ssr_buf1_fb_.id(), 0}, ssr_program, bindings, 4, uniforms, 1);
+        prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, {&ssr_buf1_fb_, 0}, ssr_program, bindings, 4, uniforms, 1);
     }
 
     { // dilate ssr buffer
@@ -101,7 +101,7 @@ void RpReflections::Execute(RpBuilder &builder) {
         const PrimDraw::Uniform uniforms[] = {
             {0, Ren::Vec4f{0.0f, 0.0f, float(view_state_->scr_res[0]) / 2.0f, float(view_state_->scr_res[1]) / 2.0f}}};
 
-        prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, {ssr_buf2_fb_.id(), 0}, dilate_prog, bindings, 1, uniforms, 1);
+        prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, {&ssr_buf2_fb_, 0}, dilate_prog, bindings, 1, uniforms, 1);
     }
 
     rast_state.viewport[2] = view_state_->scr_res[0];
@@ -140,7 +140,7 @@ void RpReflections::Execute(RpBuilder &builder) {
 
         const PrimDraw::Uniform uniforms[] = {{0, Ren::Vec4f{0.0f, 0.0f, 1.0f, 1.0f}}};
 
-        prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, {output_fb_.id(), 0}, blit_ssr_compose_prog, bindings,
+        prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, {&output_fb_, 0}, blit_ssr_compose_prog, bindings,
                             sizeof(bindings) / sizeof(bindings[0]), uniforms, 1);
     }
 }

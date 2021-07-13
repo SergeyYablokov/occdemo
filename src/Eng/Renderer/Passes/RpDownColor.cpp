@@ -43,7 +43,7 @@ void RpDownColor::Execute(RpBuilder &builder) {
         {0, Ren::Vec4f{0.0f, 0.0f, float(view_state_->act_res[0]) / float(view_state_->scr_res[0]),
                        float(view_state_->act_res[1]) / float(view_state_->scr_res[1])}}};
 
-    prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, {draw_fb_.id(), 0}, down_prog, bindings, 2, uniforms, 1);
+    prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, {&draw_fb_, 0}, down_prog, bindings, 2, uniforms, 1);
 }
 
 void RpDownColor::LazyInit(Ren::Context &ctx, ShaderLoader &sh) {

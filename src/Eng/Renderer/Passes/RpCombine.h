@@ -26,9 +26,7 @@ class RpCombine : public RenderPassBase {
 
     void LazyInit(Ren::Context &ctx, ShaderLoader &sh, RpAllocTex *output_tex);
 
-#if defined(USE_GL_RENDER)
     Ren::Framebuffer output_fb_;
-#endif
   public:
     RpCombine(PrimDraw &prim_draw) : prim_draw_(prim_draw) {}
 

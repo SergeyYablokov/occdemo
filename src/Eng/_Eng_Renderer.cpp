@@ -9,9 +9,9 @@
 #include "Renderer/Renderer_Gen.cpp"
 
 #include "Renderer/Graph/GraphBuilder.cpp"
+#include "Renderer/Passes/RpCombine.cpp"
 #if defined(USE_GL_RENDER) // temporarily gl-only
 #include "Renderer/Passes/RpBlur.cpp"
-#include "Renderer/Passes/RpCombine.cpp"
 #include "Renderer/Passes/RpDebugEllipsoids.cpp"
 #include "Renderer/Passes/RpDebugProbes.cpp"
 #include "Renderer/Passes/RpDebugTextures.cpp"

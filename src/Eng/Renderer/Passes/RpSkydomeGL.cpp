@@ -1,6 +1,5 @@
 #include "RpSkydome.h"
 
-#include "../DebugMarker.h"
 #include "../Renderer_Structs.h"
 
 #include <Ren/Context.h>
@@ -10,7 +9,7 @@ extern const float __skydome_positions[];
 extern const int __skydome_vertices_count;
 } // namespace RpSkydomeInternal
 
-void RpSkydome::DrawSkydome(RpBuilder &builder) {
+void RpSkydome::DrawSkydome(RpBuilder &builder, RpAllocTex &color_tex, RpAllocTex &spec_tex, RpAllocTex &depth_tex) {
     using namespace RpSkydomeInternal;
 
     Ren::RastState rast_state;
@@ -64,4 +63,6 @@ void RpSkydome::DrawSkydome(RpBuilder &builder) {
     glEnable(GL_MULTISAMPLE);
 }
 
-bool RpSkydome::InitPipeline(Ren::Context &ctx) { return true; }
+bool RpSkydome::InitPipeline(Ren::Context &ctx, RpAllocTex &color_tex, RpAllocTex &spec_tex, RpAllocTex &depth_tex) {
+    return true;
+}

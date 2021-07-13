@@ -6,6 +6,7 @@
 #include <fstream>
 
 #include <Ren/Context.h>
+#include <Ren/DebugMarker.h>
 #include <Ren/VKCtx.h>
 #include <Sys/Json.h>
 
@@ -54,6 +55,8 @@ Gui::Renderer::Renderer(Ren::Context &ctx, const JsObject &config) : ctx_(ctx) {
     }
 
     const int instance_index = g_instance_count++;
+
+    sprintf(name_, "UI_Render [%i]", instance_index);
 
     char name_buf[32];
 
@@ -378,6 +381,8 @@ void Gui::Renderer::Draw(const int w, const int h) {
 
     Ren::ApiContext *api_ctx = ctx_.api_ctx();
     VkCommandBuffer cmd_buf = api_ctx->draw_cmd_buf[api_ctx->backend_frame];
+
+    Ren::DebugMarker _(cmd_buf, name_);
 
     //
     // Update buffers

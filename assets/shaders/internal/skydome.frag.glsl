@@ -19,7 +19,7 @@ uniform SharedDataBlock {
 layout(binding = REN_BASE0_TEX_SLOT) uniform samplerCube env_texture;
 
 #if defined(VULKAN) || defined(GL_SPIRV)
-layout(location = 0) in vec3 aVertexPos_;
+layout(location = 0) in highp vec3 aVertexPos_;
 #else
 in vec3 aVertexPos_;
 #endif

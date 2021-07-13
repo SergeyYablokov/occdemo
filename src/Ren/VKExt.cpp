@@ -212,6 +212,9 @@ bool Ren::LoadVulkanExtensions(VkInstance instance, ILog *log) {
     LOAD_VK_FUN(vkCreateDebugReportCallbackEXT)
     LOAD_VK_FUN(vkDestroyDebugReportCallbackEXT)
     LOAD_VK_FUN(vkDebugReportMessageEXT)
+
+    LOAD_VK_FUN(vkCmdBeginDebugUtilsLabelEXT);
+    LOAD_VK_FUN(vkCmdEndDebugUtilsLabelEXT);
     LOAD_VK_FUN(vkSetDebugUtilsObjectNameEXT);
 
     LOAD_VK_FUN(vkDeviceWaitIdle)

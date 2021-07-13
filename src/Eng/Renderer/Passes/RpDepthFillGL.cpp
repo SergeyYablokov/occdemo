@@ -1,9 +1,9 @@
 #include "RpDepthFill.h"
 
-#include "../DebugMarker.h"
 #include "../Renderer_Structs.h"
 
 #include <Ren/Context.h>
+#include <Ren/DebugMarker.h>
 #include <Ren/RastState.h>
 
 namespace RpSharedInternal {
@@ -115,7 +115,7 @@ void RpDepthFill::DrawDepth(RpBuilder &builder) {
     using DDB = DepthDrawBatch;
 
     { // solid meshes
-        DebugMarker _m("STATIC-SOLID-SIMPLE");
+        Ren::DebugMarker _m(ctx.current_cmd_buf(), "STATIC-SOLID-SIMPLE");
 
         glBindVertexArray(depth_pass_solid_vao_.id());
         glUseProgram(fillz_solid_prog_->id());
@@ -124,7 +124,7 @@ void RpDepthFill::DrawDepth(RpBuilder &builder) {
         rast_state.stencil.test_ref = 0;
 
         { // one-sided
-            DebugMarker _mm("ONE-SIDED");
+            Ren::DebugMarker _mm(ctx.current_cmd_buf(), "ONE-SIDED");
 
             rast_state.cull_face.enabled = true;
             rast_state.ApplyChanged(applied_state);
@@ -134,7 +134,7 @@ void RpDepthFill::DrawDepth(RpBuilder &builder) {
         }
 
         { // two-sided
-            DebugMarker _mm("TWO-SIDED");
+            Ren::DebugMarker _mm(ctx.current_cmd_buf(), "TWO-SIDED");
 
             rast_state.cull_face.enabled = false;
             rast_state.ApplyChanged(applied_state);
@@ -147,7 +147,7 @@ void RpDepthFill::DrawDepth(RpBuilder &builder) {
     // TODO: we can skip many things if TAA is disabled
 
     { // moving solid meshes (depth and velocity)
-        DebugMarker _m("STATIC-SOLID-MOVING");
+        Ren::DebugMarker _m(ctx.current_cmd_buf(), "STATIC-SOLID-MOVING");
 
         if ((render_flags_ & EnableTaa) != 0) {
             // Write depth and velocity
@@ -162,7 +162,7 @@ void RpDepthFill::DrawDepth(RpBuilder &builder) {
         rast_state.stencil.test_ref = 1;
 
         { // one-sided
-            DebugMarker _mm("ONE-SIDED");
+            Ren::DebugMarker _mm(ctx.current_cmd_buf(), "ONE-SIDED");
 
             rast_state.cull_face.enabled = true;
             rast_state.ApplyChanged(applied_state);
@@ -172,7 +172,7 @@ void RpDepthFill::DrawDepth(RpBuilder &builder) {
         }
 
         { // two-sided
-            DebugMarker _mm("TWO-SIDED");
+            Ren::DebugMarker _mm(ctx.current_cmd_buf(), "TWO-SIDED");
 
             rast_state.cull_face.enabled = false;
             rast_state.ApplyChanged(applied_state);
@@ -186,7 +186,7 @@ void RpDepthFill::DrawDepth(RpBuilder &builder) {
         uint32_t cur_mat_id = 0xffffffff;
 
         { // simple meshes (depth only)
-            DebugMarker _m("STATIC-ALPHA-SIMPLE");
+            Ren::DebugMarker _m(ctx.current_cmd_buf(), "STATIC-ALPHA-SIMPLE");
 
             glBindFramebuffer(GL_FRAMEBUFFER, depth_fill_fb_.id());
             glBindVertexArray(depth_pass_transp_vao_.id());
@@ -199,7 +199,7 @@ void RpDepthFill::DrawDepth(RpBuilder &builder) {
             glBindSampler(REN_MAT_TEX0_SLOT, 0);
 
             { // one-sided
-                DebugMarker _mm("ONE-SIDED");
+                Ren::DebugMarker _mm(ctx.current_cmd_buf(), "ONE-SIDED");
 
                 rast_state.cull_face.enabled = true;
                 rast_state.ApplyChanged(applied_state);
@@ -210,7 +210,7 @@ void RpDepthFill::DrawDepth(RpBuilder &builder) {
             }
 
             { // two-sided
-                DebugMarker _mm("TWO-SIDED");
+                Ren::DebugMarker _mm(ctx.current_cmd_buf(), "TWO-SIDED");
 
                 rast_state.cull_face.enabled = false;
                 rast_state.ApplyChanged(applied_state);
@@ -222,7 +222,7 @@ void RpDepthFill::DrawDepth(RpBuilder &builder) {
         }
 
         { // moving meshes (depth and velocity)
-            DebugMarker _m("STATIC-ALPHA-MOVING");
+            Ren::DebugMarker _m(ctx.current_cmd_buf(), "STATIC-ALPHA-MOVING");
 
             if ((render_flags_ & EnableTaa) != 0) {
                 // Write depth and velocity
@@ -237,7 +237,7 @@ void RpDepthFill::DrawDepth(RpBuilder &builder) {
             rast_state.stencil.test_ref = 1;
 
             { // one-sided
-                DebugMarker _mm("ONE-SIDED");
+                Ren::DebugMarker _mm(ctx.current_cmd_buf(), "ONE-SIDED");
 
                 rast_state.cull_face.enabled = true;
                 rast_state.ApplyChanged(applied_state);
@@ -248,7 +248,7 @@ void RpDepthFill::DrawDepth(RpBuilder &builder) {
             }
 
             { // two-sided
-                DebugMarker _mm("TWO-SIDED");
+                Ren::DebugMarker _mm(ctx.current_cmd_buf(), "TWO-SIDED");
 
                 rast_state.cull_face.enabled = false;
                 rast_state.ApplyChanged(applied_state);
@@ -261,7 +261,7 @@ void RpDepthFill::DrawDepth(RpBuilder &builder) {
     }
 
     { // solid vegetation
-        DebugMarker _m("VEGE-SOLID-SIMPLE");
+        Ren::DebugMarker _m(ctx.current_cmd_buf(), "VEGE-SOLID-SIMPLE");
         glBindVertexArray(depth_pass_vege_solid_vao_.id());
         if ((render_flags_ & EnableTaa) != 0) {
             // Write depth and velocity
@@ -277,7 +277,7 @@ void RpDepthFill::DrawDepth(RpBuilder &builder) {
         rast_state.stencil.test_ref = 1;
 
         { // one-sided
-            DebugMarker _mm("ONE-SIDED");
+            Ren::DebugMarker _mm(ctx.current_cmd_buf(), "ONE-SIDED");
 
             rast_state.cull_face.enabled = true;
             rast_state.ApplyChanged(applied_state);
@@ -287,7 +287,7 @@ void RpDepthFill::DrawDepth(RpBuilder &builder) {
         }
 
         { // two-sided
-            DebugMarker _mm("TWO-SIDED");
+            Ren::DebugMarker _mm(ctx.current_cmd_buf(), "TWO-SIDED");
 
             rast_state.cull_face.enabled = false;
             rast_state.ApplyChanged(applied_state);
@@ -298,7 +298,7 @@ void RpDepthFill::DrawDepth(RpBuilder &builder) {
     }
 
     { // moving solid vegetation (depth and velocity)
-        DebugMarker _m("VEGE-SOLID-MOVING");
+        Ren::DebugMarker _m(ctx.current_cmd_buf(), "VEGE-SOLID-MOVING");
         if ((render_flags_ & EnableTaa) != 0) {
             glUseProgram(fillz_vege_solid_vel_mov_prog_->id());
         } else {
@@ -309,7 +309,7 @@ void RpDepthFill::DrawDepth(RpBuilder &builder) {
         rast_state.stencil.test_ref = 1;
 
         { // one-sided
-            DebugMarker _mm("ONE-SIDED");
+            Ren::DebugMarker _mm(ctx.current_cmd_buf(), "ONE-SIDED");
 
             rast_state.cull_face.enabled = true;
             rast_state.ApplyChanged(applied_state);
@@ -319,7 +319,7 @@ void RpDepthFill::DrawDepth(RpBuilder &builder) {
         }
 
         { // two-sided
-            DebugMarker _mm("TWO-SIDED");
+            Ren::DebugMarker _mm(ctx.current_cmd_buf(), "TWO-SIDED");
 
             rast_state.cull_face.enabled = false;
             rast_state.ApplyChanged(applied_state);
@@ -334,7 +334,7 @@ void RpDepthFill::DrawDepth(RpBuilder &builder) {
         uint32_t cur_mat_id = 0xffffffff;
 
         { // moving alpha-tested vegetation (depth and velocity)
-            DebugMarker _m("VEGE-ALPHA-SIMPLE");
+            Ren::DebugMarker _m(ctx.current_cmd_buf(), "VEGE-ALPHA-SIMPLE");
             glBindVertexArray(depth_pass_vege_transp_vao_.id());
             if ((render_flags_ & EnableTaa) != 0) {
                 glUseProgram(fillz_vege_transp_vel_prog_->id());
@@ -349,7 +349,7 @@ void RpDepthFill::DrawDepth(RpBuilder &builder) {
             glBindSampler(REN_MAT_TEX0_SLOT, 0);
 
             { // one-sided
-                DebugMarker _mm("ONE-SIDED");
+                Ren::DebugMarker _mm(ctx.current_cmd_buf(), "ONE-SIDED");
 
                 rast_state.cull_face.enabled = true;
                 rast_state.ApplyChanged(applied_state);
@@ -360,7 +360,7 @@ void RpDepthFill::DrawDepth(RpBuilder &builder) {
             }
 
             { // two-sided
-                DebugMarker _mm("TWO-SIDED");
+                Ren::DebugMarker _mm(ctx.current_cmd_buf(), "TWO-SIDED");
 
                 rast_state.cull_face.enabled = false;
                 rast_state.ApplyChanged(applied_state);
@@ -372,7 +372,7 @@ void RpDepthFill::DrawDepth(RpBuilder &builder) {
         }
 
         { // moving alpha-tested vegetation (depth and velocity)
-            DebugMarker _m("VEGE-ALPHA-MOVING");
+            Ren::DebugMarker _m(ctx.current_cmd_buf(), "VEGE-ALPHA-MOVING");
             if ((render_flags_ & EnableTaa) != 0) {
                 glUseProgram(fillz_vege_transp_vel_mov_prog_->id());
             } else {
@@ -383,7 +383,7 @@ void RpDepthFill::DrawDepth(RpBuilder &builder) {
             rast_state.stencil.test_ref = 1;
 
             { // one-sided
-                DebugMarker _mm("ONE-SIDED");
+                Ren::DebugMarker _mm(ctx.current_cmd_buf(), "ONE-SIDED");
 
                 rast_state.cull_face.enabled = true;
                 rast_state.ApplyChanged(applied_state);
@@ -394,7 +394,7 @@ void RpDepthFill::DrawDepth(RpBuilder &builder) {
             }
 
             { // two-sided
-                DebugMarker _mm("TWO-SIDED");
+                Ren::DebugMarker _mm(ctx.current_cmd_buf(), "TWO-SIDED");
 
                 rast_state.cull_face.enabled = false;
                 rast_state.ApplyChanged(applied_state);
@@ -408,7 +408,7 @@ void RpDepthFill::DrawDepth(RpBuilder &builder) {
     }
 
     { // solid skinned meshes (depth and velocity)
-        DebugMarker _m("SKIN-SOLID-SIMPLE");
+        Ren::DebugMarker _m(ctx.current_cmd_buf(), "SKIN-SOLID-SIMPLE");
         if ((render_flags_ & EnableTaa) != 0) {
             glBindVertexArray(depth_pass_skin_solid_vao_.id());
             glUseProgram(fillz_skin_solid_vel_prog_->id());
@@ -421,7 +421,7 @@ void RpDepthFill::DrawDepth(RpBuilder &builder) {
         rast_state.stencil.test_ref = 1;
 
         { // one-sided
-            DebugMarker _mm("ONE-SIDED");
+            Ren::DebugMarker _mm(ctx.current_cmd_buf(), "ONE-SIDED");
 
             rast_state.cull_face.enabled = true;
             rast_state.ApplyChanged(applied_state);
@@ -431,7 +431,7 @@ void RpDepthFill::DrawDepth(RpBuilder &builder) {
         }
 
         { // two-sided
-            DebugMarker _mm("TWO-SIDED");
+            Ren::DebugMarker _mm(ctx.current_cmd_buf(), "TWO-SIDED");
             glDisable(GL_CULL_FACE);
 
             i = _depth_draw_range(zfill_batch_indices, zfill_batches, i, DDB::BitsSkinned | DDB::BitTwoSided, _dummy);
@@ -441,7 +441,7 @@ void RpDepthFill::DrawDepth(RpBuilder &builder) {
     }
 
     { // moving solid skinned (depth and velocity)
-        DebugMarker _m("SKIN-SOLID-MOVING");
+        Ren::DebugMarker _m(ctx.current_cmd_buf(), "SKIN-SOLID-MOVING");
         if ((render_flags_ & EnableTaa) != 0) {
             glUseProgram(fillz_skin_solid_vel_mov_prog_->id());
         } else {
@@ -452,7 +452,7 @@ void RpDepthFill::DrawDepth(RpBuilder &builder) {
         rast_state.stencil.test_ref = 1;
 
         { // one-sided
-            DebugMarker _mm("ONE-SIDED");
+            Ren::DebugMarker _mm(ctx.current_cmd_buf(), "ONE-SIDED");
 
             rast_state.cull_face.enabled = true;
             rast_state.ApplyChanged(applied_state);
@@ -462,7 +462,7 @@ void RpDepthFill::DrawDepth(RpBuilder &builder) {
         }
 
         { // two-sided
-            DebugMarker _mm("TWO-SIDED");
+            Ren::DebugMarker _mm(ctx.current_cmd_buf(), "TWO-SIDED");
 
             rast_state.cull_face.enabled = false;
             rast_state.ApplyChanged(applied_state);
@@ -477,7 +477,7 @@ void RpDepthFill::DrawDepth(RpBuilder &builder) {
         uint32_t cur_mat_id = 0xffffffff;
 
         { // simple alpha-tested skinned (depth and velocity)
-            DebugMarker _m("SKIN-ALPHA-SIMPLE");
+            Ren::DebugMarker _m(ctx.current_cmd_buf(), "SKIN-ALPHA-SIMPLE");
             glBindVertexArray(depth_pass_skin_transp_vao_.id());
             if ((render_flags_ & EnableTaa) != 0) {
                 glUseProgram(fillz_skin_transp_vel_prog_->id());
@@ -492,7 +492,7 @@ void RpDepthFill::DrawDepth(RpBuilder &builder) {
             glBindSampler(REN_MAT_TEX0_SLOT, 0);
 
             { // one-sided
-                DebugMarker _mm("ONE-SIDED");
+                Ren::DebugMarker _mm(ctx.current_cmd_buf(), "ONE-SIDED");
 
                 rast_state.cull_face.enabled = true;
                 rast_state.ApplyChanged(applied_state);
@@ -503,7 +503,7 @@ void RpDepthFill::DrawDepth(RpBuilder &builder) {
             }
 
             { // two-sided
-                DebugMarker _mm("TWO-SIDED");
+                Ren::DebugMarker _mm(ctx.current_cmd_buf(), "TWO-SIDED");
 
                 rast_state.cull_face.enabled = false;
                 rast_state.ApplyChanged(applied_state);
@@ -515,7 +515,7 @@ void RpDepthFill::DrawDepth(RpBuilder &builder) {
         }
 
         { // moving alpha-tested skinned (depth and velocity)
-            DebugMarker _m("SKIN-ALPHA-MOVING");
+            Ren::DebugMarker _m(ctx.current_cmd_buf(), "SKIN-ALPHA-MOVING");
             if ((render_flags_ & EnableTaa) != 0) {
                 glUseProgram(fillz_skin_transp_vel_mov_prog_->id());
             } else {
@@ -526,7 +526,7 @@ void RpDepthFill::DrawDepth(RpBuilder &builder) {
             rast_state.stencil.test_ref = 1;
 
             { // one-sided
-                DebugMarker _mm("ONE-SIDED");
+                Ren::DebugMarker _mm(ctx.current_cmd_buf(), "ONE-SIDED");
 
                 rast_state.cull_face.enabled = true;
                 rast_state.ApplyChanged(applied_state);
@@ -537,7 +537,7 @@ void RpDepthFill::DrawDepth(RpBuilder &builder) {
             }
 
             { // two-sided
-                DebugMarker _mm("TWO-SIDED");
+                Ren::DebugMarker _mm(ctx.current_cmd_buf(), "TWO-SIDED");
 
                 rast_state.cull_face.enabled = false;
                 rast_state.ApplyChanged(applied_state);

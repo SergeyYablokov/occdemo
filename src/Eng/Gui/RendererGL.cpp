@@ -5,6 +5,7 @@
 #include <cassert>
 
 #include <Ren/Context.h>
+#include <Ren/DebugMarker.h>
 #include <Ren/GL.h>
 #include <Ren/GLCtx.h>
 #include <Sys/Json.h>
@@ -40,6 +41,8 @@ Gui::Renderer::Renderer(Ren::Context &ctx, const JsObject &config) : ctx_(ctx) {
     }
 
     const int instance_index = g_instance_count++;
+
+    sprintf(name_, "UI_Render [%i]", instance_index);
 
     char name_buf[32];
 
@@ -89,6 +92,8 @@ Gui::Renderer::~Renderer() {
 }
 
 void Gui::Renderer::Draw(const int w, const int h) {
+    Ren::DebugMarker _(ctx_.current_cmd_buf(), name_);
+
 #ifndef NDEBUG
     if (buf_range_fences_[ctx_.backend_frame()]) {
         const Ren::WaitResult res = buf_range_fences_[ctx_.backend_frame()].ClientWaitSync(0);

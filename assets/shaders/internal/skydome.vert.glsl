@@ -35,6 +35,8 @@ out vec3 aVertexPos_;
 void main() {
     vec3 vertex_position_ws = (uMMatrix * vec4(aVertexPosition, 1.0)).xyz;
     aVertexPos_ = vertex_position_ws;
-
-    gl_Position = shrd_data.uViewProjMatrix * uMMatrix * vec4(aVertexPosition, 1.0);
+    gl_Position = shrd_data.uViewProjMatrix * vec4(vertex_position_ws, 1.0);
+#if defined(VULKAN)
+    gl_Position.y = -gl_Position.y;
+#endif
 }

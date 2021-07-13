@@ -94,7 +94,7 @@ void RpDOF::Execute(RpBuilder &builder) {
             {1, Ren::Vec4f{-draw_cam_->focus_near_mul, draw_cam_->focus_distance - 0.5f * draw_cam_->focus_depth, 0.0f,
                            0.0f}}};
 
-        prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, {coc_fb_[0].id(), 0}, blit_dof_init_coc_prog_.get(), &binding, 1,
+        prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, {&coc_fb_[0], 0}, blit_dof_init_coc_prog_.get(), &binding, 1,
                             uniforms, 2);
     }
 
@@ -103,16 +103,14 @@ void RpDOF::Execute(RpBuilder &builder) {
 
         PrimDraw::Uniform uniforms[] = {{0, Ren::Vec4f{0.0f, 0.0f, float(qres_w), float(qres_h)}}, {1, 0.0f}};
 
-        prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, {blur_fb_[1].id(), 0}, blit_gauss_prog_.get(), &binding, 1, uniforms,
-                            2);
+        prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, {&blur_fb_[1], 0}, blit_gauss_prog_.get(), &binding, 1, uniforms, 2);
 
         binding = {Ren::eBindTarget::Tex2D, REN_BASE0_TEX_SLOT, blur2_4x_tex.ref->handle()};
 
         uniforms[0] = {0, Ren::Vec4f{0.0f, 0.0f, float(qres_w), float(qres_h)}};
         uniforms[1] = {1, 1.0f};
 
-        prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, {coc_fb_[1].id(), 0}, blit_gauss_prog_.get(), &binding, 1, uniforms,
-                            2);
+        prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, {&coc_fb_[1], 0}, blit_gauss_prog_.get(), &binding, 1, uniforms, 2);
     }
 
     { // downsample depth (once more)
@@ -123,7 +121,7 @@ void RpDOF::Execute(RpBuilder &builder) {
 
         const PrimDraw::Uniform uniforms[2] = {{0, Ren::Vec4f{0.0f, 0.0f, float(hres_w), float(hres_h)}}, {1, 0.0f}};
 
-        prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, {depth_4x_fb_.id(), 0}, blit_down_depth_prog_.get(), bindings, 2,
+        prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, {&depth_4x_fb_, 0}, blit_down_depth_prog_.get(), bindings, 2,
                             uniforms, 2);
     }
 
@@ -134,7 +132,7 @@ void RpDOF::Execute(RpBuilder &builder) {
 
         const PrimDraw::Uniform uniforms[] = {{0, Ren::Vec4f{0.0f, 0.0f, float(qres_w), float(qres_h)}}};
 
-        prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, {blur_fb_[1].id(), 0}, blit_dof_calc_near_prog_.get(), bindings, 2,
+        prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, {&blur_fb_[1], 0}, blit_dof_calc_near_prog_.get(), bindings, 2,
                             uniforms, 1);
     }
 
@@ -143,7 +141,7 @@ void RpDOF::Execute(RpBuilder &builder) {
 
         const PrimDraw::Uniform uniforms[] = {{0, Ren::Vec4f{0.0f, 0.0f, float(qres_w), float(qres_h)}}};
 
-        prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, {coc_fb_[0].id(), 0}, blit_dof_small_blur_prog_.get(), &binding, 1,
+        prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, {&coc_fb_[0], 0}, blit_dof_small_blur_prog_.get(), &binding, 1,
                             uniforms, 1);
     }
 
@@ -156,7 +154,7 @@ void RpDOF::Execute(RpBuilder &builder) {
         PrimDraw::Uniform uniforms[3] = {
             {0, Ren::Vec4f{0.0f, 0.0f, float(qres_w), float(qres_h)}}, {1, 0.0f}, {2, draw_cam_->focus_distance}};
 
-        prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, {blur_fb_[0].id(), 0}, blit_dof_bilateral_prog_.get(), bindings, 2,
+        prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, {&blur_fb_[0], 0}, blit_dof_bilateral_prog_.get(), bindings, 2,
                             uniforms, 2);
 
         bindings[1] = {Ren::eBindTarget::Tex2D, REN_BASE1_TEX_SLOT, blur1_4x_tex.ref->handle()};
@@ -164,7 +162,7 @@ void RpDOF::Execute(RpBuilder &builder) {
         uniforms[0] = {0, Ren::Vec4f{0.0f, 0.0f, float(qres_w), float(qres_h)}};
         uniforms[1] = {1, 1.0f};
 
-        prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, {blur_fb_[1].id(), 0}, blit_dof_bilateral_prog_.get(), bindings, 2,
+        prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, {&blur_fb_[1], 0}, blit_dof_bilateral_prog_.get(), bindings, 2,
                             uniforms, 2);
     }
 
@@ -173,7 +171,7 @@ void RpDOF::Execute(RpBuilder &builder) {
 
         const PrimDraw::Uniform uniforms[] = {{0, Ren::Vec4f{0.0f, 0.0f, float(qres_w), float(qres_h)}}};
 
-        prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, {blur_fb_[0].id(), 0}, blit_dof_small_blur_prog_.get(), &binding, 1,
+        prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, {&blur_fb_[0], 0}, blit_dof_small_blur_prog_.get(), &binding, 1,
                             uniforms, 1);
     }
 
@@ -219,7 +217,7 @@ void RpDOF::Execute(RpBuilder &builder) {
         bindings[4] = {Ren::eBindTarget::Tex2D, REN_BASE2_TEX_SLOT, blur2_4x_tex.ref->handle()};
         bindings[5] = {Ren::eBindTarget::Tex2D, 4, coc1_tex.ref->handle()};
 
-        prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, {dof_fb_.id(), 0}, dof_combine_prog, bindings, 6, uniforms, 4);
+        prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, {&dof_fb_, 0}, dof_combine_prog, bindings, 6, uniforms, 4);
     }
 }
 

@@ -113,7 +113,7 @@ void RpDebugTextures::Execute(RpBuilder &builder) {
         bindings[1] = {Ren::eBindTarget::TexBuf, REN_CELLS_BUF_SLOT, cells_buf.tbos[0]->handle()};
         bindings[2] = {Ren::eBindTarget::TexBuf, REN_ITEMS_BUF_SLOT, items_buf.tbos[0]->handle()};
 
-        prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, {output_fb_.id(), 0}, blit_prog, bindings, 3, uniforms, 4);
+        prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, {&output_fb_, 0}, blit_prog, bindings, 3, uniforms, 4);
     }
 
     int x_offset = 0;
@@ -195,7 +195,7 @@ void RpDebugTextures::Execute(RpBuilder &builder) {
             {0, Ren::Vec4f{0.0f, 0.0f, float(view_state_->act_res[0]), float(view_state_->act_res[1])}},
             {12, int(root_node_)}};
 
-        prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, {output_fb_.id(), 0}, debug_bvh_prog, bindings, 3, uniforms, 2);
+        prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, {&output_fb_, 0}, debug_bvh_prog, bindings, 3, uniforms, 2);
     }
 
     if (render_flags_ & DebugShadow) {
@@ -274,7 +274,7 @@ int RpDebugTextures::BlitTex(Ren::RastState &applied_state, const int x, const i
 
     const PrimDraw::Uniform uniforms[] = {{0, Ren::Vec4f{0.0f, 0.0f, float(p.w), float(p.h)}}, {4, mul}};
 
-    prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, {output_fb_.id(), 0}, blit_prog_.get(), bindings, 1, uniforms, 2);
+    prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, {&output_fb_, 0}, blit_prog_.get(), bindings, 1, uniforms, 2);
 
     return w;
 }

@@ -80,7 +80,7 @@ void RpCombine::Execute(RpBuilder &builder) {
         {Ren::eBindTarget::Tex2D, REN_BASE0_TEX_SLOT, color_tex.ref->handle()},
         {Ren::eBindTarget::Tex2D, REN_BASE1_TEX_SLOT, blur_tex ? blur_tex->ref->handle() : dummy_black_->handle()}};
 
-    prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, {output_fb_.id(), 0}, blit_combine_prog_.get(), bindings, 2, uniforms,
+    prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, {&output_fb_, 0}, blit_combine_prog_.get(), bindings, 2, uniforms,
                         6);
 }
 

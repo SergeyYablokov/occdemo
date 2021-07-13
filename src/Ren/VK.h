@@ -24,8 +24,7 @@
 #define vkEnumeratePhysicalDevices ren_vkEnumeratePhysicalDevices
 #define vkGetPhysicalDeviceProperties ren_vkGetPhysicalDeviceProperties
 #define vkGetPhysicalDeviceFeatures ren_vkGetPhysicalDeviceFeatures
-#define vkGetPhysicalDeviceQueueFamilyProperties                                         \
-    ren_vkGetPhysicalDeviceQueueFamilyProperties
+#define vkGetPhysicalDeviceQueueFamilyProperties ren_vkGetPhysicalDeviceQueueFamilyProperties
 
 #define vkCreateDevice ren_vkCreateDevice
 #define vkDestroyDevice ren_vkDestroyDevice
@@ -45,12 +44,10 @@
 #endif
 #define vkDestroySurfaceKHR ren_vkDestroySurfaceKHR
 #define vkGetPhysicalDeviceSurfaceSupportKHR ren_vkGetPhysicalDeviceSurfaceSupportKHR
-#define vkGetPhysicalDeviceSurfaceCapabilitiesKHR                                        \
-    ren_vkGetPhysicalDeviceSurfaceCapabilitiesKHR
+#define vkGetPhysicalDeviceSurfaceCapabilitiesKHR ren_vkGetPhysicalDeviceSurfaceCapabilitiesKHR
 #define vkGetPhysicalDeviceSurfaceFormatsKHR ren_vkGetPhysicalDeviceSurfaceFormatsKHR
 
-#define vkGetPhysicalDeviceSurfacePresentModesKHR                                        \
-    ren_vkGetPhysicalDeviceSurfacePresentModesKHR
+#define vkGetPhysicalDeviceSurfacePresentModesKHR ren_vkGetPhysicalDeviceSurfacePresentModesKHR
 #define vkCreateSwapchainKHR ren_vkCreateSwapchainKHR
 #define vkDestroySwapchainKHR ren_vkDestroySwapchainKHR
 #define vkGetDeviceQueue ren_vkGetDeviceQueue
@@ -154,27 +151,26 @@
 #define vkCmdCopyImage ren_vkCmdCopyImage
 #define vkCmdDispatch ren_vkCmdDispatch
 
+#define vkCmdBeginDebugUtilsLabelEXT ren_vkCmdBeginDebugUtilsLabelEXT
+#define vkCmdEndDebugUtilsLabelEXT ren_vkCmdEndDebugUtilsLabelEXT
 #define vkSetDebugUtilsObjectNameEXT ren_vkSetDebugUtilsObjectNameEXT
 
 extern "C" {
 EXTERN_FUNC PFN_vkCreateInstance ren_vkCreateInstance;
 EXTERN_FUNC PFN_vkDestroyInstance ren_vkDestroyInstance;
 EXTERN_FUNC PFN_vkEnumerateInstanceLayerProperties ren_vkEnumerateInstanceLayerProperties;
-EXTERN_FUNC PFN_vkEnumerateInstanceExtensionProperties
-    ren_vkEnumerateInstanceExtensionProperties;
+EXTERN_FUNC PFN_vkEnumerateInstanceExtensionProperties ren_vkEnumerateInstanceExtensionProperties;
 EXTERN_FUNC PFN_vkGetInstanceProcAddr ren_vkGetInstanceProcAddr;
 
 EXTERN_FUNC PFN_vkEnumeratePhysicalDevices ren_vkEnumeratePhysicalDevices;
 EXTERN_FUNC PFN_vkGetPhysicalDeviceProperties ren_vkGetPhysicalDeviceProperties;
 EXTERN_FUNC PFN_vkGetPhysicalDeviceFeatures ren_vkGetPhysicalDeviceFeatures;
-EXTERN_FUNC PFN_vkGetPhysicalDeviceQueueFamilyProperties
-    ren_vkGetPhysicalDeviceQueueFamilyProperties;
+EXTERN_FUNC PFN_vkGetPhysicalDeviceQueueFamilyProperties ren_vkGetPhysicalDeviceQueueFamilyProperties;
 
 EXTERN_FUNC PFN_vkCreateDevice ren_vkCreateDevice;
 EXTERN_FUNC PFN_vkDestroyDevice ren_vkDestroyDevice;
 
-EXTERN_FUNC PFN_vkEnumerateDeviceExtensionProperties
-    ren_vkEnumerateDeviceExtensionProperties;
+EXTERN_FUNC PFN_vkEnumerateDeviceExtensionProperties ren_vkEnumerateDeviceExtensionProperties;
 
 EXTERN_FUNC PFN_vkCreateDebugReportCallbackEXT ren_vkCreateDebugReportCallbackEXT;
 EXTERN_FUNC PFN_vkDestroyDebugReportCallbackEXT ren_vkDestroyDebugReportCallbackEXT;
@@ -190,15 +186,11 @@ EXTERN_FUNC PFN_vkCreateIOSSurfaceMVK ren_vkCreateIOSSurfaceMVK;
 EXTERN_FUNC PFN_vkCreateMacOSSurfaceMVK vkCreateMacOSSurfaceMVK;
 #endif
 EXTERN_FUNC PFN_vkDestroySurfaceKHR ren_vkDestroySurfaceKHR;
-EXTERN_FUNC PFN_vkGetPhysicalDeviceSurfaceSupportKHR
-    ren_vkGetPhysicalDeviceSurfaceSupportKHR;
-EXTERN_FUNC PFN_vkGetPhysicalDeviceSurfaceCapabilitiesKHR
-    ren_vkGetPhysicalDeviceSurfaceCapabilitiesKHR;
-EXTERN_FUNC PFN_vkGetPhysicalDeviceSurfaceFormatsKHR
-    ren_vkGetPhysicalDeviceSurfaceFormatsKHR;
+EXTERN_FUNC PFN_vkGetPhysicalDeviceSurfaceSupportKHR ren_vkGetPhysicalDeviceSurfaceSupportKHR;
+EXTERN_FUNC PFN_vkGetPhysicalDeviceSurfaceCapabilitiesKHR ren_vkGetPhysicalDeviceSurfaceCapabilitiesKHR;
+EXTERN_FUNC PFN_vkGetPhysicalDeviceSurfaceFormatsKHR ren_vkGetPhysicalDeviceSurfaceFormatsKHR;
 
-EXTERN_FUNC PFN_vkGetPhysicalDeviceSurfacePresentModesKHR
-    ren_vkGetPhysicalDeviceSurfacePresentModesKHR;
+EXTERN_FUNC PFN_vkGetPhysicalDeviceSurfacePresentModesKHR ren_vkGetPhysicalDeviceSurfacePresentModesKHR;
 EXTERN_FUNC PFN_vkCreateSwapchainKHR ren_vkCreateSwapchainKHR;
 EXTERN_FUNC PFN_vkDestroySwapchainKHR ren_vkDestroySwapchainKHR;
 EXTERN_FUNC PFN_vkGetDeviceQueue ren_vkGetDeviceQueue;
@@ -228,10 +220,8 @@ EXTERN_FUNC PFN_vkDestroyImageView ren_vkDestroyImageView;
 EXTERN_FUNC PFN_vkAcquireNextImageKHR ren_vkAcquireNextImageKHR;
 EXTERN_FUNC PFN_vkQueuePresentKHR ren_vkQueuePresentKHR;
 
-EXTERN_FUNC PFN_vkGetPhysicalDeviceMemoryProperties
-    ren_vkGetPhysicalDeviceMemoryProperties;
-EXTERN_FUNC PFN_vkGetPhysicalDeviceFormatProperties
-    ren_vkGetPhysicalDeviceFormatProperties;
+EXTERN_FUNC PFN_vkGetPhysicalDeviceMemoryProperties ren_vkGetPhysicalDeviceMemoryProperties;
+EXTERN_FUNC PFN_vkGetPhysicalDeviceFormatProperties ren_vkGetPhysicalDeviceFormatProperties;
 
 EXTERN_FUNC PFN_vkCreateImage ren_vkCreateImage;
 EXTERN_FUNC PFN_vkDestroyImage ren_vkDestroyImage;
@@ -304,6 +294,8 @@ EXTERN_FUNC PFN_vkCmdClearColorImage ren_vkCmdClearColorImage;
 EXTERN_FUNC PFN_vkCmdCopyImage ren_vkCmdCopyImage;
 EXTERN_FUNC PFN_vkCmdDispatch ren_vkCmdDispatch;
 
+EXTERN_FUNC PFN_vkCmdBeginDebugUtilsLabelEXT ren_vkCmdBeginDebugUtilsLabelEXT;
+EXTERN_FUNC PFN_vkCmdEndDebugUtilsLabelEXT ren_vkCmdEndDebugUtilsLabelEXT;
 EXTERN_FUNC PFN_vkSetDebugUtilsObjectNameEXT ren_vkSetDebugUtilsObjectNameEXT;
 }
 

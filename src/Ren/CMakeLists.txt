@@ -38,6 +38,7 @@ set(SOURCE_FILES Anim.h
                  Context.cpp
                  CPUFeatures.h
                  CPUFeatures.cpp
+                 DebugMarker.h
                  MemoryAllocator.h
                  Fence.h
                  Fixed.h

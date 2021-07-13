@@ -46,7 +46,7 @@ void RpResolve::Execute(RpBuilder &builder) {
     const PrimDraw::Uniform uniforms[] = {
         {0, Ren::Vec4f{0.0f, 0.0f, float(view_state_->act_res[0]), float(view_state_->act_res[1])}}};
 
-    prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, {resolve_fb_.id(), 0}, blit_ms_resolve_prog_.get(), bindings, 1,
+    prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, {&resolve_fb_, 0}, blit_ms_resolve_prog_.get(), bindings, 1,
                         uniforms, 1);
 }
 

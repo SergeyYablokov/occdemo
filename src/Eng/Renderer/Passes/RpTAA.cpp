@@ -70,7 +70,7 @@ void RpTAA::Execute(RpBuilder &builder) {
 
         const PrimDraw::Uniform uniforms[] = {{0, Ren::Vec4f{applied_state.viewport}}};
 
-        prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, {velocity_fb_.id(), 0}, blit_prog, bindings, 2, uniforms, 2);
+        prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, {&velocity_fb_, 0}, blit_prog, bindings, 2, uniforms, 2);
     }
 
     { // Blit taa
@@ -94,7 +94,7 @@ void RpTAA::Execute(RpBuilder &builder) {
             {13, Ren::Vec2f{float(view_state_->act_res[0]), float(view_state_->act_res[1])}},
             {14, exposure}};
 
-        prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, {resolve_fb_.id(), 0}, blit_prog, bindings, 4, uniforms, 3);
+        prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, {&resolve_fb_, 0}, blit_prog, bindings, 4, uniforms, 3);
     }
 }
 

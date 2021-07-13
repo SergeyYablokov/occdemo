@@ -1,9 +1,9 @@
 #include "RpOpaque.h"
 
-#include "../DebugMarker.h"
 #include "../Renderer_Structs.h"
 
 #include <Ren/Context.h>
+#include <Ren/DebugMarker.h>
 #include <Ren/RastState.h>
 
 namespace RpSharedInternal {
@@ -222,7 +222,7 @@ void RpOpaque::DrawOpaque(RpBuilder &builder) {
         uint32_t i = 0;
 
         { // one-sided1
-            DebugMarker _m("ONE-SIDED-1");
+            Ren::DebugMarker _m(ctx.current_cmd_buf(), "ONE-SIDED-1");
 
             rast_state.cull_face.enabled = true;
             rast_state.ApplyChanged(applied_state);
@@ -233,7 +233,7 @@ void RpOpaque::DrawOpaque(RpBuilder &builder) {
         }
 
         { // two-sided1
-            DebugMarker _m("TWO-SIDED-1");
+            Ren::DebugMarker _m(ctx.current_cmd_buf(), "TWO-SIDED-1");
 
             rast_state.cull_face.enabled = false;
             rast_state.ApplyChanged(applied_state);
@@ -244,7 +244,7 @@ void RpOpaque::DrawOpaque(RpBuilder &builder) {
         }
 
         { // one-sided2
-            DebugMarker _m("ONE-SIDED-2");
+            Ren::DebugMarker _m(ctx.current_cmd_buf(), "ONE-SIDED-2");
 
             rast_state.cull_face.enabled = true;
             rast_state.ApplyChanged(applied_state);
@@ -255,7 +255,7 @@ void RpOpaque::DrawOpaque(RpBuilder &builder) {
         }
 
         { // two-sided2
-            DebugMarker _m("TWO-SIDED-2");
+            Ren::DebugMarker _m(ctx.current_cmd_buf(), "TWO-SIDED-2");
 
             rast_state.cull_face.enabled = false;
             rast_state.ApplyChanged(applied_state);
@@ -268,7 +268,7 @@ void RpOpaque::DrawOpaque(RpBuilder &builder) {
         alpha_blend_start_index_ = int(i);
 
         { // two-sided-tested-blended
-            DebugMarker _m("TWO-SIDED-TESTED-BLENDED");
+            Ren::DebugMarker _m(ctx.current_cmd_buf(), "TWO-SIDED-TESTED-BLENDED");
 
             rast_state.cull_face.enabled = false;
             rast_state.ApplyChanged(applied_state);
@@ -280,7 +280,7 @@ void RpOpaque::DrawOpaque(RpBuilder &builder) {
         }
 
         { // one-sided-tested-blended
-            DebugMarker _m("ONE-SIDED-TESTED-BLENDED");
+            Ren::DebugMarker _m(ctx.current_cmd_buf(), "ONE-SIDED-TESTED-BLENDED");
 
             rast_state.cull_face.enabled = true;
             rast_state.ApplyChanged(applied_state);

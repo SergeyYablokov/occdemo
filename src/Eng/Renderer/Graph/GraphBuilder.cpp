@@ -1,8 +1,7 @@
 #include "GraphBuilder.h"
 
 #include <Ren/Context.h>
-
-#include "../DebugMarker.h"
+#include <Ren/DebugMarker.h>
 
 Ren::ILog *RpBuilder::log() { return ctx_.log(); }
 
@@ -315,7 +314,7 @@ void RpBuilder::Execute(RenderPassBase *first_pass) {
         Ren::ResetGLState();
 #endif
 
-        DebugMarker _(cur_pass->name());
+        Ren::DebugMarker _(ctx_.current_cmd_buf(), cur_pass->name());
         cur_pass->Execute(*this);
         cur_pass->input_count_ = cur_pass->output_count_ = 0;
         cur_pass = cur_pass->p_next;

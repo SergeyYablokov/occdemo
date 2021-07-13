@@ -73,8 +73,7 @@ set(INPUT_SOURCE_FILES Input/InputManager.h
                        Input/InputManager.cpp
                        Input/Keycode.h)
 
-set(RENDERER_SOURCES    Renderer/DebugMarker.h
-                        Renderer/FrameBuf.h
+set(RENDERER_SOURCES    Renderer/FrameBuf.h
                         Renderer/PrimDraw.h
                         Renderer/Renderer.h
                         Renderer/Renderer.cpp

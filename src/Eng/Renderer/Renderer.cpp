@@ -378,7 +378,6 @@ void Renderer::ExecuteDrawList(const DrawList &list, const PersistentBuffers &pe
         RenderPassBase *rp_head = &rp_update_buffers_;
         RenderPassBase *rp_tail = &rp_update_buffers_;
 
-
         //
         // Skinning and blend shapes
         //
@@ -565,6 +564,11 @@ void Renderer::ExecuteDrawList(const DrawList &list, const PersistentBuffers &pe
             rp_tail->p_next = &rp_sample_brightness_;
             rp_tail = rp_tail->p_next;
         }
+#endif
+
+#if defined(USE_VK_RENDER)
+        bool apply_dof = false;
+#endif
 
         //
         // Combine with blurred and tonemap
@@ -574,7 +578,11 @@ void Renderer::ExecuteDrawList(const DrawList &list, const PersistentBuffers &pe
             const char *output_tex = nullptr;
             const char *blur_tex = nullptr;
 
+#if defined(USE_VK_RENDER)
+            if (false) {
+#else
             if (cur_msaa_enabled || ((list.render_flags & EnableTaa) != 0) || apply_dof) {
+#endif
                 if (apply_dof) {
                     if ((list.render_flags & EnableTaa) != 0) {
                         color_tex = MAIN_COLOR_TEX;
@@ -588,9 +596,11 @@ void Renderer::ExecuteDrawList(const DrawList &list, const PersistentBuffers &pe
                 color_tex = MAIN_COLOR_TEX;
             }
 
+#if !defined(USE_VK_RENDER)
             if ((list.render_flags & EnableBloom) && !(list.render_flags & DebugWireframe)) {
                 blur_tex = BLUR_RES_TEX;
             }
+#endif
 
             if ((list.render_flags & EnableFxaa) && !(list.render_flags & DebugWireframe)) {
                 output_tex = MAIN_COMBINED_TEX;
@@ -610,17 +620,24 @@ void Renderer::ExecuteDrawList(const DrawList &list, const PersistentBuffers &pe
             }
 
             const bool tonemap = (list.render_flags & EnableTonemap);
+#if defined(USE_VK_RENDER)
+            const float reduced_average = 1.0f;
+#else
             const float reduced_average = rp_sample_brightness_.reduced_average();
+#endif
 
             float exposure = reduced_average > std::numeric_limits<float>::epsilon() ? (1.0f / reduced_average) : 1.0f;
             exposure = std::min(exposure, list.draw_cam.max_exposure);
 
-            rp_combine_.Setup(rp_builder_, &view_state_, gamma, exposure, list.draw_cam.fade, tonemap, color_tex,
-                              blur_tex, output_tex);
-            rp_tail->p_next = &rp_combine_;
-            rp_tail = rp_tail->p_next;
+            // TODO: Remove this condition
+            if (list.env.env_map) {
+                rp_combine_.Setup(rp_builder_, &view_state_, gamma, exposure, list.draw_cam.fade, tonemap, color_tex,
+                                  blur_tex, output_tex);
+                rp_tail->p_next = &rp_combine_;
+                rp_tail = rp_tail->p_next;
+            }
         }
-
+#if defined(USE_GL_RENDER) // gl-only for now
         //
         // FXAA
         //

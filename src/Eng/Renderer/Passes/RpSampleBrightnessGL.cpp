@@ -63,7 +63,7 @@ void RpSampleBrightness::Execute(RpBuilder &builder) {
         };
         cur_offset_ = (cur_offset_ + 1) % 64;
 
-        prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, {reduced_fb_.id(), 0}, blit_red_prog_.get(), &binding, 1, uniforms,
+        prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, {&reduced_fb_, 0}, blit_red_prog_.get(), &binding, 1, uniforms,
                             2);
     }
 

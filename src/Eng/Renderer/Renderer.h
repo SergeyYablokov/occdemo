@@ -174,6 +174,7 @@ class Renderer {
     RpUpdateBuffers rp_update_buffers_;
     RpSkinning rp_skinning_;
     RpSkydome rp_skydome_;
+    RpCombine rp_combine_ = {prim_draw_};
 #if defined(USE_GL_RENDER)
     RpShadowMaps rp_shadow_maps_ = {SHADOWMAP_WIDTH, SHADOWMAP_HEIGHT};
     //RpSkydome rp_skydome_;
@@ -189,7 +190,7 @@ class Renderer {
     RpDOF rp_dof_ = {prim_draw_};
     RpBlur rp_blur_ = {prim_draw_};
     RpSampleBrightness rp_sample_brightness_ = {prim_draw_, Ren::Vec2i{16, 8}};
-    RpCombine rp_combine_ = {prim_draw_};
+    //RpCombine rp_combine_ = {prim_draw_};
     RpFXAA rp_fxaa_ = {prim_draw_};
 
     // debugging passes

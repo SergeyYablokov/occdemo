@@ -100,10 +100,8 @@ class PrimDraw {
     static_assert(sizeof(Uniform) == 24, "!");
 
     struct RenderTarget {
-#if defined(USE_GL_RENDER)
-        uint32_t fb;
+        Ren::Framebuffer *fb;
         uint32_t clear_bits;
-#endif
     };
 
     enum class ePrim { Quad, Sphere };

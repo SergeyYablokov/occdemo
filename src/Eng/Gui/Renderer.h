@@ -93,6 +93,7 @@ class Renderer {
     static int g_instance_count;
 
     Ren::Context &ctx_;
+    char name_[32];
 
     int vtx_count_[Ren::MaxFramesInFlight];
     int ndx_count_[Ren::MaxFramesInFlight];

@@ -146,9 +146,9 @@ class Texture2D : public RefCounter {
 
     void DownloadTextureData(eTexFormat format, void *out_data) const;
 
-    VkImageLayout layout = VK_IMAGE_LAYOUT_UNDEFINED;
-    VkAccessFlags last_access_mask = 0;
-    VkPipelineStageFlags last_stage_mask = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+    mutable VkImageLayout layout = VK_IMAGE_LAYOUT_UNDEFINED;
+    mutable VkAccessFlags last_access_mask = 0;
+    mutable VkPipelineStageFlags last_stage_mask = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
 };
 
 struct Texture1DParams {
@@ -187,6 +187,9 @@ class Texture1D : public RefCounter {
 
     void Init(BufferRef buf, eTexFormat format, uint32_t offset, uint32_t size, ILog *log);
 };
+
+VkFormat VKFormatFromTexFormat(eTexFormat format);
+
 } // namespace Ren
 
 #ifdef _MSC_VER

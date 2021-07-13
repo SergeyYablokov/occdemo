@@ -1903,6 +1903,8 @@ void Ren::Texture1D::Free() {
     }
 }
 
+VkFormat Ren::VKFormatFromTexFormat(eTexFormat format) { return g_vk_formats[size_t(format)]; }
+
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif

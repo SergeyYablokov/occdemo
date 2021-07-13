@@ -53,7 +53,7 @@ void RpDownDepth::Execute(RpBuilder &builder) {
     const PrimDraw::Uniform uniforms[] = {
         {0, Ren::Vec4f{0.0f, 0.0f, float(view_state_->act_res[0]), float(view_state_->act_res[1])}}, {1, 1.0f}};
 
-    prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, {depth_down_fb_.id(), 0}, down_depth_prog, bindings, 2, uniforms, 2);
+    prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, {&depth_down_fb_, 0}, down_depth_prog, bindings, 2, uniforms, 2);
 }
 
 void RpDownDepth::LazyInit(Ren::Context &ctx, ShaderLoader &sh, RpAllocTex &down_depth_2x_tex) {

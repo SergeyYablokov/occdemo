@@ -1,7 +1,6 @@
 #include "Renderer.h"
 
 #include "../Utils/ShaderLoader.h"
-#include "DebugMarker.h"
 #include <Ren/Camera.h>
 #include <Ren/Context.h>
 #include <Ren/GL.h>
@@ -1165,7 +1164,7 @@ void Renderer::BlitPixelsTonemap(const void *data, const int w, const int h, con
             ctx_.log()->Error("Failed to init down_tex_4x_fb_");
         }
 
-        prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, {down_tex_4x_fb_.id(), 0}, cur_program, &binding, 1, uniforms, 1);
+        prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, {&down_tex_4x_fb_, 0}, cur_program, &binding, 1, uniforms, 1);
     }
 
     { // prepare blurred buffer

@@ -47,7 +47,7 @@ void RpBlur::Execute(RpBuilder &builder) {
         const PrimDraw::Uniform uniforms[] = {
             {0, Ren::Vec4f{0.0f, 0.0f, float(applied_state.viewport[2]), float(applied_state.viewport[3])}}, {1, 0.0f}};
 
-        prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, {blur_fb_[0].id(), 0}, blit_gauss_prog_.get(), &binding, 1, uniforms,
+        prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, {&blur_fb_[0], 0}, blit_gauss_prog_.get(), &binding, 1, uniforms,
                             2);
     }
 
@@ -57,7 +57,7 @@ void RpBlur::Execute(RpBuilder &builder) {
         const PrimDraw::Uniform uniforms[] = {
             {0, Ren::Vec4f{0.0f, 0.0f, float(applied_state.viewport[2]), float(applied_state.viewport[3])}}, {1, 1.0f}};
 
-        prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, {blur_fb_[1].id(), 0}, blit_gauss_prog_.get(), &binding, 1, uniforms,
+        prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, {&blur_fb_[1], 0}, blit_gauss_prog_.get(), &binding, 1, uniforms,
                             2);
     }
 }

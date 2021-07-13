@@ -62,7 +62,7 @@ void RpSkydome::Execute(RpBuilder &builder) {
     RpAllocTex &depth_tex = builder.GetWriteTexture(depth_tex_);
 
     LazyInit(builder.ctx(), builder.sh(), color_tex, spec_tex, depth_tex);
-    DrawSkydome(builder);
+    DrawSkydome(builder, color_tex, spec_tex, depth_tex);
 }
 
 void RpSkydome::LazyInit(Ren::Context &ctx, ShaderLoader &sh, RpAllocTex &color_tex, RpAllocTex &spec_tex,
@@ -78,7 +78,7 @@ void RpSkydome::LazyInit(Ren::Context &ctx, ShaderLoader &sh, RpAllocTex &color_
                                      __skydome_indices_count, &status);
         assert(status == Ren::eMeshLoadStatus::CreatedFromData);
 
-        InitPipeline(ctx);
+        InitPipeline(ctx, color_tex, spec_tex, depth_tex);
 
         initialized = true;
     }
@@ -92,13 +92,14 @@ void RpSkydome::LazyInit(Ren::Context &ctx, ShaderLoader &sh, RpAllocTex &color_
     if (!skydome_vao_.Setup(attribs, 1, skydome_mesh_->indices_buf_handle())) {
         ctx.log()->Error("RpSkydome: vao init failed!");
     }
-
+#endif
     const Ren::TexHandle color_attachments[] = {color_tex.ref->handle(), {}, spec_tex.ref->handle()};
-    if (!cached_fb_.Setup(ctx.api_ctx(), nullptr, depth_tex.desc.w, depth_tex.desc.h, color_attachments, 3,
+    if (!cached_fb_.Setup(ctx.api_ctx(), render_pass_, depth_tex.desc.w, depth_tex.desc.h,
+                                      color_attachments, 3,
                           depth_tex.ref->handle(), depth_tex.ref->handle(), view_state_->is_multisampled)) {
         ctx.log()->Error("RpSkydome: fbo init failed!");
     }
-#endif
+
 }
 
 RpSkydome::~RpSkydome() = default;

@@ -153,7 +153,7 @@ void PrimDraw::DrawPrim(const ePrim prim, const RenderTarget &rt, Ren::Program *
                         int bindings_count, const Uniform uniforms[], int uniforms_count) {
     using namespace PrimDrawInternal;
 
-    glBindFramebuffer(GL_FRAMEBUFFER, rt.fb);
+    glBindFramebuffer(GL_FRAMEBUFFER, rt.fb->id());
     // glViewport(rt.viewport[0], rt.viewport[1], rt.viewport[2], rt.viewport[3]);
 
     for (int i = 0; i < bindings_count; i++) {

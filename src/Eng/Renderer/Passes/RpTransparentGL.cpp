@@ -1,10 +1,10 @@
 #include "RpTransparent.h"
 
-#include "../DebugMarker.h"
 #include "../PrimDraw.h"
 #include "../Renderer_Structs.h"
 
 #include <Ren/Context.h>
+#include <Ren/DebugMarker.h>
 #include <Ren/RastState.h>
 
 namespace RpSharedInternal {
@@ -200,7 +200,7 @@ void RpTransparent::DrawTransparent_Simple(RpBuilder &builder, RpAllocBuf &insta
 
 #if !defined(REN_DIRECT_DRAWING)
     if (view_state_->is_multisampled) {
-        DebugMarker _resolve_ms("RESOLVE MS BUFFER");
+        Ren::DebugMarker _resolve_ms(ctx.current_cmd_buf(), "RESOLVE MS BUFFER");
 
         Ren::RastState rast_state;
         rast_state.cull_face.enabled = true;
@@ -216,7 +216,7 @@ void RpTransparent::DrawTransparent_Simple(RpBuilder &builder, RpAllocBuf &insta
         const PrimDraw::Uniform uniforms[] = {
             {0, Ren::Vec4f{0.0f, 0.0f, float(view_state_->act_res[0]), float(view_state_->act_res[1])}}};
 
-        prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, {resolved_fb_.id(), 0}, blit_ms_resolve_prog_.get(), bindings, 1,
+        prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, {&resolved_fb_, 0}, blit_ms_resolve_prog_.get(), bindings, 1,
                             uniforms, 1);
     }
 #endif
@@ -285,7 +285,7 @@ void RpTransparent::DrawTransparent_OIT_MomentBased(RpBuilder &builder) {
     BackendInfo backend_info;
 
     { // Draw alpha-blended surfaces
-        DebugMarker _("MOMENTS GENERATION PASS");
+        Ren::DebugMarker _(ctx.current_cmd_buf(), "MOMENTS GENERATION PASS");
 
         const Ren::Program *cur_program = nullptr;
         const Ren::Material *cur_mat = nullptr;
@@ -353,7 +353,7 @@ void RpTransparent::DrawTransparent_OIT_MomentBased(RpBuilder &builder) {
     }*/
 
     { // Draw alpha-blended surfaces
-        DebugMarker _("COLOR PASS");
+        Ren::DebugMarker _(ctx.current_cmd_buf(), "COLOR PASS");
 
         const Ren::Program *cur_program = nullptr;
         const Ren::Material *cur_mat = nullptr;

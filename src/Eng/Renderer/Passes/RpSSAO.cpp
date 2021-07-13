@@ -70,8 +70,7 @@ void RpSSAO::Execute(RpBuilder &builder) {
 
         const PrimDraw::Uniform uniforms[] = {{0, Ren::Vec4f{applied_state.viewport}}};
 
-        prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, {ssao_buf1_fb_.id(), 0}, blit_ao_prog_.get(), bindings, 3, uniforms,
-                            1);
+        prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, {&ssao_buf1_fb_, 0}, blit_ao_prog_.get(), bindings, 3, uniforms, 1);
     }
 
     { // blur ao buffer
@@ -80,7 +79,7 @@ void RpSSAO::Execute(RpBuilder &builder) {
 
         PrimDraw::Uniform uniforms[] = {{0, Ren::Vec4f{applied_state.viewport}}, {3, 0.0f}};
 
-        prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, {ssao_buf2_fb_.id(), 0}, blit_bilateral_prog_.get(), bindings, 2,
+        prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, {&ssao_buf2_fb_, 0}, blit_bilateral_prog_.get(), bindings, 2,
                             uniforms, 2);
 
         bindings[1] = {Ren::eBindTarget::Tex2D, 1, ssao2_tex.ref->handle()};
@@ -88,7 +87,7 @@ void RpSSAO::Execute(RpBuilder &builder) {
         uniforms[0] = {0, Ren::Vec4f{applied_state.viewport}};
         uniforms[1] = {3, 1.0f};
 
-        prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, {ssao_buf1_fb_.id(), 0}, blit_bilateral_prog_.get(), bindings, 2,
+        prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, {&ssao_buf1_fb_, 0}, blit_bilateral_prog_.get(), bindings, 2,
                             uniforms, 2);
     }
 
@@ -115,7 +114,7 @@ void RpSSAO::Execute(RpBuilder &builder) {
 
         const PrimDraw::Uniform uniforms[] = {{0, Ren::Vec4f{0.0f, 0.0f, 1.0f, 1.0f}}};
 
-        prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, {output_fb_.id(), 0}, blit_upscale_prog, bindings, 4, uniforms, 1);
+        prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, {&output_fb_, 0}, blit_upscale_prog, bindings, 4, uniforms, 1);
     }
 }
 
