@@ -66,3 +66,5 @@ void RpSkydome::DrawSkydome(RpBuilder &builder, RpAllocTex &color_tex, RpAllocTe
 bool RpSkydome::InitPipeline(Ren::Context &ctx, RpAllocTex &color_tex, RpAllocTex &spec_tex, RpAllocTex &depth_tex) {
     return true;
 }
+
+RpSkydome::~RpSkydome() = default;

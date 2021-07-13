@@ -555,3 +555,21 @@ bool RpSkydome::InitPipeline(Ren::Context &ctx, RpAllocTex &color_tex, RpAllocTe
 
     return true;
 }
+
+RpSkydome::~RpSkydome() {
+    if (desc_set_layout_) {
+        vkDestroyDescriptorSetLayout(api_ctx_->device, desc_set_layout_, nullptr);
+    }
+    if (desc_pool_) {
+        vkDestroyDescriptorPool(api_ctx_->device, desc_pool_, nullptr);
+    }
+    if (render_pass_) {
+        vkDestroyRenderPass(api_ctx_->device, render_pass_, nullptr);
+    }
+    if (pipeline_layout_) {
+        vkDestroyPipelineLayout(api_ctx_->device, pipeline_layout_, nullptr);
+    }
+    if (pipeline_) {
+        vkDestroyPipeline(api_ctx_->device, pipeline_, nullptr);
+    }
+}

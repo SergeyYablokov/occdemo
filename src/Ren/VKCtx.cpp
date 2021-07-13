@@ -691,4 +691,5 @@ void Ren::DestroyDeferredResources(ApiContext *api_ctx, int i) {
     for (VkDeviceMemory mem : api_ctx->mem_to_free[i]) {
         vkFreeMemory(api_ctx->device, mem, nullptr);
     }
+    api_ctx->mem_to_free[i].clear();
 }

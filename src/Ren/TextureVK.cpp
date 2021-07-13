@@ -386,6 +386,9 @@ bool Ren::Texture2D::Realloc(const int w, const int h, int mip_count, const int 
     VkImage new_image = VK_NULL_HANDLE;
     VkImageView new_image_view = VK_NULL_HANDLE;
     MemAllocation new_alloc = {};
+    VkImageLayout new_layout = VK_IMAGE_LAYOUT_UNDEFINED;
+    VkAccessFlags new_access_mask = 0;
+    VkPipelineStageFlags new_stage_mask = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
 
     mip_count = std::min(mip_count, CalcMipCount(w, h, 1, Ren::eTexFilter::Trilinear));
 
@@ -477,10 +480,6 @@ bool Ren::Texture2D::Realloc(const int w, const int h, int mip_count, const int 
     }
 #endif
 
-    this->layout = VK_IMAGE_LAYOUT_UNDEFINED;
-    this->last_access_mask = 0;
-    this->last_stage_mask = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-
     const TexHandle new_handle = {new_image, new_image_view, TextureHandleCounter++};
     uint16_t new_initialized_mips = 0;
 
@@ -548,7 +547,7 @@ bool Ren::Texture2D::Realloc(const int w, const int h, int mip_count, const int 
             barriers[1].sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
             barriers[1].srcAccessMask = 0;
             barriers[1].dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-            barriers[1].oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+            barriers[1].oldLayout = new_layout;
             barriers[1].newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
             barriers[1].srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
             barriers[1].dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
@@ -565,9 +564,9 @@ bool Ren::Texture2D::Realloc(const int w, const int h, int mip_count, const int 
             vkCmdCopyImage(cmd_buf, handle_.img, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, new_image,
                            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, copy_regions_count, copy_regions);
 
-            this->layout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-            this->last_access_mask = VK_ACCESS_TRANSFER_WRITE_BIT;
-            this->last_stage_mask = VK_PIPELINE_STAGE_TRANSFER_BIT;
+            new_layout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+            new_access_mask = VK_ACCESS_TRANSFER_WRITE_BIT;
+            new_stage_mask = VK_PIPELINE_STAGE_TRANSFER_BIT;
         }
     }
     Free();
@@ -586,6 +585,10 @@ bool Ren::Texture2D::Realloc(const int w, const int h, int mip_count, const int 
     params_.format = format;
     params_.block = block;
     initialized_mips_ = new_initialized_mips;
+
+    this->layout = new_layout;
+    this->last_access_mask = new_access_mask;
+    this->last_stage_mask = new_stage_mask;
 
     return true;
 }
@@ -897,6 +900,13 @@ void Ren::Texture2D::InitFromDDSFile(const void *data, const int size, Buffer &s
     vkCmdCopyBufferToImage(cmd_buf, sbuf.handle().buf, handle_.img, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, regions_count,
                            regions);
 
+    sbuf.last_access_mask = VK_ACCESS_TRANSFER_READ_BIT;
+    sbuf.last_stage_mask = VK_PIPELINE_STAGE_TRANSFER_BIT;
+
+    this->layout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+    this->last_access_mask = VK_ACCESS_TRANSFER_WRITE_BIT;
+    this->last_stage_mask = VK_PIPELINE_STAGE_TRANSFER_BIT;
+
     ApplySampling(p.sampling, log);
 }
 
@@ -994,6 +1004,8 @@ void Ren::Texture2D::InitFromKTXFile(const void *data, const int size, Buffer &s
     vkCmdPipelineBarrier(cmd_buf, sbuf.last_stage_mask | this->last_stage_mask, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0,
                          nullptr, 1, &buf_barrier, 1, &img_barrier);
 
+    this->layout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+
     VkBufferImageCopy regions[16] = {};
     int regions_count = 0;
 
@@ -1038,6 +1050,14 @@ void Ren::Texture2D::InitFromKTXFile(const void *data, const int size, Buffer &s
 
     vkCmdCopyBufferToImage(cmd_buf, sbuf.handle().buf, handle_.img, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, regions_count,
                            regions);
+
+    sbuf.last_access_mask = VK_ACCESS_TRANSFER_READ_BIT;
+    sbuf.last_stage_mask = VK_PIPELINE_STAGE_TRANSFER_BIT;
+
+    this->layout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+    this->last_access_mask = VK_ACCESS_TRANSFER_WRITE_BIT;
+    this->last_stage_mask = VK_PIPELINE_STAGE_TRANSFER_BIT;
+
 
     ApplySampling(p.sampling, log);
 }

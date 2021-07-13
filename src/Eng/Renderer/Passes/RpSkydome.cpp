@@ -101,5 +101,3 @@ void RpSkydome::LazyInit(Ren::Context &ctx, ShaderLoader &sh, RpAllocTex &color_
     }
 
 }
-
-RpSkydome::~RpSkydome() = default;

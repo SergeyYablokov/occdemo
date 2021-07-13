@@ -49,10 +49,7 @@ Ren::Buffer &Ren::Buffer::operator=(Buffer &&rhs) noexcept {
     RefCounter::operator=(static_cast<RefCounter &&>(rhs));
     LinearAlloc::operator=(static_cast<LinearAlloc &&>(rhs));
 
-    if (handle_.buf != VK_NULL_HANDLE) {
-        vkDestroyBuffer(api_ctx_->device, handle_.buf, nullptr);
-        vkFreeMemory(api_ctx_->device, mem_, nullptr);
-    }
+    Free();
 
     assert(!mapped_ptr_);
     assert(mapped_offset_ == 0xffffffff);
@@ -167,6 +164,15 @@ void Ren::Buffer::Resize(uint32_t new_size) {
     VkResult res = vkCreateBuffer(api_ctx_->device, &buf_create_info, nullptr, &new_buf);
     assert(res == VK_SUCCESS && "Failed to create vertex buffer!");
 
+#ifdef ENABLE_OBJ_LABELS
+    VkDebugUtilsObjectNameInfoEXT name_info = {};
+    name_info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+    name_info.objectType = VK_OBJECT_TYPE_BUFFER;
+    name_info.objectHandle = uint64_t(new_buf);
+    name_info.pObjectName = name_.c_str();
+    vkSetDebugUtilsObjectNameEXT(api_ctx_->device, &name_info);
+#endif
+
     VkMemoryRequirements memory_requirements = {};
     vkGetBufferMemoryRequirements(api_ctx_->device, new_buf, &memory_requirements);
 
@@ -239,7 +245,7 @@ uint8_t *Ren::Buffer::MapRange(const uint8_t dir, const uint32_t offset, const u
     const uint32_t size_aligned = align_to * ((size + (offset % align_to) + align_to - 1) / align_to);
 
     void *mapped = nullptr;
-    VkResult res =
+    const VkResult res =
         vkMapMemory(api_ctx_->device, mem_, VkDeviceSize(offset_aligned), VkDeviceSize(size_aligned), 0, &mapped);
     assert(res == VK_SUCCESS && "Failed to map memory!");
 
