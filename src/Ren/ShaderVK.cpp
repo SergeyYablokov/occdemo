@@ -97,6 +97,7 @@ void Ren::Shader::InitFromSPIRV(const uint8_t *shader_code, const int code_size,
             Descr &new_item = attr_bindings.emplace_back();
             new_item.name = String{var.name};
             new_item.loc = var.location;
+            new_item.format = VkFormat(var.format);
         }
     }
 
@@ -109,7 +110,9 @@ void Ren::Shader::InitFromSPIRV(const uint8_t *shader_code, const int code_size,
         } else {
             Descr &new_item = unif_bindings.emplace_back();
             new_item.name = String{desc.name};
+            new_item.desc_type = VkDescriptorType(desc.descriptor_type);
             new_item.loc = desc.binding;
+            new_item.set = desc.set;
         }
     }
 

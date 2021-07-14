@@ -150,8 +150,8 @@ Ren::ProgramRef Ren::Context::LoadProgram(const char *name, ShaderRef vs_ref, Sh
     ProgramRef ref = programs_.FindByName(name);
 
     if (!ref) {
-        ref = programs_.Add(name, std::move(vs_ref), std::move(fs_ref), std::move(tcs_ref), std::move(tes_ref),
-                            load_status, log_);
+        ref = programs_.Add(name, api_ctx_.get(), std::move(vs_ref), std::move(fs_ref), std::move(tcs_ref),
+                            std::move(tes_ref), load_status, log_);
     } else {
         if (ref->ready()) {
             if (load_status) {
@@ -169,7 +169,7 @@ Ren::ProgramRef Ren::Context::LoadProgram(const char *name, ShaderRef cs_ref, eP
     ProgramRef ref = programs_.FindByName(name);
 
     if (!ref) {
-        ref = programs_.Add(name, std::move(cs_ref), load_status, log_);
+        ref = programs_.Add(name, api_ctx_.get(), std::move(cs_ref), load_status, log_);
     } else {
         if (ref->ready()) {
             if (load_status)

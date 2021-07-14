@@ -97,20 +97,6 @@ Gui::Renderer::Renderer(Ren::Context &ctx, const JsObject &config) : ctx_(ctx) {
         buf_range_fences_[i] = Ren::SyncFence{api_ctx->device, new_fence};
     }
 
-    { // create descriptor set layout
-        const VkDescriptorSetLayoutBinding layout_bindings[] = {
-            // texture atlas
-            {TEX_ATLAS_SLOT, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr}};
-
-        VkDescriptorSetLayoutCreateInfo layout_info = {};
-        layout_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-        layout_info.bindingCount = 1;
-        layout_info.pBindings = layout_bindings;
-
-        const VkResult res = vkCreateDescriptorSetLayout(api_ctx->device, &layout_info, nullptr, &desc_set_layout_);
-        assert(res == VK_SUCCESS && "Failed to create descriptor set layout!");
-    }
-
     { // create descriptor pool
         VkDescriptorPoolSize pool_size;
         pool_size.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
@@ -131,7 +117,7 @@ Gui::Renderer::Renderer(Ren::Context &ctx, const JsObject &config) : ctx_(ctx) {
         alloc_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
         alloc_info.descriptorPool = desc_pool_;
         alloc_info.descriptorSetCount = 1;
-        alloc_info.pSetLayouts = &desc_set_layout_;
+        alloc_info.pSetLayouts = ui_program_->descr_set_layouts();
 
         const VkResult res = vkAllocateDescriptorSets(api_ctx->device, &alloc_info, &desc_set_);
         assert(res == VK_SUCCESS && "Failed to allocate descriptor sets!");
@@ -162,7 +148,7 @@ Gui::Renderer::Renderer(Ren::Context &ctx, const JsObject &config) : ctx_(ctx) {
         VkPipelineLayoutCreateInfo layout_create_info = {};
         layout_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
         layout_create_info.setLayoutCount = 1;
-        layout_create_info.pSetLayouts = &desc_set_layout_;
+        layout_create_info.pSetLayouts = ui_program_->descr_set_layouts();
 
         const VkResult res = vkCreatePipelineLayout(api_ctx->device, &layout_create_info, nullptr, &pipeline_layout_);
         assert(res == VK_SUCCESS && "Failed to create pipeline layout!");
@@ -368,7 +354,6 @@ Gui::Renderer::~Renderer() {
     vertex_stage_buf_->Unmap();
     index_stage_buf_->Unmap();
 
-    vkDestroyDescriptorSetLayout(api_ctx->device, desc_set_layout_, nullptr);
     vkDestroyDescriptorPool(api_ctx->device, desc_pool_, nullptr);
 
     vkDestroyRenderPass(api_ctx->device, render_pass_, nullptr);

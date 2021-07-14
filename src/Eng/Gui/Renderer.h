@@ -100,7 +100,6 @@ class Renderer {
 
     Ren::ProgramRef ui_program_;
 #if defined(USE_VK_RENDER)
-    VkDescriptorSetLayout desc_set_layout_ = {};
     VkDescriptorPool desc_pool_ = {};
     VkDescriptorSet desc_set_ = {};
 

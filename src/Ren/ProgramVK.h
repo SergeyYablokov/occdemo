@@ -29,13 +29,20 @@ class Program : public RefCounter {
     SmallVector<UniformBlock, 4> uniform_blocks_;
     String name_;
 
+    ApiContext *api_ctx_ = nullptr;
+    std::array<VkDescriptorSetLayout, 4> desc_set_layouts_ = {VK_NULL_HANDLE, VK_NULL_HANDLE, VK_NULL_HANDLE,
+                                                              VK_NULL_HANDLE};
+
+    bool InitDescSetLayouts(ILog *log);
     void InitBindings(ILog *log);
+
+    void Destroy();
 
   public:
     Program() = default;
-    Program(const char *name, ShaderRef vs_ref, ShaderRef fs_ref, ShaderRef tcs_ref, ShaderRef tes_ref,
-            eProgLoadStatus *status, ILog *log);
-    Program(const char *name, ShaderRef cs_ref, eProgLoadStatus *status, ILog *log);
+    Program(const char *name, ApiContext *api_ctx, ShaderRef vs_ref, ShaderRef fs_ref, ShaderRef tcs_ref,
+            ShaderRef tes_ref, eProgLoadStatus *status, ILog *log);
+    Program(const char *name, ApiContext *api_ctx, ShaderRef cs_ref, eProgLoadStatus *status, ILog *log);
 
     Program(const Program &rhs) = delete;
     Program(Program &&rhs) noexcept { (*this) = std::move(rhs); }
@@ -86,6 +93,8 @@ class Program : public RefCounter {
     }
 
     const ShaderRef &shader(eShaderType type) { return shaders_[int(type)]; }
+
+    const VkDescriptorSetLayout *descr_set_layouts() const { return desc_set_layouts_.data(); }
 
     void Init(ShaderRef vs_ref, ShaderRef fs_ref, ShaderRef tcs_ref, ShaderRef tes_ref, eProgLoadStatus *status,
               ILog *log);

@@ -6,6 +6,11 @@ namespace Ren {
 struct Descr {
     String name;
     int loc = -1;
+#if defined(USE_VK_RENDER)
+    VkDescriptorType desc_type = VK_DESCRIPTOR_TYPE_MAX_ENUM;
+    int set = 0;
+    VkFormat format = VK_FORMAT_UNDEFINED;
+#endif
 };
 inline bool operator==(const Descr &lhs, const Descr &rhs) { return lhs.loc == rhs.loc && lhs.name == rhs.name; }
 typedef Descr Attribute;

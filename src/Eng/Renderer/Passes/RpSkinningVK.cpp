@@ -176,33 +176,6 @@ bool RpSkinning::InitPipeline(Ren::Context &ctx) {
 
     api_ctx_ = api_ctx;
 
-    { // create descriptor set layout
-        const VkDescriptorSetLayoutBinding layout_bindings[6] = {
-            // input vertices binding
-            {0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
-            // input matrices binding
-            {1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
-            // input shape keys binding
-            {2, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
-            // input vertex deltas binding
-            {3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
-            // output vertices0 binding
-            {4, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr},
-            // output vertices1 binding
-            {5, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_COMPUTE_BIT, nullptr}};
-
-        VkDescriptorSetLayoutCreateInfo layout_info = {};
-        layout_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-        layout_info.bindingCount = 6;
-        layout_info.pBindings = layout_bindings;
-
-        const VkResult res = vkCreateDescriptorSetLayout(api_ctx->device, &layout_info, nullptr, &desc_set_layout_);
-        if (res != VK_SUCCESS) {
-            ctx.log()->Error("Failed to create descriptor set layout!");
-            return false;
-        }
-    }
-
     { // create descriptor pool
         VkDescriptorPoolSize pool_size;
         pool_size.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
@@ -229,7 +202,7 @@ bool RpSkinning::InitPipeline(Ren::Context &ctx) {
 
         VkDescriptorSetLayout desc_set_layouts[Ren::MaxFramesInFlight];
         for (int i = 0; i < Ren::MaxFramesInFlight; i++) {
-            desc_set_layouts[i] = desc_set_layout_;
+            desc_set_layouts[i] = skinning_prog_->descr_set_layouts()[0];
         }
         alloc_info.pSetLayouts = desc_set_layouts;
 
@@ -244,7 +217,7 @@ bool RpSkinning::InitPipeline(Ren::Context &ctx) {
         VkPipelineLayoutCreateInfo layout_create_info = {};
         layout_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
         layout_create_info.setLayoutCount = 1;
-        layout_create_info.pSetLayouts = &desc_set_layout_;
+        layout_create_info.pSetLayouts = skinning_prog_->descr_set_layouts();
 
         VkPushConstantRange pc_ranges[1] = {};
         pc_ranges[0].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
@@ -285,9 +258,6 @@ bool RpSkinning::InitPipeline(Ren::Context &ctx) {
 }
 
 RpSkinning::~RpSkinning() {
-    if (desc_set_layout_) {
-        vkDestroyDescriptorSetLayout(api_ctx_->device, desc_set_layout_, nullptr);
-    }
     if (desc_pool_) {
         vkDestroyDescriptorPool(api_ctx_->device, desc_pool_, nullptr);
     }
