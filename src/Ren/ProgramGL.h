@@ -48,9 +48,9 @@ class Program : public RefCounter {
         }
         name_ = String{name};
     }
-    Program(const char *name, ShaderRef vs_ref, ShaderRef fs_ref, ShaderRef tcs_ref, ShaderRef tes_ref,
-            eProgLoadStatus *status, ILog *log);
-    Program(const char *name, ShaderRef cs_ref, eProgLoadStatus *status, ILog *log);
+    Program(const char *name, ApiContext *api_ctx, ShaderRef vs_ref, ShaderRef fs_ref, ShaderRef tcs_ref,
+            ShaderRef tes_ref, eProgLoadStatus *status, ILog *log);
+    Program(const char *name, ApiContext *api_ctx, ShaderRef cs_ref, eProgLoadStatus *status, ILog *log);
 
     Program(const Program &rhs) = delete;
     Program(Program &&rhs) noexcept { (*this) = std::move(rhs); }
