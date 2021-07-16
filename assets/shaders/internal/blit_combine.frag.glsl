@@ -6,6 +6,15 @@
 	precision mediump float;
 #endif
 
+#include "_fs_common.glsl"
+
+#include "blit_combine_interface.glsl"
+
+/*
+UNIFORM_BLOCKS
+    UniformParams : $ubUnifParamLoc
+*/
+
 /*
 PERM @MSAA_4
 */
@@ -18,7 +27,7 @@ layout(binding = 0) uniform mediump sampler2D s_texture;
 layout(binding = 1) uniform sampler2D s_blured_texture;
 
 #if defined(VULKAN)
-layout(push_constant) uniform PushConstants {
+layout(push_constant) uniform UniformParams {
     layout(offset = 16) vec2 uTexSize;
 						float tonemap;
 						float gamma;
@@ -26,11 +35,22 @@ layout(push_constant) uniform PushConstants {
 						float fade;
 };
 #else
-layout(location = 13) uniform vec2 uTexSize;
+#if defined(GL_SPIRV)
+layout(binding = REN_UB_UNIF_PARAM_LOC, std140) uniform UniformParams {
+#else
+layout(std140) uniform UniformParams {
+#endif
+    vec2 uTexSize;
+	float tonemap;
+	float gamma;
+	float exposure;
+	float fade;
+};
+/*layout(location = 13) uniform vec2 uTexSize;
 layout(location = 12) uniform float tonemap;
 layout(location = 14) uniform float gamma;
 layout(location = 15) uniform float exposure;
-layout(location = 16) uniform float fade;
+layout(location = 16) uniform float fade;*/
 #endif
 
 #if defined(VULKAN) || defined(GL_SPIRV)

@@ -66,7 +66,7 @@ bool InitCommandBuffers(VkCommandPool &command_pool, VkCommandPool &temp_command
                         VkSemaphore render_finished_semaphores[MaxFramesInFlight],
                         VkFence in_flight_fences[MaxFramesInFlight], VkQueue &present_queue, VkQueue &graphics_queue,
                         VkDevice device, uint32_t present_family_index, ILog *log);
-bool InitImageViews(SmallVectorImpl<VkImage> &present_images, SmallVectorImpl<VkImageView> &present_image_views,
+bool InitPresentImageViews(SmallVectorImpl<VkImage> &present_images, SmallVectorImpl<VkImageView> &present_image_views,
                     VkDevice device, VkSwapchainKHR swapchain, VkSurfaceFormatKHR surface_format,
                     VkCommandBuffer setup_cmd_buf, VkQueue present_queue, ILog *log);
 

@@ -144,7 +144,7 @@ bool Ren::Context::Init(const int w, const int h, ILog *log, const char *preferr
         return false;
     }
 
-    if (!InitImageViews(api_ctx_->present_images, api_ctx_->present_image_views, api_ctx_->device, api_ctx_->swapchain,
+    if (!InitPresentImageViews(api_ctx_->present_images, api_ctx_->present_image_views, api_ctx_->device, api_ctx_->swapchain,
                         api_ctx_->surface_format, api_ctx_->setup_cmd_buf, api_ctx_->present_queue, log)) {
         return false;
     }
@@ -198,7 +198,7 @@ void Ren::Context::Resize(int w, int h) {
         log_->Error("Swapchain initialization failed");
     }
 
-    if (!InitImageViews(api_ctx_->present_images, api_ctx_->present_image_views, api_ctx_->device, api_ctx_->swapchain,
+    if (!InitPresentImageViews(api_ctx_->present_images, api_ctx_->present_image_views, api_ctx_->device, api_ctx_->swapchain,
                         api_ctx_->surface_format, api_ctx_->setup_cmd_buf, api_ctx_->present_queue, log_)) {
         log_->Error("Image views initialization failed");
     }

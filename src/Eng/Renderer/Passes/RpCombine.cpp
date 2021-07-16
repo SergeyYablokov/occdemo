@@ -10,6 +10,8 @@
 #include "../PrimDraw.h"
 #include "../Renderer_Structs.h"
 
+//#include "../assets/shaders/internal/blit_combine_interface.glsl"
+
 void RpCombine::Setup(RpBuilder &builder, const ViewState *view_state, const float gamma, const float exposure,
                       const float fade, bool const tonemap, const char color_tex_name[], const char blur_tex_name[],
                       const char output_tex_name[]) {
@@ -76,18 +78,32 @@ void RpCombine::Execute(RpBuilder &builder) {
         {15, tonemap_ ? exposure_ : 1.0f},
         {16, fade_}};
 
+    //BlitCombine::U
+
+    /*struct UniformParams {
+        Ren::Vec2f uTexSize;
+        float tonemap;
+        float gamma;
+        float exposure;
+        float fade;
+    } uniform_params;
+
+    uniform_params.uTexSize = Ren::Vec2f{float(view_state_->act_res[0]), float(view_state_->act_res[1])};
+    uniform_params.tonemap = tonemap_ ? 1.0f : 0.0f;
+    uniform_params.gamma = gamma_;*/
+
+
     const PrimDraw::Binding bindings[] = {
         {Ren::eBindTarget::Tex2D, REN_BASE0_TEX_SLOT, color_tex.ref->handle()},
         {Ren::eBindTarget::Tex2D, REN_BASE1_TEX_SLOT, blur_tex ? blur_tex->ref->handle() : dummy_black_->handle()}};
 
-    prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, {&output_fb_, 0}, blit_combine_prog_.get(), bindings, 2, uniforms,
-                        6);
+    prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, {&output_fb_, 0}, blit_combine_prog_.get(), bindings, 2, uniforms, 6);
 }
 
 void RpCombine::LazyInit(Ren::Context &ctx, ShaderLoader &sh, RpAllocTex *output_tex) {
     if (!initialized) {
         blit_combine_prog_ =
-            sh.LoadProgram(ctx, "blit_combine", "internal/blit.vert.glsl", "internal/blit_combine.frag.glsl");
+            sh.LoadProgram(ctx, "blit_combine", "internal/blit2.vert.glsl", "internal/blit_combine.frag.glsl");
         assert(blit_combine_prog_->ready());
 
         static const uint8_t black[] = {0, 0, 0, 0};

@@ -187,6 +187,7 @@ elseif(${RENDERER} STREQUAL "SW")
 endif()
 
 set(SHADERS_SOURCES Renderer/Shaders/_common.glsl
+                    Renderer/Shaders/_interface_common.glsl
                     Renderer/Shaders/_fs_common.glsl
                     Renderer/Shaders/_vs_common.glsl)
 

@@ -60,8 +60,8 @@ void Ren::Program::Destroy() {
         if (l) {
             vkDestroyDescriptorSetLayout(api_ctx_->device, l, nullptr);
         }
-        l = VK_NULL_HANDLE;
     }
+    desc_set_layouts_.assign(VK_NULL_HANDLE);
 }
 
 void Ren::Program::Init(ShaderRef vs_ref, ShaderRef fs_ref, ShaderRef tcs_ref, ShaderRef tes_ref,

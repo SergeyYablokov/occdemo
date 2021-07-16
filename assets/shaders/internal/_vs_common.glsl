@@ -38,6 +38,8 @@
 #define REN_MOMENTS2_MS_TEX_SLOT 19
 #define REN_NOISE_TEX_SLOT 19
 #define REN_CONE_RT_LUT_SLOT 20
+#define REN_MATERIALS_SLOT 21
+#define REN_BINDLESS_TEX_SLOT 0
 
 #define REN_BASE0_TEX_SLOT 0
 #define REN_BASE1_TEX_SLOT 1
@@ -53,10 +55,12 @@
 #define REN_REFL_DEPTH_LOW_TEX_SLOT 7
 
 #define REN_U_M_MATRIX_LOC  0
+#define REN_U_MAT_INDEX_LOC REN_U_MAT_INDEX_LOC
 #define REN_U_INSTANCES_LOC 1
 #define REN_U_MAT_PARAM_LOC 3
 
-#define REN_UB_SHARED_DATA_LOC  0
+#define REN_UB_SHARED_DATA_LOC  21
+#define REN_UB_UNIF_PARAM_LOC  22
 
 // Shader output location
 #define REN_OUT_COLOR_INDEX 0
@@ -146,15 +150,37 @@ struct SharedData {
     EllipsItem uEllipsoids[REN_MAX_ELLIPSES_TOTAL];
 };
 
+struct MaterialData {
+    uint texture_indices[5];
+    uint _pad[3];
+    vec4 params;
+};
+
+#if defined(GL_ARB_bindless_texture)
+#define SAMPLER2D(x) sampler2D(x)
+#else // GL_ARB_bindless_texture
+#define SAMPLER2D
+#endif // GL_ARB_bindless_texture
 
 
-#define INSTANCE_BUF_STRIDE 4
+
+#if !defined(VULKAN)
+#define gl_InstanceIndex gl_InstanceID
+#endif
+
+#define INSTANCE_BUF_STRIDE 8
 
 #define FetchModelMatrix(instance_buf, instance)                                    \
     transpose(mat4(texelFetch((instance_buf), (instance) * INSTANCE_BUF_STRIDE + 0),\
                    texelFetch((instance_buf), (instance) * INSTANCE_BUF_STRIDE + 1),\
                    texelFetch((instance_buf), (instance) * INSTANCE_BUF_STRIDE + 2),\
                    vec4(0.0, 0.0, 0.0, 1.0)))
+
+#define FetchNormalMatrix(instance_buf, instance)                                   \
+    mat4(texelFetch((instance_buf), (instance) * INSTANCE_BUF_STRIDE + 4),          \
+         texelFetch((instance_buf), (instance) * INSTANCE_BUF_STRIDE + 5),          \
+         texelFetch((instance_buf), (instance) * INSTANCE_BUF_STRIDE + 6),          \
+         vec4(0.0, 0.0, 0.0, 1.0))
 
 #define VEGE_MAX_MOVEMENT 8.0
 #define VEGE_MAX_BRANCH_AMPLITUDE 1.0

@@ -530,7 +530,7 @@ bool Ren::InitCommandBuffers(VkCommandPool &command_pool, VkCommandPool &temp_co
     return true;
 }
 
-bool Ren::InitImageViews(SmallVectorImpl<VkImage> &present_images, SmallVectorImpl<VkImageView> &present_image_views,
+bool Ren::InitPresentImageViews(SmallVectorImpl<VkImage> &present_images, SmallVectorImpl<VkImageView> &present_image_views,
                          VkDevice device, VkSwapchainKHR swapchain, VkSurfaceFormatKHR surface_format,
                          VkCommandBuffer setup_cmd_buf, VkQueue present_queue, ILog *log) {
     uint32_t image_count;

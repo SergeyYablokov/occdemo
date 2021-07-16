@@ -20,6 +20,8 @@ bool PrimDraw::LazyInit(Ren::Context &ctx) {
                    ndx_buf = ctx.default_indices_buf();
 
     if (!initialized_) {
+        api_ctx_ = ctx.api_ctx();
+
         { // Allocate quad vertices
             uint32_t mem_required = sizeof(fs_quad_positions) + sizeof(fs_quad_norm_uvs);
             mem_required += (16 - mem_required % 16); // align to vertex stride
@@ -40,50 +42,47 @@ bool PrimDraw::LazyInit(Ren::Context &ctx) {
         }
 
         { // Allocate quad indices
-            Ren::BufferRef temp_stage_buf =
-                ctx.CreateBuffer("Temp prim buf", Ren::eBufType::Stage, 6 * sizeof(uint16_t));
+            Ren::Buffer temp_stage_buf("Temp prim buf", ctx.api_ctx(), Ren::eBufType::Stage, 6 * sizeof(uint16_t));
 
             { // copy quad indices
-                uint8_t *mapped_ptr = temp_stage_buf->Map(Ren::BufMapWrite);
+                uint8_t *mapped_ptr = temp_stage_buf.Map(Ren::BufMapWrite);
                 memcpy(mapped_ptr, fs_quad_indices, 6 * sizeof(uint16_t));
-                temp_stage_buf->FlushMappedRange(0, 6 * sizeof(uint16_t));
-                temp_stage_buf->Unmap();
+                temp_stage_buf.FlushMappedRange(0, 6 * sizeof(uint16_t));
+                temp_stage_buf.Unmap();
             }
 
-            quad_ndx_offset_ = ndx_buf->AllocRegion(6 * sizeof(uint16_t), "quad", temp_stage_buf.get());
+            quad_ndx_offset_ = ndx_buf->AllocRegion(6 * sizeof(uint16_t), "quad", &temp_stage_buf);
         }
 
         { // Allocate sphere positions
             // aligned to vertex stride
             const size_t sphere_vertices_size = sizeof(__sphere_positions) + (16 - sizeof(__sphere_positions) % 16);
 
-            Ren::BufferRef temp_stage_buf =
-                ctx.CreateBuffer("Temp prim buf", Ren::eBufType::Stage, sphere_vertices_size);
+            Ren::Buffer temp_stage_buf("Temp prim buf", ctx.api_ctx(), Ren::eBufType::Stage, sphere_vertices_size);
 
             { // copy sphere positions
-                uint8_t *mapped_ptr = temp_stage_buf->Map(Ren::BufMapWrite);
+                uint8_t *mapped_ptr = temp_stage_buf.Map(Ren::BufMapWrite);
                 memcpy(mapped_ptr, __sphere_positions, sphere_vertices_size);
-                temp_stage_buf->FlushMappedRange(0, sphere_vertices_size);
-                temp_stage_buf->Unmap();
+                temp_stage_buf.FlushMappedRange(0, sphere_vertices_size);
+                temp_stage_buf.Unmap();
             }
 
             // Allocate sphere vertices
-            sphere_vtx1_offset_ = vtx_buf1->AllocRegion(sphere_vertices_size, "sphere", temp_stage_buf.get());
+            sphere_vtx1_offset_ = vtx_buf1->AllocRegion(sphere_vertices_size, "sphere", &temp_stage_buf);
             sphere_vtx2_offset_ = vtx_buf2->AllocRegion(sphere_vertices_size, "sphere", nullptr);
             assert(sphere_vtx1_offset_ == sphere_vtx2_offset_ && "Offsets do not match!");
         }
 
         { // Allocate sphere indices
-            Ren::BufferRef temp_stage_buf =
-                ctx.CreateBuffer("Temp prim buf", Ren::eBufType::Stage, sizeof(__sphere_indices));
+            Ren::Buffer temp_stage_buf("Temp prim buf", ctx.api_ctx(), Ren::eBufType::Stage, sizeof(__sphere_indices));
 
             { // copy sphere indices
-                uint8_t *mapped_ptr = temp_stage_buf->Map(Ren::BufMapWrite);
+                uint8_t *mapped_ptr = temp_stage_buf.Map(Ren::BufMapWrite);
                 memcpy(mapped_ptr, __sphere_indices, sizeof(__sphere_indices));
-                temp_stage_buf->FlushMappedRange(0, sizeof(__sphere_indices));
-                temp_stage_buf->Unmap();
+                temp_stage_buf.FlushMappedRange(0, sizeof(__sphere_indices));
+                temp_stage_buf.Unmap();
             }
-            sphere_ndx_offset_ = ndx_buf->AllocRegion(sizeof(__sphere_indices), "sphere", temp_stage_buf.get());
+            sphere_ndx_offset_ = ndx_buf->AllocRegion(sizeof(__sphere_indices), "sphere", &temp_stage_buf);
 
             // Allocate temporary buffer
             temp_buf1_vtx_offset_ = vtx_buf1->AllocRegion(TempBufSize, "temp");
@@ -201,6 +200,85 @@ void PrimDraw::DrawPrim(const ePrim prim, const RenderTarget &rt, Ren::Program *
                 glUniform4iv(GLint(u.loc), GLsizei(u.size / 4), u.pidata);
             }
         }
+    }
+
+    if (prim == ePrim::Quad) {
+        glBindVertexArray(fs_quad_vao_.id());
+        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, (const GLvoid *)uintptr_t(quad_ndx_offset_));
+    } else if (prim == ePrim::Sphere) {
+        glBindVertexArray(sphere_vao_.id());
+        glDrawElements(GL_TRIANGLES, GLsizei(__sphere_indices_count), GL_UNSIGNED_SHORT,
+                       (void *)uintptr_t(sphere_ndx_offset_));
+    }
+
+#ifndef NDEBUG
+    Ren::ResetGLState();
+#endif
+}
+
+void PrimDraw::DrawPrim(ePrim prim, const RenderTarget &rt, Ren::Program *p, const Binding bindings[],
+                        int bindings_count, const void *uniform_data, int uniform_data_len, int uniform_data_offset) {
+    using namespace PrimDrawInternal;
+
+    glBindFramebuffer(GL_FRAMEBUFFER, rt.fb->id());
+    // glViewport(rt.viewport[0], rt.viewport[1], rt.viewport[2], rt.viewport[3]);
+
+    for (int i = 0; i < bindings_count; i++) {
+        const auto &b = bindings[i];
+        if (b.trg == Ren::eBindTarget::UBuf) {
+            if (b.offset) {
+                assert(b.size != 0);
+                glBindBufferRange(GL_UNIFORM_BUFFER, b.loc, b.handle.id, b.offset, b.size);
+            } else {
+                glBindBufferBase(GL_UNIFORM_BUFFER, b.loc, b.handle.id);
+            }
+        } else {
+            ren_glBindTextureUnit_Comp(Ren::GLBindTarget(b.trg), GLuint(b.loc), GLuint(b.handle.id));
+        }
+    }
+
+    glUseProgram(p->id());
+
+    /*for (int i = 0; i < uniforms_count; i++) {
+        const auto &u = uniforms[i];
+        if (u.type == Ren::eType::Float32) {
+            if (u.size == 1) {
+                glUniform1f(GLint(u.loc), u.fdata[0]);
+            } else if (u.size == 2) {
+                glUniform2f(GLint(u.loc), u.fdata[0], u.fdata[1]);
+            } else if (u.size == 3) {
+                glUniform3f(GLint(u.loc), u.fdata[0], u.fdata[1], u.fdata[2]);
+            } else if (u.size == 4) {
+                glUniform4f(GLint(u.loc), u.fdata[0], u.fdata[1], u.fdata[2], u.fdata[3]);
+            } else {
+                assert(u.size % 4 == 0);
+                glUniformMatrix4fv(GLint(u.loc), 1, GL_FALSE, u.pfdata);
+            }
+        } else if (u.type == Ren::eType::Int32) {
+            if (u.size == 1) {
+                glUniform1i(GLint(u.loc), u.idata[0]);
+            } else if (u.size == 2) {
+                glUniform2i(GLint(u.loc), u.idata[0], u.idata[1]);
+            } else if (u.size == 3) {
+                glUniform3i(GLint(u.loc), u.idata[0], u.idata[1], u.idata[2]);
+            } else if (u.size == 4) {
+                glUniform4i(GLint(u.loc), u.idata[0], u.idata[1], u.idata[2], u.idata[3]);
+            } else {
+                assert(u.size % 4 == 0);
+                glUniform4iv(GLint(u.loc), GLsizei(u.size / 4), u.pidata);
+            }
+        }
+    }*/
+
+    Ren::Buffer temp_stage_buffer, temp_unif_buffer;
+
+    if (uniform_data) {
+        temp_stage_buffer = Ren::Buffer("Temp stage buf", api_ctx_, Ren::eBufType::Stage, uniform_data_len);
+        temp_unif_buffer = Ren::Buffer("Temp uniform buf", api_ctx_, Ren::eBufType::Uniform, uniform_data_len);
+
+        Ren::CopyBufferToBuffer(temp_stage_buffer, 0, temp_unif_buffer, 0, uniform_data_len, nullptr);
+
+        glBindBufferBase(GL_UNIFORM_BUFFER, REN_UB_UNIF_PARAM_LOC, temp_unif_buffer.id());
     }
 
     if (prim == ePrim::Quad) {

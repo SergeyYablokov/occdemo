@@ -38,6 +38,8 @@
 #define REN_MOMENTS2_MS_TEX_SLOT 19
 #define REN_NOISE_TEX_SLOT 19
 #define REN_CONE_RT_LUT_SLOT 20
+#define REN_MATERIALS_SLOT 21
+#define REN_BINDLESS_TEX_SLOT 0
 
 #define REN_BASE0_TEX_SLOT 0
 #define REN_BASE1_TEX_SLOT 1
@@ -53,10 +55,12 @@
 #define REN_REFL_DEPTH_LOW_TEX_SLOT 7
 
 #define REN_U_M_MATRIX_LOC  0
+#define REN_U_MAT_INDEX_LOC REN_U_MAT_INDEX_LOC
 #define REN_U_INSTANCES_LOC 1
 #define REN_U_MAT_PARAM_LOC 3
 
-#define REN_UB_SHARED_DATA_LOC  0
+#define REN_UB_SHARED_DATA_LOC  21
+#define REN_UB_UNIF_PARAM_LOC  22
 
 // Shader output location
 #define REN_OUT_COLOR_INDEX 0
@@ -145,4 +149,16 @@ struct SharedData {
     ProbeItem uProbes[REN_MAX_PROBES_TOTAL];
     EllipsItem uEllipsoids[REN_MAX_ELLIPSES_TOTAL];
 };
+
+struct MaterialData {
+    uint texture_indices[5];
+    uint _pad[3];
+    vec4 params;
+};
+
+#if defined(GL_ARB_bindless_texture)
+#define SAMPLER2D(x) sampler2D(x)
+#else // GL_ARB_bindless_texture
+#define SAMPLER2D
+#endif // GL_ARB_bindless_texture
 

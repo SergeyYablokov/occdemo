@@ -65,6 +65,7 @@
 #define REN_U_MAT_PARAM_LOC 3
 
 #define REN_UB_SHARED_DATA_LOC  21
+#define REN_UB_UNIF_PARAM_LOC    22
 
 // Shader output location
 #define REN_OUT_COLOR_INDEX 0

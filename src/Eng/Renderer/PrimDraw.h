@@ -19,6 +19,7 @@ class PrimDraw {
 
     uint32_t temp_buf1_vtx_offset_ = 0xffffffff, temp_buf2_vtx_offset_ = 0xffffffff, temp_buf_ndx_offset_ = 0xffffffff;
 
+    Ren::ApiContext *api_ctx_ = nullptr;
 #if defined(USE_GL_RENDER)
     Ren::Vao fs_quad_vao_, sphere_vao_;
 #endif
@@ -107,4 +108,6 @@ class PrimDraw {
     enum class ePrim { Quad, Sphere };
     void DrawPrim(ePrim prim, const RenderTarget &rt, Ren::Program *p, const Binding bindings[], int bindings_count,
                   const Uniform uniforms[], int uniforms_count);
+    void DrawPrim(ePrim prim, const RenderTarget &rt, Ren::Program *p, const Binding bindings[], int bindings_count,
+                  const void *uniform_data, int uniform_data_len, int uniform_data_offset);
 };
