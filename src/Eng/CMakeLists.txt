@@ -186,11 +186,6 @@ elseif(${RENDERER} STREQUAL "SW")
                         Renderer/RendererSW.cpp)
 endif()
 
-set(SHADERS_SOURCES Renderer/Shaders/_common.glsl
-                    Renderer/Shaders/_interface_common.glsl
-                    Renderer/Shaders/_fs_common.glsl
-                    Renderer/Shaders/_vs_common.glsl)
-
 set(SCENE_COMP_SOURCES
         Scene/Comp/Common.h
         Scene/Comp/AnimState.h
@@ -253,9 +248,6 @@ source_group("src\\Renderer\\Graph" FILES ${GRAPH_SOURCES})
 list(APPEND ALL_SOURCE_FILES ${PASS_SOURCES})
 source_group("src\\Renderer\\Passes" FILES ${PASS_SOURCES})
 
-list(APPEND ALL_SOURCE_FILES ${SHADERS_SOURCES})
-source_group("src\\Renderer\\Shaders" FILES ${SHADERS_SOURCES})
-
 list(APPEND ALL_SOURCE_FILES ${SCENE_SOURCES})
 source_group("src\\Scene" FILES ${SCENE_SOURCES})
 
@@ -273,7 +265,6 @@ if(ENABLE_UNITYBUILD)
     set_source_files_properties(${RENDERER_SOURCES} PROPERTIES HEADER_FILE_ONLY TRUE)
     set_source_files_properties(${GRAPH_SOURCES} PROPERTIES HEADER_FILE_ONLY TRUE)
     set_source_files_properties(${PASS_SOURCES} PROPERTIES HEADER_FILE_ONLY TRUE)
-    set_source_files_properties(${SHADERS_SOURCES} PROPERTIES HEADER_FILE_ONLY TRUE)
     set_source_files_properties(${SCENE_SOURCES} PROPERTIES HEADER_FILE_ONLY TRUE)
     set_source_files_properties(${SCENE_COMP_SOURCES} PROPERTIES HEADER_FILE_ONLY TRUE)
     set_source_files_properties(${UTILS_SOURCES} PROPERTIES HEADER_FILE_ONLY TRUE)

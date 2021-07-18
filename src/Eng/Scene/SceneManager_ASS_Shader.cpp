@@ -4,56 +4,6 @@
 
 #include "../Renderer/Renderer_GL_Defines.inl"
 
-void SceneManager::WriteCommonShaderIncludes(const char *in_folder) {
-    { // common header
-        static const char vs_common[] =
-#include "../Renderer/Shaders/_common.glsl"
-            ;
-
-        std::string out_file_name = in_folder;
-        out_file_name += "/shaders/internal/_common.glsl";
-
-        std::ofstream out_file(out_file_name, std::ios::binary);
-        out_file.write(vs_common, sizeof(vs_common) - 1);
-    }
-
-    { // common header for interfaces
-        static const char i_common[] =
-#include "../Renderer/Shaders/_interface_common.glsl"
-            ;
-
-        std::string out_file_name = in_folder;
-        out_file_name += "/shaders/internal/_interface_common.glsl";
-
-        std::ofstream out_file(out_file_name, std::ios::binary);
-        out_file.write(i_common, sizeof(i_common) - 1);
-    }
-
-    { // common vertex shader header
-        static const char vs_common[] =
-#include "../Renderer/Shaders/_vs_common.glsl"
-            ;
-
-        std::string out_file_name = in_folder;
-        out_file_name += "/shaders/internal/_vs_common.glsl";
-
-        std::ofstream out_file(out_file_name, std::ios::binary);
-        out_file.write(vs_common, sizeof(vs_common) - 1);
-    }
-
-    { // common fragment shader header
-        static const char fs_common[] =
-#include "../Renderer/Shaders/_fs_common.glsl"
-            ;
-
-        std::string out_file_name = in_folder;
-        out_file_name += "/shaders/internal/_fs_common.glsl";
-
-        std::ofstream out_file(out_file_name, std::ios::binary);
-        out_file.write(fs_common, sizeof(fs_common) - 1);
-    }
-}
-
 void SceneManager::InlineShaderConstants(assets_context_t &ctx, std::string &line) {
     static bool constants_initialized = false;
     static Ren::HashMap32<std::string, std::string> shader_constants;

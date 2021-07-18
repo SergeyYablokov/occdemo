@@ -1,17 +1,19 @@
 #version 310 es
 
 #include "_vs_common.glsl"
+#include "blit_combine_interface.glsl"
+
+/*
+UNIFORM_BLOCKS
+    UniformParams : $ubUnifParamLoc
+*/
 
 layout(location = REN_VTX_POS_LOC) in vec2 aVertexPosition;
 layout(location = REN_VTX_UV1_LOC) in vec2 aVertexUVs;
 
-#if defined(VULKAN)
-layout(push_constant) uniform PushConstants {
-    vec4 uTransform;
+LAYOUT_PARAMS uniform UniformParams {
+    Params params;
 };
-#else
-layout(location = 0) uniform vec4 uTransform;
-#endif
 
 #if defined(VULKAN) || defined(GL_SPIRV)
 layout(location = 0)
@@ -20,6 +22,6 @@ out vec2 aVertexUVs_;
 
 
 void main() {
-    aVertexUVs_ = uTransform.xy + aVertexUVs * uTransform.zw;
+    aVertexUVs_ = params.transform.xy + aVertexUVs * params.transform.zw;
     gl_Position = vec4(aVertexPosition, 0.5, 1.0);
 } 

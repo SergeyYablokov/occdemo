@@ -152,8 +152,7 @@ void Viewer::Frame() {
     Ren::DestroyDeferredResources(api_ctx, api_ctx->backend_frame);
 
     uint32_t next_image_index = 0;
-    VkResult res =
-        vkAcquireNextImageKHR(api_ctx->device, api_ctx->swapchain, UINT64_MAX,
+    VkResult res = vkAcquireNextImageKHR(api_ctx->device, api_ctx->swapchain, UINT64_MAX,
                                          api_ctx->image_avail_semaphores[api_ctx->backend_frame], VK_NULL_HANDLE,
                                          &next_image_index);
     if (res != VK_SUCCESS) {

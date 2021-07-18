@@ -79,6 +79,8 @@
 #define REN_SHAD_RES_PC         8192
 #define REN_SHAD_RES_ANDROID    4096
 
+#define REN_SHAD_RES REN_SHAD_RES_PC
+
 // Shadow cascades definition
 #define REN_SHAD_CASCADE0_DIST      10.0
 #define REN_SHAD_CASCADE0_SAMPLES   16
@@ -128,3 +130,5 @@
 #define REN_OIT_MOMENT_RENORMALIZE  1
 
 #define REN_OIT_MODE REN_OIT_DISABLED
+
+#define FLT_EPS 0.0000001

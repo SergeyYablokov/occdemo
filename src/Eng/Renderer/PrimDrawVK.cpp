@@ -147,7 +147,8 @@ void PrimDraw::CleanUp(Ren::Context &ctx) {
 }
 
 void PrimDraw::DrawPrim(const ePrim prim, const RenderTarget &rt, Ren::Program *p, const Binding bindings[],
-                        int bindings_count, const Uniform uniforms[], int uniforms_count) {
+                        const int bindings_count, const void *uniform_data, const int uniform_data_len,
+                        const int uniform_data_offset) {
     using namespace PrimDrawInternal;
 #if 0
     glBindFramebuffer(GL_FRAMEBUFFER, rt.fb);

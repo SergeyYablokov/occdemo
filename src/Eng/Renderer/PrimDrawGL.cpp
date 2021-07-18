@@ -216,8 +216,9 @@ void PrimDraw::DrawPrim(const ePrim prim, const RenderTarget &rt, Ren::Program *
 #endif
 }
 
-void PrimDraw::DrawPrim(ePrim prim, const RenderTarget &rt, Ren::Program *p, const Binding bindings[],
-                        int bindings_count, const void *uniform_data, int uniform_data_len, int uniform_data_offset) {
+void PrimDraw::DrawPrim(const ePrim prim, const RenderTarget &rt, Ren::Program *p, const Binding bindings[],
+                        const int bindings_count, const void *uniform_data, const int uniform_data_len,
+                        const int uniform_data_offset) {
     using namespace PrimDrawInternal;
 
     glBindFramebuffer(GL_FRAMEBUFFER, rt.fb->id());
@@ -239,43 +240,15 @@ void PrimDraw::DrawPrim(ePrim prim, const RenderTarget &rt, Ren::Program *p, con
 
     glUseProgram(p->id());
 
-    /*for (int i = 0; i < uniforms_count; i++) {
-        const auto &u = uniforms[i];
-        if (u.type == Ren::eType::Float32) {
-            if (u.size == 1) {
-                glUniform1f(GLint(u.loc), u.fdata[0]);
-            } else if (u.size == 2) {
-                glUniform2f(GLint(u.loc), u.fdata[0], u.fdata[1]);
-            } else if (u.size == 3) {
-                glUniform3f(GLint(u.loc), u.fdata[0], u.fdata[1], u.fdata[2]);
-            } else if (u.size == 4) {
-                glUniform4f(GLint(u.loc), u.fdata[0], u.fdata[1], u.fdata[2], u.fdata[3]);
-            } else {
-                assert(u.size % 4 == 0);
-                glUniformMatrix4fv(GLint(u.loc), 1, GL_FALSE, u.pfdata);
-            }
-        } else if (u.type == Ren::eType::Int32) {
-            if (u.size == 1) {
-                glUniform1i(GLint(u.loc), u.idata[0]);
-            } else if (u.size == 2) {
-                glUniform2i(GLint(u.loc), u.idata[0], u.idata[1]);
-            } else if (u.size == 3) {
-                glUniform3i(GLint(u.loc), u.idata[0], u.idata[1], u.idata[2]);
-            } else if (u.size == 4) {
-                glUniform4i(GLint(u.loc), u.idata[0], u.idata[1], u.idata[2], u.idata[3]);
-            } else {
-                assert(u.size % 4 == 0);
-                glUniform4iv(GLint(u.loc), GLsizei(u.size / 4), u.pidata);
-            }
-        }
-    }*/
-
     Ren::Buffer temp_stage_buffer, temp_unif_buffer;
-
     if (uniform_data) {
         temp_stage_buffer = Ren::Buffer("Temp stage buf", api_ctx_, Ren::eBufType::Stage, uniform_data_len);
+        {
+            uint8_t *stage_data = temp_stage_buffer.Map(Ren::BufMapWrite);
+            memcpy(stage_data, uniform_data, uniform_data_len);
+            temp_stage_buffer.Unmap();
+        }
         temp_unif_buffer = Ren::Buffer("Temp uniform buf", api_ctx_, Ren::eBufType::Uniform, uniform_data_len);
-
         Ren::CopyBufferToBuffer(temp_stage_buffer, 0, temp_unif_buffer, 0, uniform_data_len, nullptr);
 
         glBindBufferBase(GL_UNIFORM_BUFFER, REN_UB_UNIF_PARAM_LOC, temp_unif_buffer.id());

@@ -584,8 +584,6 @@ bool SceneManager::PrepareAssets(const char *in_folder, const char *out_folder,
         g_astc_initialized = true;
     }
 
-    WriteCommonShaderIncludes(in_folder);
-
     g_asset_handlers["bff"] = {"bff", HCopy};
     g_asset_handlers["mesh"] = {"mesh", HCopy};
     g_asset_handlers["anim"] = {"anim", HCopy};
