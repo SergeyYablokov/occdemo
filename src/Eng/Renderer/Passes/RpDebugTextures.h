@@ -24,7 +24,7 @@ class RpDebugTextures : public RenderPassBase {
 
     // temp data (valid only between Setup and Execute calls)
     uint32_t render_flags_ = 0;
-    Ren::TexHandle output_tex_;
+    Ren::WeakTex2DRef output_tex_;
     const ViewState *view_state_ = nullptr;
     const Ren::Camera *draw_cam_ = nullptr;
     int depth_w_ = 0, depth_h_ = 0;
@@ -68,7 +68,7 @@ class RpDebugTextures : public RenderPassBase {
                const char shared_data_buf_name[], const char cells_buf_name[], const char items_buf_name[],
                const char shadow_map_name[], const char main_color_tex_name[], const char main_normal_tex_name[],
                const char main_spec_tex_name[], const char main_depth_tex_name[], const char ssao_tex_name[],
-               const char blur_res_name[], const char reduced_tex_name[], Ren::TexHandle output_tex);
+               const char blur_res_name[], const char reduced_tex_name[], Ren::WeakTex2DRef output_tex);
     void Execute(RpBuilder &builder) override;
 
     const char *name() const override { return "DEBUG TEXTURES"; }

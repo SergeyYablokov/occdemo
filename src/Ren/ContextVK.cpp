@@ -29,6 +29,7 @@ const std::pair<uint32_t, const char *> KnownVendors[] = {
 Ren::Context::Context() = default;
 
 Ren::Context::~Context() {
+    api_ctx_->present_image_refs.clear();
     ReleaseAll();
 
     if (api_ctx_) {
@@ -144,8 +145,9 @@ bool Ren::Context::Init(const int w, const int h, ILog *log, const char *preferr
         return false;
     }
 
-    if (!InitPresentImageViews(api_ctx_->present_images, api_ctx_->present_image_views, api_ctx_->device, api_ctx_->swapchain,
-                        api_ctx_->surface_format, api_ctx_->setup_cmd_buf, api_ctx_->present_queue, log)) {
+    if (!InitPresentImageViews(api_ctx_->present_images, api_ctx_->present_image_views, api_ctx_->device,
+                               api_ctx_->swapchain, api_ctx_->surface_format, api_ctx_->setup_cmd_buf,
+                               api_ctx_->present_queue, log)) {
         return false;
     }
 
@@ -176,6 +178,18 @@ bool Ren::Context::Init(const int w, const int h, ILog *log, const char *preferr
     texture_atlas_ = TextureAtlasArray{api_ctx_.get(),     TextureAtlasWidth,       TextureAtlasHeight,
                                        TextureAtlasLayers, eTexFormat::RawRGBA8888, eTexFilter::BilinearNoMipmap};
 
+    for (size_t i = 0; i < api_ctx_->present_images.size(); ++i) {
+        char name_buf[24];
+        sprintf(name_buf, "Present Image [%i]", int(i));
+
+        Tex2DParams params;
+        params.format = eTexFormat::RawRGBA8888;
+        params.flags = eTexFlags::TexNoOwnership;
+
+        api_ctx_->present_image_refs.emplace_back(textures_.Add(name_buf, api_ctx_.get(), api_ctx_->present_images[i],
+                                                                api_ctx_->present_image_views[i], params, log_));
+    }
+
     return true;
 }
 
@@ -184,6 +198,7 @@ void Ren::Context::Resize(int w, int h) {
     h_ = h;
 
     vkDeviceWaitIdle(api_ctx_->device);
+    api_ctx_->present_image_refs.clear();
 
     for (size_t i = 0; i < api_ctx_->present_image_views.size(); ++i) {
         vkDestroyImageView(api_ctx_->device, api_ctx_->present_image_views[i], nullptr);
@@ -198,9 +213,22 @@ void Ren::Context::Resize(int w, int h) {
         log_->Error("Swapchain initialization failed");
     }
 
-    if (!InitPresentImageViews(api_ctx_->present_images, api_ctx_->present_image_views, api_ctx_->device, api_ctx_->swapchain,
-                        api_ctx_->surface_format, api_ctx_->setup_cmd_buf, api_ctx_->present_queue, log_)) {
+    if (!InitPresentImageViews(api_ctx_->present_images, api_ctx_->present_image_views, api_ctx_->device,
+                               api_ctx_->swapchain, api_ctx_->surface_format, api_ctx_->setup_cmd_buf,
+                               api_ctx_->present_queue, log_)) {
         log_->Error("Image views initialization failed");
+    }
+
+    for (size_t i = 0; i < api_ctx_->present_images.size(); ++i) {
+        char name_buf[24];
+        sprintf(name_buf, "Present Image [%i]", int(i));
+
+        Tex2DParams params;
+        params.format = eTexFormat::RawRGBA8888;
+        params.flags = eTexFlags::TexNoOwnership;
+
+        api_ctx_->present_image_refs.emplace_back(textures_.Add(name_buf, api_ctx_.get(), api_ctx_->present_images[i],
+                                                                api_ctx_->present_image_views[i], params, log_));
     }
 }
 

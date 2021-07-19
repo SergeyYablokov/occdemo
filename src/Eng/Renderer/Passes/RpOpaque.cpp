@@ -134,9 +134,9 @@ void RpOpaque::LazyInit(Ren::Context &ctx, ShaderLoader &sh, RpAllocTex &color_t
         draw_pass_vao_.Setup(attribs, 5, ndx_buf);
     }
 
-    const Ren::TexHandle attachments[] = {color_tex.ref->handle(), normal_tex.ref->handle(), spec_tex.ref->handle()};
+    const Ren::WeakTex2DRef attachments[] = {color_tex.ref, normal_tex.ref, spec_tex.ref};
     if (!opaque_draw_fb_.Setup(ctx.api_ctx(), nullptr, view_state_->act_res[0], view_state_->act_res[1], attachments, 3,
-                               depth_tex.ref->handle(), depth_tex.ref->handle(), view_state_->is_multisampled)) {
+                               depth_tex.ref, depth_tex.ref, view_state_->is_multisampled)) {
         ctx.log()->Error("RpOpaque: opaque_draw_fb_ init failed!");
     }
 }

@@ -1,7 +1,7 @@
 #include "PrimDraw.h"
 
 #include <Ren/Context.h>
-//#include <Ren/GL.h>
+#include <Ren/VKCtx.h>
 
 #include "Renderer_GL_Defines.inl"
 
@@ -92,6 +92,7 @@ bool PrimDraw::LazyInit(Ren::Context &ctx) {
             temp_buf_ndx_offset_ = ndx_buf->AllocRegion(TempBufSize, "temp");
         }
 
+        api_ctx_ = ctx.api_ctx();
         initialized_ = true;
     }
 
@@ -150,6 +151,8 @@ void PrimDraw::DrawPrim(const ePrim prim, const RenderTarget &rt, Ren::Program *
                         const int bindings_count, const void *uniform_data, const int uniform_data_len,
                         const int uniform_data_offset) {
     using namespace PrimDrawInternal;
+
+    VkPipeline pipeline = FindOrCreatePipeline(p, bindings, bindings_count);
 #if 0
     glBindFramebuffer(GL_FRAMEBUFFER, rt.fb);
     // glViewport(rt.viewport[0], rt.viewport[1], rt.viewport[2], rt.viewport[3]);
@@ -217,4 +220,98 @@ void PrimDraw::DrawPrim(const ePrim prim, const RenderTarget &rt, Ren::Program *
     Ren::ResetGLState();
 #endif
 #endif
+}
+
+VkPipeline PrimDraw::FindOrCreatePipeline(Ren::Program *p, const Binding bindings[], const int bindings_count) {
+    for (size_t i = 0; i < pipelines_.size(); ++i) {
+        if (pipelines_[i].p == p) {
+            return pipelines_[i].pipeline;
+        }
+    }
+
+    VkPipelineLayout new_layout;
+
+    { // create pipeline layout
+        VkPipelineLayoutCreateInfo layout_create_info = {};
+        layout_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+        layout_create_info.setLayoutCount = 1;
+        layout_create_info.pSetLayouts = p->descr_set_layouts();
+
+        layout_create_info.pushConstantRangeCount = p->pc_range_count();
+        if (p->pc_range_count()) {
+            layout_create_info.pPushConstantRanges = p->pc_ranges();
+        }
+
+        const VkResult res = vkCreatePipelineLayout(api_ctx_->device, &layout_create_info, nullptr, &new_layout);
+        if (res != VK_SUCCESS) {
+            log_->Error("Failed to create pipeline layout!");
+            return VK_NULL_HANDLE;
+        }
+    }
+
+    /*{ // create renderpass
+        VkAttachmentDescription pass_attachments[3] = {};
+        pass_attachments[0].format = Ren::VKFormatFromTexFormat(color_tex.desc.format);
+        pass_attachments[0].samples = VK_SAMPLE_COUNT_1_BIT;
+        pass_attachments[0].loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        pass_attachments[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+        pass_attachments[0].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        pass_attachments[0].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        pass_attachments[0].initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        pass_attachments[0].finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+        pass_attachments[1].format = Ren::VKFormatFromTexFormat(spec_tex.desc.format);
+        pass_attachments[1].samples = VK_SAMPLE_COUNT_1_BIT;
+        pass_attachments[1].loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        pass_attachments[1].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+        pass_attachments[1].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        pass_attachments[1].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        pass_attachments[1].initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        pass_attachments[1].finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+        pass_attachments[2].format = Ren::VKFormatFromTexFormat(depth_tex.desc.format);
+        pass_attachments[2].samples = VK_SAMPLE_COUNT_1_BIT;
+        pass_attachments[2].loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        pass_attachments[2].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+        pass_attachments[2].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        pass_attachments[2].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+        pass_attachments[2].initialLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+        pass_attachments[2].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+        VkAttachmentReference color_attachment_refs[REN_MAX_ATTACHMENTS];
+        for (int i = 0; i < REN_MAX_ATTACHMENTS; i++) {
+            color_attachment_refs[i] = {VK_ATTACHMENT_UNUSED, VK_IMAGE_LAYOUT_UNDEFINED};
+        }
+
+        color_attachment_refs[REN_OUT_COLOR_INDEX].attachment = 0;
+        color_attachment_refs[REN_OUT_COLOR_INDEX].layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+        color_attachment_refs[REN_OUT_SPEC_INDEX].attachment = 1;
+        color_attachment_refs[REN_OUT_SPEC_INDEX].layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+        VkAttachmentReference depth_attachment_ref;
+        depth_attachment_ref.attachment = 2;
+        depth_attachment_ref.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+        VkSubpassDescription subpass = {};
+        subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+        subpass.colorAttachmentCount = REN_MAX_ATTACHMENTS;
+        subpass.pColorAttachments = color_attachment_refs;
+        subpass.pDepthStencilAttachment = &depth_attachment_ref;
+
+        VkRenderPassCreateInfo render_pass_create_info = {};
+        render_pass_create_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+        render_pass_create_info.attachmentCount = 3;
+        render_pass_create_info.pAttachments = pass_attachments;
+        render_pass_create_info.subpassCount = 1;
+        render_pass_create_info.pSubpasses = &subpass;
+
+        const VkResult res = vkCreateRenderPass(api_ctx->device, &render_pass_create_info, nullptr, &render_pass_);
+        if (res != VK_SUCCESS) {
+            ctx.log()->Error("Failed to create render pass!");
+            return false;
+        }
+    }*/
+
+    return VK_NULL_HANDLE;
 }

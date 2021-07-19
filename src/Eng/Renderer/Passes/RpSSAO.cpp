@@ -151,18 +151,18 @@ void RpSSAO::LazyInit(Ren::Context &ctx, ShaderLoader &sh, RpAllocTex &ssao1_tex
         initialized = true;
     }
 
-    if (!ssao_buf1_fb_.Setup(ctx.api_ctx(), nullptr, ssao1_tex.desc.w, ssao1_tex.desc.h, ssao1_tex.ref->handle(), {},
-                             {}, false)) {
+    if (!ssao_buf1_fb_.Setup(ctx.api_ctx(), nullptr, ssao1_tex.desc.w, ssao1_tex.desc.h, ssao1_tex.ref, {}, {},
+                             false)) {
         ctx.log()->Error("RpSSAO: ssao_buf1_fb_ init failed!");
     }
 
-    if (!ssao_buf2_fb_.Setup(ctx.api_ctx(), nullptr, ssao2_tex.desc.w, ssao2_tex.desc.h, ssao2_tex.ref->handle(), {},
-                             {}, false)) {
+    if (!ssao_buf2_fb_.Setup(ctx.api_ctx(), nullptr, ssao2_tex.desc.w, ssao2_tex.desc.h, ssao2_tex.ref, {}, {},
+                             false)) {
         ctx.log()->Error("RpSSAO: ssao_buf2_fb_ init failed!");
     }
 
-    if (!output_fb_.Setup(ctx.api_ctx(), nullptr, output_tex.desc.w, output_tex.desc.h, output_tex.ref->handle(), {},
-                          {}, false)) {
+    if (!output_fb_.Setup(ctx.api_ctx(), nullptr, output_tex.desc.w, output_tex.desc.h, output_tex.ref, {}, {},
+                          false)) {
         ctx.log()->Error("RpSSAO: output_fb_ init failed!");
     }
 }

@@ -13,7 +13,7 @@ class RpDownColor : public RenderPassBase {
     Ren::ProgramRef blit_down_prog_;
 
     // temp data (valid only between Setup and Execute calls)
-    Ren::TexHandle output_tex_;
+    Ren::WeakTex2DRef output_tex_;
     const ViewState *view_state_ = nullptr;
 
     RpResource shared_data_buf_;
@@ -29,7 +29,7 @@ class RpDownColor : public RenderPassBase {
     RpDownColor(PrimDraw &prim_draw) : prim_draw_(prim_draw) {}
 
     void Setup(RpBuilder &builder, const ViewState *view_state, const char shared_data_buf[],
-               const char color_tex_name[], Ren::TexHandle output_tex);
+               const char color_tex_name[], Ren::WeakTex2DRef output_tex);
     void Execute(RpBuilder &builder) override;
 
     const char *name() const override { return "DOWNSAMPLE COLOR"; }

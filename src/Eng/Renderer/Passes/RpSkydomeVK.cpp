@@ -210,7 +210,7 @@ void RpSkydome::DrawSkydome(RpBuilder &builder, RpAllocTex &color_tex, RpAllocTe
 
     VkRenderPassBeginInfo render_pass_begin_info = {};
     render_pass_begin_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-    render_pass_begin_info.renderPass = render_pass_;
+    render_pass_begin_info.renderPass = render_pass_.handle();
     render_pass_begin_info.framebuffer = cached_fb_.handle();
     render_pass_begin_info.renderArea = {0, 0, uint32_t(view_state_->act_res[0]), uint32_t(view_state_->act_res[1])};
 
@@ -336,7 +336,7 @@ bool RpSkydome::InitPipeline(Ren::Context &ctx, RpAllocTex &color_tex, RpAllocTe
         }
     }
 
-    { // create renderpass
+    /*{ // create renderpass
         VkAttachmentDescription pass_attachments[3] = {};
         pass_attachments[0].format = Ren::VKFormatFromTexFormat(color_tex.desc.format);
         pass_attachments[0].samples = VK_SAMPLE_COUNT_1_BIT;
@@ -365,8 +365,8 @@ bool RpSkydome::InitPipeline(Ren::Context &ctx, RpAllocTex &color_tex, RpAllocTe
         pass_attachments[2].initialLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
         pass_attachments[2].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
-        VkAttachmentReference color_attachment_refs[REN_MAX_ATTACHMENTS];
-        for (int i = 0; i < REN_MAX_ATTACHMENTS; i++) {
+        VkAttachmentReference color_attachment_refs[Ren::MaxRTAttachments];
+        for (int i = 0; i < Ren::MaxRTAttachments; i++) {
             color_attachment_refs[i] = {VK_ATTACHMENT_UNUSED, VK_IMAGE_LAYOUT_UNDEFINED};
         }
 
@@ -382,7 +382,7 @@ bool RpSkydome::InitPipeline(Ren::Context &ctx, RpAllocTex &color_tex, RpAllocTe
 
         VkSubpassDescription subpass = {};
         subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-        subpass.colorAttachmentCount = REN_MAX_ATTACHMENTS;
+        subpass.colorAttachmentCount = Ren::MaxRTAttachments;
         subpass.pColorAttachments = color_attachment_refs;
         subpass.pDepthStencilAttachment = &depth_attachment_ref;
 
@@ -398,6 +398,16 @@ bool RpSkydome::InitPipeline(Ren::Context &ctx, RpAllocTex &color_tex, RpAllocTe
             ctx.log()->Error("Failed to create render pass!");
             return false;
         }
+    }*/
+
+    const Ren::RenderTarget render_targets[] = {{color_tex.ref, Ren::eLoadOp::DontCare, Ren::eStoreOp::Store},
+                                                {} /* normals texture */,
+                                                {spec_tex.ref, Ren::eLoadOp::DontCare, Ren::eStoreOp::Store}};
+
+    if (!render_pass_.Setup(ctx.api_ctx(), render_targets, 3,
+                            {depth_tex.ref, Ren::eLoadOp::DontCare, Ren::eStoreOp::Store}, ctx.log())) {
+        ctx.log()->Error("Failed to create render pass!");
+        return false;
     }
 
     { // create graphics pipeline
@@ -501,8 +511,8 @@ bool RpSkydome::InitPipeline(Ren::Context &ctx, RpAllocTex &color_tex, RpAllocTe
         depth_state_ci.minDepthBounds = 0.0f;
         depth_state_ci.maxDepthBounds = 1.0f;
 
-        VkPipelineColorBlendAttachmentState color_blend_attachment_states[REN_MAX_ATTACHMENTS] = {};
-        for (int i = 0; i < REN_MAX_ATTACHMENTS; ++i) {
+        VkPipelineColorBlendAttachmentState color_blend_attachment_states[3] = {};
+        for (int i = 0; i < 3; ++i) {
             color_blend_attachment_states[i].blendEnable = VK_FALSE;
             color_blend_attachment_states[i].colorWriteMask = 0xf;
         }
@@ -511,7 +521,7 @@ bool RpSkydome::InitPipeline(Ren::Context &ctx, RpAllocTex &color_tex, RpAllocTe
         color_blend_state_ci.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
         color_blend_state_ci.logicOpEnable = VK_FALSE;
         color_blend_state_ci.logicOp = VK_LOGIC_OP_CLEAR;
-        color_blend_state_ci.attachmentCount = REN_MAX_ATTACHMENTS;
+        color_blend_state_ci.attachmentCount = 3;
         color_blend_state_ci.pAttachments = color_blend_attachment_states;
         color_blend_state_ci.blendConstants[0] = 0.0f;
         color_blend_state_ci.blendConstants[1] = 0.0f;
@@ -538,7 +548,7 @@ bool RpSkydome::InitPipeline(Ren::Context &ctx, RpAllocTex &color_tex, RpAllocTe
         pipeline_create_info.pColorBlendState = &color_blend_state_ci;
         pipeline_create_info.pDynamicState = &dynamic_state_ci;
         pipeline_create_info.layout = pipeline_layout_;
-        pipeline_create_info.renderPass = render_pass_;
+        pipeline_create_info.renderPass = render_pass_.handle();
         pipeline_create_info.subpass = 0;
         pipeline_create_info.basePipelineHandle = VK_NULL_HANDLE;
         pipeline_create_info.basePipelineIndex = 0;
@@ -563,9 +573,9 @@ RpSkydome::~RpSkydome() {
     if (desc_pool_) {
         vkDestroyDescriptorPool(api_ctx_->device, desc_pool_, nullptr);
     }
-    if (render_pass_) {
+    /*if (render_pass_) {
         vkDestroyRenderPass(api_ctx_->device, render_pass_, nullptr);
-    }
+    }*/
     if (pipeline_layout_) {
         vkDestroyPipelineLayout(api_ctx_->device, pipeline_layout_, nullptr);
     }

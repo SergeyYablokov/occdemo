@@ -8,7 +8,7 @@
 #include "../PrimDraw.h"
 #include "../Renderer_Structs.h"
 
-void RpTAA::Setup(RpBuilder &builder, const ViewState *view_state, Ren::TexHandle history_tex, float reduced_average,
+void RpTAA::Setup(RpBuilder &builder, const ViewState *view_state, Ren::WeakTex2DRef history_tex, float reduced_average,
                   float max_exposure, const char shared_data_buf[], const char color_tex[], const char depth_tex[],
                   const char velocity_tex[], const char output_tex_name[]) {
     view_state_ = view_state;
@@ -85,7 +85,7 @@ void RpTAA::Execute(RpBuilder &builder) {
         exposure = std::min(exposure, max_exposure_);
 
         const PrimDraw::Binding bindings[] = {{Ren::eBindTarget::Tex2D, 0, clean_tex.ref->handle()},
-                                              {Ren::eBindTarget::Tex2D, 1, history_tex_},
+                                              {Ren::eBindTarget::Tex2D, 1, history_tex_->handle()},
                                               {Ren::eBindTarget::Tex2D, 2, depth_tex.ref->handle()},
                                               {Ren::eBindTarget::Tex2D, 3, velocity_tex.ref->handle()}};
 
@@ -110,13 +110,13 @@ void RpTAA::LazyInit(Ren::Context &ctx, ShaderLoader &sh, RpAllocTex &depth_tex,
         initialized = true;
     }
 
-    if (!velocity_fb_.Setup(ctx.api_ctx(), nullptr, velocity_tex.desc.w, velocity_tex.desc.h,
-                            velocity_tex.ref->handle(), {}, depth_tex.ref->handle(), false)) {
+    if (!velocity_fb_.Setup(ctx.api_ctx(), nullptr, velocity_tex.desc.w, velocity_tex.desc.h, velocity_tex.ref, {},
+                            depth_tex.ref, false)) {
         ctx.log()->Error("RpTAA: velocity_fb_ init failed!");
     }
 
     {
-        const Ren::TexHandle textures[] = {output_tex.ref->handle(), history_tex_};
+        const Ren::WeakTex2DRef textures[] = {output_tex.ref, history_tex_};
         if (!resolve_fb_.Setup(ctx.api_ctx(), nullptr, output_tex.desc.w, output_tex.desc.h, textures, 2, {}, {},
                                false)) {
             ctx.log()->Error("RpTAA: resolve_fb_ init failed!");

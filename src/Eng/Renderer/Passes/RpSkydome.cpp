@@ -93,11 +93,9 @@ void RpSkydome::LazyInit(Ren::Context &ctx, ShaderLoader &sh, RpAllocTex &color_
         ctx.log()->Error("RpSkydome: vao init failed!");
     }
 #endif
-    const Ren::TexHandle color_attachments[] = {color_tex.ref->handle(), {}, spec_tex.ref->handle()};
-    if (!cached_fb_.Setup(ctx.api_ctx(), render_pass_, depth_tex.desc.w, depth_tex.desc.h,
-                                      color_attachments, 3,
-                          depth_tex.ref->handle(), depth_tex.ref->handle(), view_state_->is_multisampled)) {
+    const Ren::WeakTex2DRef color_attachments[] = {color_tex.ref, {}, spec_tex.ref};
+    if (!cached_fb_.Setup(ctx.api_ctx(), render_pass_.handle(), depth_tex.desc.w, depth_tex.desc.h, color_attachments, 3,
+                          depth_tex.ref, depth_tex.ref, view_state_->is_multisampled)) {
         ctx.log()->Error("RpSkydome: fbo init failed!");
     }
-
 }

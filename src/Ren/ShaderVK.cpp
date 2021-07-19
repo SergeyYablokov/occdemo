@@ -7,21 +7,19 @@
 
 namespace Ren {
 void ParseGLSLBindings(const char *shader_str, SmallVectorImpl<Descr> &attr_bindings,
-                       SmallVectorImpl<Descr> &unif_bindings,
-                       SmallVectorImpl<Descr> &blck_bindings, ILog *log);
+                       SmallVectorImpl<Descr> &unif_bindings, SmallVectorImpl<Descr> &blck_bindings, ILog *log);
 bool IsMainThread();
 } // namespace Ren
 
-Ren::Shader::Shader(const char *name, ApiContext *api_ctx, const char *shader_src,
-                    eShaderType type, eShaderLoadStatus *status, ILog *log) {
+Ren::Shader::Shader(const char *name, ApiContext *api_ctx, const char *shader_src, eShaderType type,
+                    eShaderLoadStatus *status, ILog *log) {
     name_ = String{name};
     device_ = api_ctx->device;
     Init(shader_src, type, status, log);
 }
 
-Ren::Shader::Shader(const char *name, ApiContext *api_ctx, const uint8_t *shader_code,
-                    const int code_size, const eShaderType type,
-                    eShaderLoadStatus *status, ILog *log) {
+Ren::Shader::Shader(const char *name, ApiContext *api_ctx, const uint8_t *shader_code, const int code_size,
+                    const eShaderType type, eShaderLoadStatus *status, ILog *log) {
     name_ = String{name};
     device_ = api_ctx->device;
     Init(shader_code, code_size, type, status, log);
@@ -54,18 +52,16 @@ Ren::Shader &Ren::Shader::operator=(Shader &&rhs) noexcept {
     return (*this);
 }
 
-void Ren::Shader::Init(const char *shader_src, eShaderType type,
-                       eShaderLoadStatus *status, ILog *log) {}
+void Ren::Shader::Init(const char *shader_src, eShaderType type, eShaderLoadStatus *status, ILog *log) {}
 
-void Ren::Shader::Init(const uint8_t *shader_code, const int code_size,
-                       const eShaderType type, eShaderLoadStatus *status, ILog *log) {
+void Ren::Shader::Init(const uint8_t *shader_code, const int code_size, const eShaderType type,
+                       eShaderLoadStatus *status, ILog *log) {
     assert(IsMainThread());
     InitFromSPIRV(shader_code, code_size, type, status, log);
 }
 
-void Ren::Shader::InitFromSPIRV(const uint8_t *shader_code, const int code_size,
-                                const eShaderType type, eShaderLoadStatus *status,
-                                ILog *log) {
+void Ren::Shader::InitFromSPIRV(const uint8_t *shader_code, const int code_size, const eShaderType type,
+                                eShaderLoadStatus *status, ILog *log) {
     if (!shader_code) {
         (*status) = eShaderLoadStatus::SetToDefault;
         return;
@@ -77,19 +73,26 @@ void Ren::Shader::InitFromSPIRV(const uint8_t *shader_code, const int code_size,
         create_info.codeSize = static_cast<size_t>(code_size);
         create_info.pCode = reinterpret_cast<const uint32_t *>(shader_code);
 
-        const VkResult res =
-            vkCreateShaderModule(device_, &create_info, nullptr, &module_);
-        assert(res == VK_SUCCESS && "Failed to create shader module!");
+        const VkResult res = vkCreateShaderModule(device_, &create_info, nullptr, &module_);
+        if (res != VK_SUCCESS) {
+            log->Error("Failed to create shader module!");
+            (*status) = eShaderLoadStatus::Error;
+            return;
+        }
     }
 
     SpvReflectShaderModule module = {};
-    const SpvReflectResult res =
-        spvReflectCreateShaderModule(code_size, shader_code, &module);
-    assert(res == SPV_REFLECT_RESULT_SUCCESS);
+    const SpvReflectResult res = spvReflectCreateShaderModule(code_size, shader_code, &module);
+    if (res != SPV_REFLECT_RESULT_SUCCESS) {
+        log->Error("Failed to reflect shader module!");
+        (*status) = eShaderLoadStatus::Error;
+        return;
+    }
 
     attr_bindings.clear();
     unif_bindings.clear();
     blck_bindings.clear();
+    pc_ranges.clear();
 
     for (uint32_t i = 0; i < module.input_variable_count; i++) {
         const auto &var = module.input_variables[i];
@@ -116,14 +119,17 @@ void Ren::Shader::InitFromSPIRV(const uint8_t *shader_code, const int code_size,
         }
     }
 
-    spvReflectDestroyShaderModule(&module);
+    for (uint32_t i = 0; i < module.push_constant_block_count; ++i) {
+        const auto &blck = module.push_constant_blocks[i];
+        pc_ranges.push_back({blck.offset, blck.size});
+    }
 
     (*status) = eShaderLoadStatus::CreatedFromData;
+    spvReflectDestroyShaderModule(&module);
 }
 
 void Ren::ParseGLSLBindings(const char *shader_str, SmallVectorImpl<Descr> &attr_bindings,
-                            SmallVectorImpl<Descr> &unif_bindings,
-                            SmallVectorImpl<Descr> &blck_bindings, ILog *log) {
+                            SmallVectorImpl<Descr> &unif_bindings, SmallVectorImpl<Descr> &blck_bindings, ILog *log) {
     const char *delims = " \r\n\t";
     const char *p = strstr(shader_str, "/*");
     const char *q = p ? strpbrk(p + 2, delims) : nullptr;

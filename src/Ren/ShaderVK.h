@@ -10,6 +10,11 @@
 namespace Ren {
 class ILog;
 
+struct Range {
+    uint32_t offset = 0;
+    uint32_t size = 0;
+};
+
 class Shader : public RefCounter {
     VkDevice device_ = VK_NULL_HANDLE;
     VkShaderModule module_ = VK_NULL_HANDLE;
@@ -21,6 +26,7 @@ class Shader : public RefCounter {
 
   public:
     SmallVector<Descr, 16> attr_bindings, unif_bindings, blck_bindings;
+    SmallVector<Range, 4> pc_ranges;
 
     Shader(const char *name, ApiContext *api_ctx, const char *shader_src, eShaderType type, eShaderLoadStatus *status,
            ILog *log);

@@ -35,9 +35,10 @@ struct TexHandle {
     uint32_t generation = 0; // used to identify unique texture (name can be reused)
 
     TexHandle() = default;
-    TexHandle(VkImage _img, VkImageView _view, uint32_t _generation) : img(_img), view(_view), generation(_generation) {}
+    TexHandle(VkImage _img, VkImageView _view, uint32_t _generation)
+        : img(_img), view(_view), generation(_generation) {}
 
-    explicit operator bool() const { return false; }
+    explicit operator bool() const { return img != VK_NULL_HANDLE; }
 };
 inline bool operator==(const TexHandle lhs, const TexHandle rhs) {
     return lhs.img == rhs.img && lhs.view == rhs.view && lhs.generation == rhs.generation;
@@ -103,9 +104,9 @@ class Texture2D : public RefCounter {
     Texture2D() = default;
     Texture2D(const char *name, ApiContext *api_ctx, const Tex2DParams &params, MemoryAllocators *mem_allocs,
               ILog *log);
-    // TODO: remove this!
-    // Texture2D(const char *name, ApiContext *api_ctx, uint32_t tex_id, const Tex2DParams &params, ILog *log)
-    //    : /*handle_{tex_id, 0},*/ params_(params), ready_(true), name_(name) {}
+    Texture2D(const char *name, ApiContext *api_ctx, VkImage img, VkImageView view, const Tex2DParams &params,
+              ILog *log)
+        : handle_{img, view, 0}, params_(params), ready_(true), name_(name) {}
     Texture2D(const char *name, ApiContext *api_ctx, const void *data, const uint32_t size, const Tex2DParams &p,
               Buffer &stage_buf, void *_cmd_buf, MemoryAllocators *mem_allocs, eTexLoadStatus *load_status, ILog *log);
     Texture2D(const char *name, ApiContext *api_ctx, const void *data[6], const int size[6], const Tex2DParams &p,

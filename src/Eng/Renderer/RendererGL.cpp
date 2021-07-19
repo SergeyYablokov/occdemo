@@ -1155,12 +1155,10 @@ void Renderer::BlitPixelsTonemap(const void *data, const int w, const int h, con
                          (GLuint)unif_shared_data_buf.ref->id());*/
 
         const PrimDraw::Binding binding = {Ren::eBindTarget::Tex2D, REN_BASE0_TEX_SLOT, temp_tex_->handle()};
-
         const PrimDraw::Uniform uniforms[] = {{0, Ren::Vec4f{0.0f, 0.0f, 1.0f, 1.0f}}};
 
-        const Ren::TexHandle down_tex_handle = down_tex_4x_->handle();
         if (!down_tex_4x_fb_.Setup(ctx_.api_ctx(), nullptr, down_tex_4x_->params().w, down_tex_4x_->params().h,
-                                   &down_tex_handle, 1, {}, {}, false)) {
+                                   down_tex_4x_, {}, {}, false)) {
             ctx_.log()->Error("Failed to init down_tex_4x_fb_");
         }
 

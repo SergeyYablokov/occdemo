@@ -9,17 +9,24 @@ Ren::Framebuffer::~Framebuffer() {
     }
 }
 
-bool Ren::Framebuffer::Setup(ApiContext *api_ctx, void *renderpass, int w, int h, const TexHandle color_attachments[],
-                             const int color_attachments_count, const TexHandle depth_attachment,
-                             const TexHandle stencil_attachment, const bool is_multisampled) {
+bool Ren::Framebuffer::Setup(ApiContext *api_ctx, void *renderpass, int w, int h,
+                             const WeakTex2DRef color_attachments[], const int color_attachments_count,
+                             const WeakTex2DRef depth_attachment, const WeakTex2DRef stencil_attachment,
+                             const bool is_multisampled) {
     if (color_attachments_count == color_attachments_.size() &&
-        std::equal(color_attachments, color_attachments + color_attachments_count, color_attachments_.data()) &&
-        depth_attachment == depth_attachment_ && stencil_attachment == stencil_attachment_) {
+        std::equal(color_attachments, color_attachments + color_attachments_count, color_attachments_.data(),
+                   [](const WeakTex2DRef &lhs, const Attachment &rhs) {
+                       return (!lhs && !rhs.ref) || (lhs && lhs->handle() == rhs.handle);
+                   }) &&
+        ((!depth_attachment && !depth_attachment_.ref) ||
+         (depth_attachment && depth_attachment->handle() == depth_attachment_.handle)) &&
+        ((!stencil_attachment && !stencil_attachment_.ref) ||
+         (stencil_attachment && stencil_attachment->handle() == stencil_attachment_.handle))) {
         // nothing has changed
         return true;
     }
 
-    if (color_attachments_count == 1 && color_attachments[0].id == 0) {
+    if (color_attachments_count == 1 && !color_attachments[0]) {
         // default backbuffer
         return true;
     }
@@ -34,7 +41,7 @@ bool Ren::Framebuffer::Setup(ApiContext *api_ctx, void *renderpass, int w, int h
     const GLenum target = is_multisampled ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D;
 
     for (size_t i = 0; i < color_attachments_.size(); i++) {
-        if (color_attachments_[i].id) {
+        if (color_attachments_[i].ref) {
             glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + GLenum(i), target, 0, 0);
             color_attachments_[i] = {};
         }
@@ -43,35 +50,39 @@ bool Ren::Framebuffer::Setup(ApiContext *api_ctx, void *renderpass, int w, int h
 
     SmallVector<GLenum, 4> draw_buffers;
     for (int i = 0; i < color_attachments_count; i++) {
-        if (color_attachments[i].id) {
-            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, target, GLuint(color_attachments[i].id),
+        if (color_attachments[i]) {
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, target, GLuint(color_attachments[i]->id()),
                                    0);
 
             draw_buffers.push_back(GL_COLOR_ATTACHMENT0 + i);
+
+            color_attachments_.push_back({color_attachments[i], color_attachments[i]->handle()});
         } else {
             draw_buffers.push_back(GL_NONE);
+
+            color_attachments_.emplace_back();
         }
-        color_attachments_.push_back(color_attachments[i]);
     }
 
     glDrawBuffers(GLsizei(color_attachments_.size()), draw_buffers.data());
 
-    if (depth_attachment.id) {
+    if (depth_attachment) {
         if (depth_attachment == stencil_attachment) {
-            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, target, GLuint(depth_attachment.id), 0);
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, target, GLuint(depth_attachment->id()),
+                                   0);
         } else {
-            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, target, GLuint(depth_attachment.id), 0);
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, target, GLuint(depth_attachment->id()), 0);
         }
-        depth_attachment_ = depth_attachment;
+        depth_attachment_ = {depth_attachment, depth_attachment->handle()};
     } else {
         depth_attachment_ = {};
     }
 
-    if (stencil_attachment.id) {
-        if (depth_attachment != stencil_attachment) {
-            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, target, GLuint(stencil_attachment.id), 0);
+    if (stencil_attachment) {
+        if (!depth_attachment || depth_attachment->handle() != stencil_attachment->handle()) {
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, target, GLuint(stencil_attachment->id()), 0);
         }
-        stencil_attachment_ = stencil_attachment;
+        stencil_attachment_ = {stencil_attachment, stencil_attachment->handle()};
     } else {
         stencil_attachment_ = {};
     }

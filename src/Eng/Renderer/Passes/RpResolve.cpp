@@ -42,12 +42,11 @@ void RpResolve::Execute(RpBuilder &builder) {
     Ren::RastState applied_state = rast_state;
 
     const PrimDraw::Binding bindings[] = {{Ren::eBindTarget::Tex2DMs, REN_BASE0_TEX_SLOT, color_tex.ref->handle()}};
-
     const PrimDraw::Uniform uniforms[] = {
         {0, Ren::Vec4f{0.0f, 0.0f, float(view_state_->act_res[0]), float(view_state_->act_res[1])}}};
 
-    prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, {&resolve_fb_, 0}, blit_ms_resolve_prog_.get(), bindings, 1,
-                        uniforms, 1);
+    prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, {&resolve_fb_, 0}, blit_ms_resolve_prog_.get(), bindings, 1, uniforms,
+                        1);
 }
 
 void RpResolve::LazyInit(Ren::Context &ctx, ShaderLoader &sh, RpAllocTex &output_tex) {
@@ -59,8 +58,8 @@ void RpResolve::LazyInit(Ren::Context &ctx, ShaderLoader &sh, RpAllocTex &output
         initialized = true;
     }
 
-    if (!resolve_fb_.Setup(ctx.api_ctx(), nullptr, view_state_->act_res[0], view_state_->act_res[1],
-                           output_tex.ref->handle(), {}, {}, false)) {
+    if (!resolve_fb_.Setup(ctx.api_ctx(), nullptr, view_state_->act_res[0], view_state_->act_res[1], output_tex.ref, {},
+                           {}, false)) {
         ctx.log()->Error("RpResolve: resolve_fb_ init failed!");
     }
 }

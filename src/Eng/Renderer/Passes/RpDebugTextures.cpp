@@ -14,7 +14,7 @@ void RpDebugTextures::Setup(RpBuilder &builder, const ViewState *view_state, con
                             const char main_color_tex_name[], const char main_normal_tex_name[],
                             const char main_spec_tex_name[], const char main_depth_tex_name[],
                             const char ssao_tex_name[], const char blur_res_name[], const char reduced_tex_name[],
-                            Ren::TexHandle output_tex) {
+                            Ren::WeakTex2DRef output_tex) {
     render_flags_ = list.render_flags;
     view_state_ = view_state;
     draw_cam_ = &list.draw_cam;

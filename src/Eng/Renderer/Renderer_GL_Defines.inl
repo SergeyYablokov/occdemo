@@ -73,8 +73,6 @@
 #define REN_OUT_SPEC_INDEX  2
 #define REN_OUT_VELO_INDEX  3
 
-#define REN_MAX_ATTACHMENTS 4
-
 // Shadow resolution
 #define REN_SHAD_RES_PC         8192
 #define REN_SHAD_RES_ANDROID    4096

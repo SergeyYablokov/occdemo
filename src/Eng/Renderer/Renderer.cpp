@@ -501,9 +501,8 @@ void Renderer::ExecuteDrawList(const DrawList &list, const PersistentBuffers &pe
         //
         if (list.render_flags & EnableTaa) {
             assert(!view_state_.is_multisampled);
-            rp_taa_.Setup(rp_builder_, &view_state_, history_tex_->handle(), reduced_average_,
-                          list.draw_cam.max_exposure, SHARED_DATA_BUF, MAIN_COLOR_TEX, MAIN_DEPTH_TEX,
-                          MAIN_VELOCITY_TEX, RESOLVED_COLOR_TEX);
+            rp_taa_.Setup(rp_builder_, &view_state_, history_tex_, reduced_average_, list.draw_cam.max_exposure,
+                          SHARED_DATA_BUF, MAIN_COLOR_TEX, MAIN_DEPTH_TEX, MAIN_VELOCITY_TEX, RESOLVED_COLOR_TEX);
             rp_tail->p_next = &rp_taa_;
             rp_tail = rp_tail->p_next;
         }
@@ -513,7 +512,7 @@ void Renderer::ExecuteDrawList(const DrawList &list, const PersistentBuffers &pe
         //
         if ((list.render_flags & (EnableSSR | EnableBloom | EnableTonemap | EnableDOF)) &&
             ((list.render_flags & DebugWireframe) == 0)) {
-            rp_down_color_.Setup(rp_builder_, &view_state_, SHARED_DATA_BUF, refl_out_name, down_tex_4x_->handle());
+            rp_down_color_.Setup(rp_builder_, &view_state_, SHARED_DATA_BUF, refl_out_name, down_tex_4x_);
             rp_tail->p_next = &rp_down_color_;
             rp_tail = rp_tail->p_next;
         }
@@ -654,8 +653,7 @@ void Renderer::ExecuteDrawList(const DrawList &list, const PersistentBuffers &pe
         // Debugging (draw auxiliary surfaces)
         //
         {
-            Ren::TexHandle output_tex = target ? target->attachments[0].tex->handle() : Ren::TexHandle{};
-
+            const Ren::WeakTex2DRef output_tex = target ? target->attachments[0].tex : Ren::WeakTex2DRef{};
             rp_debug_textures_.Setup(rp_builder_, &view_state_, list, down_tex_4x_, SHARED_DATA_BUF, CELLS_BUF,
                                      ITEMS_BUF, SHADOWMAP_TEX, MAIN_COLOR_TEX, MAIN_NORMAL_TEX, MAIN_SPEC_TEX,
                                      MAIN_DEPTH_TEX, SSAO_TEX, BLUR_RES_TEX, REDUCED_TEX, output_tex);

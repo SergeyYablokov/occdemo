@@ -32,7 +32,7 @@ class RpShadowMaps : public RenderPassBase {
 
     Ren::Framebuffer shadow_fb_;
 
-    void LazyInit(Ren::Context &ctx, ShaderLoader &sh, Ren::TexHandle shadow_tex);
+    void LazyInit(Ren::Context &ctx, ShaderLoader &sh, Ren::WeakTex2DRef shadow_tex);
     void DrawShadowMaps(RpBuilder &builder);
 
 #if defined(USE_GL_RENDER)

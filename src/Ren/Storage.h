@@ -235,7 +235,7 @@ template <typename T, typename StorageType = Storage<T>> class WeakRef {
 
     uint32_t index() const { return index_; }
 
-    bool operator==(const WeakRef &rhs) { return storage_ == rhs.storage_ && index_ == rhs.index_; }
-    bool operator==(const StrongRef<T> &rhs) { return storage_ == rhs.storage_ && index_ == rhs.index_; }
+    bool operator==(const WeakRef &rhs) const { return storage_ == rhs.storage_ && index_ == rhs.index_; }
+    bool operator==(const StrongRef<T> &rhs) const { return storage_ == rhs.storage_ && index_ == rhs.index_; }
 };
 } // namespace Ren

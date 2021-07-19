@@ -166,18 +166,18 @@ void RpReflections::LazyInit(Ren::Context &ctx, ShaderLoader &sh, RpAllocTex &ss
         initialized = true;
     }
 
-    if (!ssr_buf1_fb_.Setup(ctx.api_ctx(), nullptr, view_state_->act_res[0], view_state_->act_res[1],
-                            ssr1_tex.ref->handle(), {}, {}, false)) {
+    if (!ssr_buf1_fb_.Setup(ctx.api_ctx(), nullptr, view_state_->act_res[0], view_state_->act_res[1], ssr1_tex.ref, {},
+                            {}, false)) {
         ctx.log()->Error("RpReflections: ssr_buf1_fb_ init failed!");
     }
 
-    if (!ssr_buf2_fb_.Setup(ctx.api_ctx(), nullptr, view_state_->act_res[0], view_state_->act_res[1],
-                            ssr2_tex.ref->handle(), {}, {}, false)) {
+    if (!ssr_buf2_fb_.Setup(ctx.api_ctx(), nullptr, view_state_->act_res[0], view_state_->act_res[1], ssr2_tex.ref, {},
+                            {}, false)) {
         ctx.log()->Error("RpReflections: ssr_buf2_fb_ init failed!");
     }
 
-    if (!output_fb_.Setup(ctx.api_ctx(), nullptr, view_state_->act_res[0], view_state_->act_res[1],
-                          output_tex.ref->handle(), {}, {}, false)) {
+    if (!output_fb_.Setup(ctx.api_ctx(), nullptr, view_state_->act_res[0], view_state_->act_res[1], output_tex.ref, {},
+                          {}, false)) {
         ctx.log()->Error("RpReflections: output_fb_ init failed!");
     }
 }

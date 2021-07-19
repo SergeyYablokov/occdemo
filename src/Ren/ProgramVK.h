@@ -32,6 +32,7 @@ class Program : public RefCounter {
     ApiContext *api_ctx_ = nullptr;
     std::array<VkDescriptorSetLayout, 4> desc_set_layouts_ = {VK_NULL_HANDLE, VK_NULL_HANDLE, VK_NULL_HANDLE,
                                                               VK_NULL_HANDLE};
+    SmallVector<VkPushConstantRange, 8> pc_ranges_;
 
     bool InitDescSetLayouts(ILog *log);
     void InitBindings(ILog *log);
@@ -95,6 +96,9 @@ class Program : public RefCounter {
     const ShaderRef &shader(eShaderType type) { return shaders_[int(type)]; }
 
     const VkDescriptorSetLayout *descr_set_layouts() const { return desc_set_layouts_.data(); }
+
+    uint32_t pc_range_count() const { return uint32_t(pc_ranges_.size()); }
+    const VkPushConstantRange *pc_ranges() const { return pc_ranges_.data(); }
 
     void Init(ShaderRef vs_ref, ShaderRef fs_ref, ShaderRef tcs_ref, ShaderRef tes_ref, eProgLoadStatus *status,
               ILog *log);

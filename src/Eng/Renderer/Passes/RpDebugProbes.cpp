@@ -35,7 +35,7 @@ void RpDebugProbes::LazyInit(Ren::Context &ctx, ShaderLoader &sh, RpAllocTex &ou
         initialized = true;
     }
 
-    if (!draw_fb_.Setup(ctx.api_ctx(), nullptr, output_tex.desc.w, output_tex.desc.h, output_tex.ref->handle(), {}, {},
+    if (!draw_fb_.Setup(ctx.api_ctx(), nullptr, output_tex.desc.w, output_tex.desc.h, output_tex.ref, {}, {},
                         view_state_->is_multisampled)) {
         ctx.log()->Error("RpDebugProbes: draw_fb_ init failed!");
     }

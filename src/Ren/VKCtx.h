@@ -6,6 +6,9 @@
 #include "VK.h"
 
 namespace Ren {
+class Texture2D;
+using Tex2DRef = StrongRef<Texture2D>;
+
 struct ApiContext {
     VkInstance instance = {};
 #ifndef NDEBUG
@@ -23,6 +26,7 @@ struct ApiContext {
     VkPresentModeKHR present_mode = {};
     SmallVector<VkImage, MaxFramesInFlight> present_images;
     SmallVector<VkImageView, MaxFramesInFlight> present_image_views;
+    SmallVector<Tex2DRef, MaxFramesInFlight> present_image_refs;
     VkSwapchainKHR swapchain = {};
 
     uint32_t active_present_image = 0;
@@ -45,6 +49,7 @@ struct ApiContext {
     SmallVector<VkBuffer, 128> bufs_to_destroy[MaxFramesInFlight];
     SmallVector<VkBufferView, 128> buf_views_to_destroy[MaxFramesInFlight];
     SmallVector<VkDeviceMemory, 128> mem_to_free[MaxFramesInFlight];
+    SmallVector<VkRenderPass, 128> render_passes_to_destroy[MaxFramesInFlight];
 };
 
 class ILog;

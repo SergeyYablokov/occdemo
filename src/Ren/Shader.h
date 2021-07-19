@@ -18,7 +18,7 @@ typedef Descr Uniform;
 typedef Descr UniformBlock;
 
 enum class eShaderType { None, Vert, Frag, Tesc, Tese, Comp, _Count };
-enum class eShaderLoadStatus { Found, SetToDefault, CreatedFromData };
+enum class eShaderLoadStatus { Found, SetToDefault, CreatedFromData, Error };
 } // namespace Ren
 
 #if defined(USE_GL_RENDER)

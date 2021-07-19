@@ -35,11 +35,11 @@ void RpShadowMaps::Setup(RpBuilder &builder, const DrawList &list, const Persist
 void RpShadowMaps::Execute(RpBuilder &builder) {
     RpAllocTex &shadowmap_tex = builder.GetWriteTexture(shadowmap_tex_);
 
-    LazyInit(builder.ctx(), builder.sh(), shadowmap_tex.ref->handle());
+    LazyInit(builder.ctx(), builder.sh(), shadowmap_tex.ref);
     DrawShadowMaps(builder);
 }
 
-void RpShadowMaps::LazyInit(Ren::Context &ctx, ShaderLoader &sh, Ren::TexHandle shadow_tex) {
+void RpShadowMaps::LazyInit(Ren::Context &ctx, ShaderLoader &sh, Ren::WeakTex2DRef shadow_tex) {
     if (!initialized) {
         shadow_solid_prog_ =
             sh.LoadProgram(ctx, "shadow_solid", "internal/shadow.vert.glsl", "internal/shadow.frag.glsl");

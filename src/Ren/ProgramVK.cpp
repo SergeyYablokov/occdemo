@@ -66,7 +66,6 @@ void Ren::Program::Destroy() {
 
 void Ren::Program::Init(ShaderRef vs_ref, ShaderRef fs_ref, ShaderRef tcs_ref, ShaderRef tes_ref,
                         eProgLoadStatus *status, ILog *log) {
-    // assert(id_ == 0);
     assert(IsMainThread());
 
     if (!vs_ref || !fs_ref) {
@@ -161,8 +160,10 @@ void Ren::Program::InitBindings(ILog *log) {
     attributes_.clear();
     uniforms_.clear();
     uniform_blocks_.clear();
+    pc_ranges_.clear();
 
-    for (const ShaderRef &sh_ref : shaders_) {
+    for (int i = 0; i < int(eShaderType::_Count); ++i) {
+        const ShaderRef &sh_ref = shaders_[i];
         if (!sh_ref) {
             continue;
         }
@@ -179,6 +180,21 @@ void Ren::Program::InitBindings(ILog *log) {
             auto it = std::find(std::begin(uniforms_), std::end(uniforms_), u);
             if (it == std::end(uniforms_)) {
                 uniforms_.emplace_back(u);
+            }
+        }
+
+        for (const Range r : sh.pc_ranges) {
+            auto it = std::find_if(std::begin(pc_ranges_), std::end(pc_ranges_), [&](const VkPushConstantRange &rng) {
+                return r.offset == rng.offset && r.size == rng.size;
+            });
+
+            if (it == std::end(pc_ranges_)) {
+                VkPushConstantRange &new_rng = pc_ranges_.emplace_back();
+                new_rng.stageFlags = g_shader_stage_flag_bits[i];
+                new_rng.offset = r.offset;
+                new_rng.size = r.size;
+            } else {
+                it->stageFlags |= g_shader_stage_flag_bits[i];
             }
         }
     }

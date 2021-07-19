@@ -57,6 +57,7 @@ set(SOURCE_FILES Anim.h
                  MVec.h
                  Program.h
                  RastState.h
+                 RenderPass.h
                  RingBuffer.h
                  Sampler.h
                  SamplingParams.h
@@ -100,6 +101,7 @@ if(${RENDERER} STREQUAL "GL")
                      ProgramGL.h
                      ProgramGL.cpp
                      RastStateGL.cpp
+                     RenderPassGL.cpp
                      TextureGL.h
                      TextureGL.cpp
                      TextureAtlasGL.cpp
@@ -130,6 +132,7 @@ elseif(${RENDERER} STREQUAL "VK")
                      ProgramVK.h
                      ProgramVK.cpp
                      RastStateVK.cpp
+                     RenderPassVK.cpp
                      SamplerVK.h
                      SamplerVK.cpp
                      ShaderVK.h

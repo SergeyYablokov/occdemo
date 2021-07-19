@@ -137,22 +137,20 @@ void RpTransparent::LazyInit(Ren::Context &ctx, ShaderLoader &sh, RpAllocTex &co
     }
 
     {
-        const Ren::TexHandle attachments[] = {color_tex.ref->handle(), normal_tex.ref->handle(),
-                                              spec_tex.ref->handle()};
+        const Ren::WeakTex2DRef attachments[] = {color_tex.ref, normal_tex.ref, spec_tex.ref};
         if (!transparent_draw_fb_.Setup(ctx.api_ctx(), nullptr, color_tex.desc.w, color_tex.desc.h, attachments, 3,
-                                        depth_tex.ref->handle(), depth_tex.ref->handle(),
-                                        view_state_->is_multisampled)) {
+                                        depth_tex.ref, depth_tex.ref, view_state_->is_multisampled)) {
             ctx.log()->Error("RpTransparent: transparent_draw_fb_ init failed!");
         }
     }
 
-    if (!color_only_fb_.Setup(ctx.api_ctx(), nullptr, color_tex.desc.w, color_tex.desc.h, color_tex.ref->handle(),
-                              depth_tex.ref->handle(), depth_tex.ref->handle(), view_state_->is_multisampled)) {
+    if (!color_only_fb_.Setup(ctx.api_ctx(), nullptr, color_tex.desc.w, color_tex.desc.h, color_tex.ref, depth_tex.ref,
+                              depth_tex.ref, view_state_->is_multisampled)) {
         ctx.log()->Error("RpTransparent: color_only_fb_ init failed!");
     }
 
-    if (!resolved_fb_.Setup(ctx.api_ctx(), nullptr, transparent_tex.desc.w, transparent_tex.desc.h,
-                            transparent_tex.ref->handle(), {}, {}, false)) {
+    if (!resolved_fb_.Setup(ctx.api_ctx(), nullptr, transparent_tex.desc.w, transparent_tex.desc.h, transparent_tex.ref,
+                            {}, {}, false)) {
         ctx.log()->Error("RpTransparent: resolved_fb_ init failed!");
     }
 

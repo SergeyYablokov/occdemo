@@ -107,9 +107,9 @@ void RpCombine::LazyInit(Ren::Context &ctx, ShaderLoader &sh, RpAllocTex *output
         initialized = true;
     }
 
-    Ren::TexHandle output = output_tex ? output_tex->ref->handle() : Ren::TexHandle{};
+    const Ren::WeakTex2DRef output = output_tex ? output_tex->ref : Ren::WeakTex2DRef{};
     if (!output_fb_.Setup(ctx.api_ctx(), nullptr, output_tex ? output_tex->desc.w : ctx.w(),
-                          output_tex ? output_tex->desc.h : ctx.h(), &output, 1, {}, {}, false)) {
+                          output_tex ? output_tex->desc.h : ctx.h(), output, {}, {}, false)) {
         ctx.log()->Error("RpCombine: output_fb_ init failed!");
     }
 }

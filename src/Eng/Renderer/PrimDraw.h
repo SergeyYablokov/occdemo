@@ -11,6 +11,9 @@
 class ShaderLoader;
 
 class PrimDraw {
+public:
+    struct Binding;
+private:
     bool initialized_ = false;
 
     uint32_t quad_vtx1_offset_ = 0xffffffff, quad_vtx2_offset_ = 0xffffffff, quad_ndx_offset_ = 0xffffffff;
@@ -20,8 +23,19 @@ class PrimDraw {
     uint32_t temp_buf1_vtx_offset_ = 0xffffffff, temp_buf2_vtx_offset_ = 0xffffffff, temp_buf_ndx_offset_ = 0xffffffff;
 
     Ren::ApiContext *api_ctx_ = nullptr;
-#if defined(USE_GL_RENDER)
-    Ren::Vao fs_quad_vao_, sphere_vao_;
+    Ren::ILog *log_ = nullptr;
+#if defined(USE_VK_RENDER)
+    struct CachedPipeline {
+        Ren::Program *p;
+        VkPipeline pipeline;
+        VkPipelineLayout layout;
+    };
+    Ren::SmallVector<CachedPipeline, 16> pipelines_;
+
+    VkRenderPass FindOrCreateRenderPass();
+    VkPipeline FindOrCreatePipeline(Ren::Program *p, const Binding bindings[], const int bindings_count);
+#elif defined(USE_GL_RENDER)
+    Ren::Vao fs_quad_vao_, sphere_vao_; 
 #endif
   public:
     bool LazyInit(Ren::Context &ctx);

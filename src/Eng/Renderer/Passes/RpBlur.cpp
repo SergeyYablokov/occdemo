@@ -47,8 +47,7 @@ void RpBlur::Execute(RpBuilder &builder) {
         const PrimDraw::Uniform uniforms[] = {
             {0, Ren::Vec4f{0.0f, 0.0f, float(applied_state.viewport[2]), float(applied_state.viewport[3])}}, {1, 0.0f}};
 
-        prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, {&blur_fb_[0], 0}, blit_gauss_prog_.get(), &binding, 1, uniforms,
-                            2);
+        prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, {&blur_fb_[0], 0}, blit_gauss_prog_.get(), &binding, 1, uniforms, 2);
     }
 
     { // vertical
@@ -57,8 +56,7 @@ void RpBlur::Execute(RpBuilder &builder) {
         const PrimDraw::Uniform uniforms[] = {
             {0, Ren::Vec4f{0.0f, 0.0f, float(applied_state.viewport[2]), float(applied_state.viewport[3])}}, {1, 1.0f}};
 
-        prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, {&blur_fb_[1], 0}, blit_gauss_prog_.get(), &binding, 1, uniforms,
-                            2);
+        prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, {&blur_fb_[1], 0}, blit_gauss_prog_.get(), &binding, 1, uniforms, 2);
     }
 }
 
@@ -71,13 +69,13 @@ void RpBlur::LazyInit(Ren::Context &ctx, ShaderLoader &sh, RpAllocTex &blur_temp
         initialized = true;
     }
 
-    if (!blur_fb_[0].Setup(ctx.api_ctx(), nullptr, blur_temp_4x.desc.w, blur_temp_4x.desc.h, blur_temp_4x.ref->handle(),
-                           {}, {}, false)) {
+    if (!blur_fb_[0].Setup(ctx.api_ctx(), nullptr, blur_temp_4x.desc.w, blur_temp_4x.desc.h, blur_temp_4x.ref, {}, {},
+                           false)) {
         ctx.log()->Error("RpBlur: blur_fb_[0] init failed!");
     }
 
-    if (!blur_fb_[1].Setup(ctx.api_ctx(), nullptr, blur_temp_4x.desc.w, blur_temp_4x.desc.h, output_tex.ref->handle(),
-                           {}, {}, false)) {
+    if (!blur_fb_[1].Setup(ctx.api_ctx(), nullptr, blur_temp_4x.desc.w, blur_temp_4x.desc.h, output_tex.ref, {}, {},
+                           false)) {
         ctx.log()->Error("RpBlur: blur_fb_[1] init failed!");
     }
 }

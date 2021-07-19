@@ -9,7 +9,7 @@
 #include "../Renderer_Structs.h"
 
 void RpDownColor::Setup(RpBuilder &builder, const ViewState *view_state, const char shared_data_buf[],
-                        const char color_tex_name[], Ren::TexHandle output_tex) {
+                        const char color_tex_name[], Ren::WeakTex2DRef output_tex) {
     output_tex_ = output_tex;
     view_state_ = view_state;
 
