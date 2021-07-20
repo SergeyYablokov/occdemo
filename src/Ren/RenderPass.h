@@ -12,7 +12,7 @@ enum class eLoadOp : uint8_t { Load, Clear, DontCare, _Count };
 enum class eStoreOp : uint8_t { Store, DontCare, _Count };
 
 struct RenderTarget {
-    Tex2DRef ref;
+    WeakTex2DRef ref;
     eLoadOp load = eLoadOp::DontCare;
     eStoreOp store = eStoreOp::DontCare;
     eLoadOp stencil_load = eLoadOp::DontCare;
@@ -24,14 +24,20 @@ class RenderPass {
 #if defined(USE_VK_RENDER)
     VkRenderPass render_pass_ = VK_NULL_HANDLE;
 #endif
-    SmallVector<TexHandle, MaxRTAttachments> color_attachments_;
-    TexHandle depth_attachment_;
-
+    
     void Destroy();
 
   public:
+    SmallVector<TexHandle, MaxRTAttachments> color_attachments_;
+    TexHandle depth_attachment_;
+
     RenderPass() = default;
+    RenderPass(const RenderPass &rhs) = delete;
+    RenderPass(RenderPass &&rhs) noexcept { (*this) = std::move(rhs); }
     ~RenderPass() { Destroy(); }
+
+    RenderPass &operator=(const RenderPass &rhs) = delete;
+    RenderPass &operator=(RenderPass &&rhs);
 
 #if defined(USE_VK_RENDER)
     VkRenderPass handle() const { return render_pass_; }

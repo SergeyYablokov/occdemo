@@ -82,7 +82,8 @@ void RpCombine::Execute(RpBuilder &builder) {
         {Ren::eBindTarget::Tex2D, HDR_TEX_SLOT, color_tex.ref->handle()},
         {Ren::eBindTarget::Tex2D, BLURED_TEX_SLOT, blur_tex ? blur_tex->ref->handle() : dummy_black_->handle()}};
 
-    prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, {&output_fb_, 0}, blit_combine_prog_.get(), bindings, 2, &uniform_params,
+    prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, blit_combine_prog_.get(), output_fb_[builder.ctx().backend_frame()],
+                        render_pass_[builder.ctx().backend_frame()], bindings, 2, &uniform_params,
                         sizeof(BlitCombine::Params), 0);
 }
 
@@ -107,9 +108,16 @@ void RpCombine::LazyInit(Ren::Context &ctx, ShaderLoader &sh, RpAllocTex *output
         initialized = true;
     }
 
-    const Ren::WeakTex2DRef output = output_tex ? output_tex->ref : Ren::WeakTex2DRef{};
-    if (!output_fb_.Setup(ctx.api_ctx(), nullptr, output_tex ? output_tex->desc.w : ctx.w(),
-                          output_tex ? output_tex->desc.h : ctx.h(), output, {}, {}, false)) {
+    const Ren::WeakTex2DRef output = output_tex ? output_tex->ref : ctx.backbuffer_ref();
+    const Ren::RenderTarget render_targets[] = {{output, Ren::eLoadOp::DontCare, Ren::eStoreOp::Store}};
+
+    if (!render_pass_[ctx.backend_frame()].Setup(ctx.api_ctx(), render_targets, 1, {}, ctx.log())) {
+        ctx.log()->Error("RpCombine: render_pass_ init failed!");
+    }
+
+    if (!output_fb_[ctx.backend_frame()].Setup(ctx.api_ctx(), render_pass_[ctx.backend_frame()].handle(),
+                                               output_tex ? output_tex->desc.w : ctx.w(),
+                                               output_tex ? output_tex->desc.h : ctx.h(), output, {}, {}, false)) {
         ctx.log()->Error("RpCombine: output_fb_ init failed!");
     }
 }

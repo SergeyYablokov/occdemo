@@ -17,12 +17,28 @@ const VkAttachmentStoreOp vk_store_ops[] = {
 static_assert((sizeof(vk_store_ops) / sizeof(vk_store_ops[0])) == int(eStoreOp::_Count), "!");
 } // namespace Ren
 
+Ren::RenderPass &Ren::RenderPass::operator=(RenderPass &&rhs) {
+    if (this == &rhs) {
+        return (*this);
+    }
+
+    Destroy();
+
+    api_ctx_ = exchange(rhs.api_ctx_, nullptr);
+    render_pass_ = exchange(rhs.render_pass_, {});
+    color_attachments_ = std::move(rhs.color_attachments_);
+    depth_attachment_ = exchange(rhs.depth_attachment_, {});
+
+    return (*this);
+}
+
 void Ren::RenderPass::Destroy() {
     if (render_pass_ != VK_NULL_HANDLE) {
         api_ctx_->render_passes_to_destroy->push_back(render_pass_);
         render_pass_ = VK_NULL_HANDLE;
     }
     color_attachments_.clear();
+    depth_attachment_ = {};
 }
 
 bool Ren::RenderPass::Setup(ApiContext *api_ctx, const RenderTarget color_rts[], int color_rts_count,

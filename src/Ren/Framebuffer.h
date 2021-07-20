@@ -24,10 +24,10 @@ class Framebuffer {
         TexHandle handle; // handle is stored to detect texture reallocation
     };
 
-    SmallVector<Attachment, 4> color_attachments_;
-    Attachment depth_attachment_, stencil_attachment_;
-
   public:
+    SmallVector<Attachment, 4> color_attachments;
+    Attachment depth_attachment, stencil_attachment;
+
     Framebuffer() = default;
     ~Framebuffer();
 

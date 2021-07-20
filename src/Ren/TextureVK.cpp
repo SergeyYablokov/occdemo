@@ -20,7 +20,8 @@ const VkFormat g_vk_formats[] = {
     VK_FORMAT_UNDEFINED,                // Undefined
     VK_FORMAT_R8G8B8_UNORM,             // RawRGB888
     VK_FORMAT_R8G8B8A8_UNORM,           // RawRGBA8888
-    VK_FORMAT_R8G8B8A8_SNORM,           // RawSignedRGBA8888
+    VK_FORMAT_R8G8B8A8_SNORM,           // RawRGBA8888Signed
+    VK_FORMAT_B8G8R8A8_UNORM,           // RawBGRA8888
     VK_FORMAT_R32_SFLOAT,               // RawR32F
     VK_FORMAT_R16_SFLOAT,               // RawR16F
     VK_FORMAT_R8_UNORM,                 // RawR8

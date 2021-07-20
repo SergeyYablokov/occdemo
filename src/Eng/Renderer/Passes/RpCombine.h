@@ -1,5 +1,6 @@
 #pragma once
 
+#include <Ren/RenderPass.h>
 #include <Ren/Texture.h>
 
 #include "../Graph/GraphBuilder.h"
@@ -26,7 +27,8 @@ class RpCombine : public RenderPassBase {
 
     void LazyInit(Ren::Context &ctx, ShaderLoader &sh, RpAllocTex *output_tex);
 
-    Ren::Framebuffer output_fb_;
+    Ren::RenderPass render_pass_[Ren::MaxFramesInFlight];
+    Ren::Framebuffer output_fb_[Ren::MaxFramesInFlight];
   public:
     RpCombine(PrimDraw &prim_draw) : prim_draw_(prim_draw) {}
 

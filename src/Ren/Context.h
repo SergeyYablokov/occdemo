@@ -189,6 +189,8 @@ class Context : public TaskExecutor {
     int frontend_frame = 0;
     int backend_frame() const;
 
+    Ren::Tex2DRef backbuffer_ref() const;
+
 #if defined(USE_GL_RENDER)
     struct { // NOLINT
         float max_anisotropy = 0.0f;

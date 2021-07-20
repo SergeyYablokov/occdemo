@@ -183,7 +183,7 @@ bool Ren::Context::Init(const int w, const int h, ILog *log, const char *preferr
         sprintf(name_buf, "Present Image [%i]", int(i));
 
         Tex2DParams params;
-        params.format = eTexFormat::RawRGBA8888;
+        params.format = eTexFormat::RawBGRA8888;
         params.flags = eTexFlags::TexNoOwnership;
 
         api_ctx_->present_image_refs.emplace_back(textures_.Add(name_buf, api_ctx_.get(), api_ctx_->present_images[i],
@@ -224,7 +224,7 @@ void Ren::Context::Resize(int w, int h) {
         sprintf(name_buf, "Present Image [%i]", int(i));
 
         Tex2DParams params;
-        params.format = eTexFormat::RawRGBA8888;
+        params.format = eTexFormat::RawBGRA8888;
         params.flags = eTexFlags::TexNoOwnership;
 
         api_ctx_->present_image_refs.emplace_back(textures_.Add(name_buf, api_ctx_.get(), api_ctx_->present_images[i],

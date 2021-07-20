@@ -502,8 +502,8 @@ void Gui::Renderer::Draw(const int w, const int h) {
     // (Re)create framebuffer
     //
 
-    Ren::WeakTex2DRef color_attachment = api_ctx->present_image_refs[api_ctx->active_present_image];
-    if (!framebuffers_[api_ctx->backend_frame].Setup(api_ctx, render_pass_, w, h, color_attachment, {}, {}, false)) {
+    if (!framebuffers_[api_ctx->backend_frame].Setup(api_ctx, render_pass_, w, h, ctx_.backbuffer_ref(), {}, {},
+                                                     false)) {
         ctx_.log()->Error("Failed to create framebuffer!");
     }
 

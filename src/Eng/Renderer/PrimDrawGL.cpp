@@ -216,12 +216,12 @@ void PrimDraw::DrawPrim(const ePrim prim, const RenderTarget &rt, Ren::Program *
 #endif
 }
 
-void PrimDraw::DrawPrim(const ePrim prim, const RenderTarget &rt, Ren::Program *p, const Binding bindings[],
-                        const int bindings_count, const void *uniform_data, const int uniform_data_len,
+void PrimDraw::DrawPrim(const ePrim prim, const Ren::Program *p, const Ren::Framebuffer &fb, const Ren::RenderPass &rp,
+                        const Binding bindings[], const int bindings_count, const void *uniform_data, const int uniform_data_len,
                         const int uniform_data_offset) {
     using namespace PrimDrawInternal;
 
-    glBindFramebuffer(GL_FRAMEBUFFER, rt.fb->id());
+    glBindFramebuffer(GL_FRAMEBUFFER, fb.id());
     // glViewport(rt.viewport[0], rt.viewport[1], rt.viewport[2], rt.viewport[3]);
 
     for (int i = 0; i < bindings_count; i++) {

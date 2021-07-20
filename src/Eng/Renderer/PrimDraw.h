@@ -2,6 +2,7 @@
 
 #include <Ren/Fwd.h>
 #include <Ren/MMat.h>
+#include <Ren/RenderPass.h>
 #include <Ren/Texture.h>
 
 #if defined(USE_GL_RENDER)
@@ -11,9 +12,11 @@
 class ShaderLoader;
 
 class PrimDraw {
-public:
+  public:
     struct Binding;
-private:
+    struct RenderTarget;
+
+  private:
     bool initialized_ = false;
 
     uint32_t quad_vtx1_offset_ = 0xffffffff, quad_vtx2_offset_ = 0xffffffff, quad_ndx_offset_ = 0xffffffff;
@@ -26,16 +29,17 @@ private:
     Ren::ILog *log_ = nullptr;
 #if defined(USE_VK_RENDER)
     struct CachedPipeline {
-        Ren::Program *p;
-        VkPipeline pipeline;
+        const Ren::Program *p;
+        const Ren::RenderPass *rp;
         VkPipelineLayout layout;
+        VkPipeline pipeline;
     };
     Ren::SmallVector<CachedPipeline, 16> pipelines_;
 
-    VkRenderPass FindOrCreateRenderPass();
-    VkPipeline FindOrCreatePipeline(Ren::Program *p, const Binding bindings[], const int bindings_count);
+    VkPipeline FindOrCreatePipeline(const Ren::Program *p, const Ren::RenderPass &rp, const Binding bindings[],
+                                    const int bindings_count);
 #elif defined(USE_GL_RENDER)
-    Ren::Vao fs_quad_vao_, sphere_vao_; 
+    Ren::Vao fs_quad_vao_, sphere_vao_;
 #endif
   public:
     bool LazyInit(Ren::Context &ctx);
@@ -122,6 +126,7 @@ private:
     enum class ePrim { Quad, Sphere };
     void DrawPrim(ePrim prim, const RenderTarget &rt, Ren::Program *p, const Binding bindings[], int bindings_count,
                   const Uniform uniforms[], int uniforms_count);
-    void DrawPrim(ePrim prim, const RenderTarget &rt, Ren::Program *p, const Binding bindings[], int bindings_count,
-                  const void *uniform_data, int uniform_data_len, int uniform_data_offset);
+    void DrawPrim(ePrim prim, const Ren::Program *p, const Ren::Framebuffer &fb, const Ren::RenderPass &rp,
+                  const Binding bindings[], int bindings_count, const void *uniform_data, int uniform_data_len,
+                  int uniform_data_offset);
 };

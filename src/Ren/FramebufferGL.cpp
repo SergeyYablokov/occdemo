@@ -10,23 +10,23 @@ Ren::Framebuffer::~Framebuffer() {
 }
 
 bool Ren::Framebuffer::Setup(ApiContext *api_ctx, void *renderpass, int w, int h,
-                             const WeakTex2DRef color_attachments[], const int color_attachments_count,
-                             const WeakTex2DRef depth_attachment, const WeakTex2DRef stencil_attachment,
+                             const WeakTex2DRef _color_attachments[], const int _color_attachments_count,
+                             const WeakTex2DRef _depth_attachment, const WeakTex2DRef _stencil_attachment,
                              const bool is_multisampled) {
-    if (color_attachments_count == color_attachments_.size() &&
-        std::equal(color_attachments, color_attachments + color_attachments_count, color_attachments_.data(),
+    if (_color_attachments_count == color_attachments.size() &&
+        std::equal(_color_attachments, _color_attachments + _color_attachments_count, color_attachments.data(),
                    [](const WeakTex2DRef &lhs, const Attachment &rhs) {
                        return (!lhs && !rhs.ref) || (lhs && lhs->handle() == rhs.handle);
                    }) &&
-        ((!depth_attachment && !depth_attachment_.ref) ||
-         (depth_attachment && depth_attachment->handle() == depth_attachment_.handle)) &&
-        ((!stencil_attachment && !stencil_attachment_.ref) ||
-         (stencil_attachment && stencil_attachment->handle() == stencil_attachment_.handle))) {
+        ((!_depth_attachment && !depth_attachment.ref) ||
+         (_depth_attachment && _depth_attachment->handle() == depth_attachment.handle)) &&
+        ((!_stencil_attachment && !stencil_attachment.ref) ||
+         (_stencil_attachment && _stencil_attachment->handle() == stencil_attachment.handle))) {
         // nothing has changed
         return true;
     }
 
-    if (color_attachments_count == 1 && !color_attachments[0]) {
+    if (_color_attachments_count == 1 && !_color_attachments[0]) {
         // default backbuffer
         return true;
     }
@@ -40,51 +40,51 @@ bool Ren::Framebuffer::Setup(ApiContext *api_ctx, void *renderpass, int w, int h
 
     const GLenum target = is_multisampled ? GL_TEXTURE_2D_MULTISAMPLE : GL_TEXTURE_2D;
 
-    for (size_t i = 0; i < color_attachments_.size(); i++) {
-        if (color_attachments_[i].ref) {
+    for (size_t i = 0; i < color_attachments.size(); i++) {
+        if (color_attachments[i].ref) {
             glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + GLenum(i), target, 0, 0);
-            color_attachments_[i] = {};
+            color_attachments[i] = {};
         }
     }
-    color_attachments_.clear();
+    color_attachments.clear();
 
     SmallVector<GLenum, 4> draw_buffers;
-    for (int i = 0; i < color_attachments_count; i++) {
-        if (color_attachments[i]) {
-            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, target, GLuint(color_attachments[i]->id()),
-                                   0);
+    for (int i = 0; i < _color_attachments_count; i++) {
+        if (_color_attachments[i]) {
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, target,
+                                   GLuint(_color_attachments[i]->id()), 0);
 
             draw_buffers.push_back(GL_COLOR_ATTACHMENT0 + i);
 
-            color_attachments_.push_back({color_attachments[i], color_attachments[i]->handle()});
+            color_attachments.push_back({_color_attachments[i], _color_attachments[i]->handle()});
         } else {
             draw_buffers.push_back(GL_NONE);
 
-            color_attachments_.emplace_back();
+            color_attachments.emplace_back();
         }
     }
 
-    glDrawBuffers(GLsizei(color_attachments_.size()), draw_buffers.data());
+    glDrawBuffers(GLsizei(color_attachments.size()), draw_buffers.data());
 
-    if (depth_attachment) {
-        if (depth_attachment == stencil_attachment) {
-            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, target, GLuint(depth_attachment->id()),
+    if (_depth_attachment) {
+        if (_depth_attachment == _stencil_attachment) {
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, target, GLuint(_depth_attachment->id()),
                                    0);
         } else {
-            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, target, GLuint(depth_attachment->id()), 0);
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, target, GLuint(_depth_attachment->id()), 0);
         }
-        depth_attachment_ = {depth_attachment, depth_attachment->handle()};
+        depth_attachment = {_depth_attachment, _depth_attachment->handle()};
     } else {
-        depth_attachment_ = {};
+        depth_attachment = {};
     }
 
-    if (stencil_attachment) {
-        if (!depth_attachment || depth_attachment->handle() != stencil_attachment->handle()) {
-            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, target, GLuint(stencil_attachment->id()), 0);
+    if (_stencil_attachment) {
+        if (!_depth_attachment || _depth_attachment->handle() != _stencil_attachment->handle()) {
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, target, GLuint(_stencil_attachment->id()), 0);
         }
-        stencil_attachment_ = {stencil_attachment, stencil_attachment->handle()};
+        stencil_attachment = {_stencil_attachment, _stencil_attachment->handle()};
     } else {
-        stencil_attachment_ = {};
+        stencil_attachment = {};
     }
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);

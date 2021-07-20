@@ -507,3 +507,5 @@ void Ren::Context::ReleaseAll() {
 }
 
 int Ren::Context::backend_frame() const { return api_ctx_->backend_frame; }
+
+Ren::Tex2DRef Ren::Context::backbuffer_ref() const { return api_ctx_->present_image_refs[api_ctx_->active_present_image]; }

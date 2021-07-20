@@ -10,6 +10,7 @@ enum class eTexFormat : uint8_t {
     RawRGB888,
     RawRGBA8888,
     RawRGBA8888Snorm,
+    RawBGRA8888,
     RawR32F,
     RawR16F,
     RawR8,

@@ -93,7 +93,7 @@ class Program : public RefCounter {
         return uniform_blocks_[0];
     }
 
-    const ShaderRef &shader(eShaderType type) { return shaders_[int(type)]; }
+    const ShaderRef &shader(eShaderType type) const { return shaders_[int(type)]; }
 
     const VkDescriptorSetLayout *descr_set_layouts() const { return desc_set_layouts_.data(); }
 

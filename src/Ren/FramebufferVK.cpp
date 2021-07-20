@@ -14,9 +14,9 @@ Ren::Framebuffer &Ren::Framebuffer::operator=(Framebuffer &&rhs) noexcept {
     api_ctx_ = exchange(rhs.api_ctx_, nullptr);
     handle_ = exchange(rhs.handle_, VkFramebuffer{VK_NULL_HANDLE});
     renderpass_ = exchange(rhs.renderpass_, VkRenderPass{VK_NULL_HANDLE});
-    color_attachments_ = std::move(rhs.color_attachments_);
-    depth_attachment_ = exchange(rhs.depth_attachment_, {});
-    stencil_attachment_ = exchange(rhs.stencil_attachment_, {});
+    color_attachments = std::move(rhs.color_attachments);
+    depth_attachment = exchange(rhs.depth_attachment, {});
+    stencil_attachment = exchange(rhs.stencil_attachment, {});
 
     return (*this);
 }
@@ -28,55 +28,55 @@ Ren::Framebuffer::~Framebuffer() {
 }
 
 bool Ren::Framebuffer::Setup(ApiContext *api_ctx, void *renderpass, int w, int h,
-                             const WeakTex2DRef color_attachments[], const int color_attachments_count,
-                             const WeakTex2DRef depth_attachment, const WeakTex2DRef stencil_attachment,
+                             const WeakTex2DRef _color_attachments[], const int _color_attachments_count,
+                             const WeakTex2DRef _depth_attachment, const WeakTex2DRef _stencil_attachment,
                              const bool is_multisampled) {
-    if (renderpass_ == renderpass && color_attachments_count == color_attachments_.size() &&
-        std::equal(color_attachments, color_attachments + color_attachments_count, color_attachments_.data(),
+    if (renderpass_ == renderpass && _color_attachments_count == color_attachments.size() &&
+        std::equal(_color_attachments, _color_attachments + _color_attachments_count, color_attachments.data(),
                    [](const WeakTex2DRef &lhs, const Attachment &rhs) {
                        return (!lhs && !rhs.ref) || (lhs && lhs->handle() == rhs.handle);
                    }) &&
-        ((!depth_attachment && !depth_attachment_.ref) ||
-         (depth_attachment && depth_attachment->handle() == depth_attachment_.handle)) &&
-        ((!stencil_attachment && !stencil_attachment_.ref) ||
-         (stencil_attachment && stencil_attachment->handle() == stencil_attachment_.handle))) {
+        ((!_depth_attachment && !depth_attachment.ref) ||
+         (_depth_attachment && _depth_attachment->handle() == depth_attachment.handle)) &&
+        ((!_stencil_attachment && !stencil_attachment.ref) ||
+         (_stencil_attachment && _stencil_attachment->handle() == stencil_attachment.handle))) {
         // nothing has changed
         return true;
     }
 
-    if (color_attachments_count == 1 && !color_attachments[0]) {
+    /*if (_color_attachments_count == 1 && !_color_attachments[0]) {
         // default backbuffer
         return true;
-    }
+    }*/
 
     if (handle_ != VK_NULL_HANDLE) {
         vkDestroyFramebuffer(api_ctx_->device, handle_, nullptr);
     }
 
     api_ctx_ = api_ctx;
-    color_attachments_.clear();
-    depth_attachment_ = {};
-    stencil_attachment_ = {};
+    color_attachments.clear();
+    depth_attachment = {};
+    stencil_attachment = {};
 
     SmallVector<VkImageView, 4> image_views;
-    for (int i = 0; i < color_attachments_count; i++) {
-        if (color_attachments[i]) {
-            image_views.push_back(color_attachments[i]->handle().view);
-            color_attachments_.push_back({color_attachments[i], color_attachments[i]->handle()});
+    for (int i = 0; i < _color_attachments_count; i++) {
+        if (_color_attachments[i]) {
+            image_views.push_back(_color_attachments[i]->handle().view);
+            color_attachments.push_back({_color_attachments[i], _color_attachments[i]->handle()});
         } else {
-            color_attachments_.emplace_back();
+            color_attachments.emplace_back();
         }
     }
 
-    if (depth_attachment) {
-        image_views.push_back(depth_attachment->handle().view);
-        depth_attachment_ = {depth_attachment, depth_attachment->handle()};
+    if (_depth_attachment) {
+        image_views.push_back(_depth_attachment->handle().view);
+        depth_attachment = {_depth_attachment, _depth_attachment->handle()};
     }
 
-    if (stencil_attachment) {
-        stencil_attachment_ = {stencil_attachment, stencil_attachment->handle()};
-        if (stencil_attachment->handle().view != depth_attachment->handle().view) {
-            image_views.push_back(stencil_attachment->handle().view);
+    if (_stencil_attachment) {
+        stencil_attachment = {_stencil_attachment, _stencil_attachment->handle()};
+        if (_stencil_attachment->handle().view != _depth_attachment->handle().view) {
+            image_views.push_back(_stencil_attachment->handle().view);
         }
     }
 

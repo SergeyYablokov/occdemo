@@ -30,7 +30,7 @@ LAYOUT_PARAMS uniform UniformParams {
 };
 
 #if defined(VULKAN) || defined(GL_SPIRV)
-layout(location = 0) in vec2 aVertexUVs_;
+layout(location = 0) in highp vec2 aVertexUVs_;
 #else
 in vec2 aVertexUVs_;
 #endif
