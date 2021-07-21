@@ -681,6 +681,10 @@ void Ren::Texture2D::InitFromRAWData(Buffer *sbuf, int data_off, void *_cmd_buf,
         }
     }
 
+    this->layout = VK_IMAGE_LAYOUT_UNDEFINED;
+    this->last_access_mask = 0;
+    this->last_stage_mask = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+
     if (sbuf) {
         assert(p.samples == 1);
         assert(sbuf && sbuf->type() == eBufType::Stage);

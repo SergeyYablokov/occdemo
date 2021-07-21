@@ -25,6 +25,8 @@ class Framebuffer {
     };
 
   public:
+    int w = -1, h = -1;
+
     SmallVector<Attachment, 4> color_attachments;
     Attachment depth_attachment, stencil_attachment;
 

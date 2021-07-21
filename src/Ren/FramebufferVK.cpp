@@ -14,6 +14,8 @@ Ren::Framebuffer &Ren::Framebuffer::operator=(Framebuffer &&rhs) noexcept {
     api_ctx_ = exchange(rhs.api_ctx_, nullptr);
     handle_ = exchange(rhs.handle_, VkFramebuffer{VK_NULL_HANDLE});
     renderpass_ = exchange(rhs.renderpass_, VkRenderPass{VK_NULL_HANDLE});
+    w = exchange(rhs.w, -1);
+    h = exchange(rhs.h, -1);
     color_attachments = std::move(rhs.color_attachments);
     depth_attachment = exchange(rhs.depth_attachment, {});
     stencil_attachment = exchange(rhs.stencil_attachment, {});
@@ -27,7 +29,7 @@ Ren::Framebuffer::~Framebuffer() {
     }
 }
 
-bool Ren::Framebuffer::Setup(ApiContext *api_ctx, void *renderpass, int w, int h,
+bool Ren::Framebuffer::Setup(ApiContext *api_ctx, void *renderpass, int _w, int _h,
                              const WeakTex2DRef _color_attachments[], const int _color_attachments_count,
                              const WeakTex2DRef _depth_attachment, const WeakTex2DRef _stencil_attachment,
                              const bool is_multisampled) {
@@ -81,14 +83,16 @@ bool Ren::Framebuffer::Setup(ApiContext *api_ctx, void *renderpass, int w, int h
     }
 
     renderpass_ = reinterpret_cast<VkRenderPass>(renderpass);
+    w = _w;
+    h = _h;
 
     VkFramebufferCreateInfo framebuf_create_info = {};
     framebuf_create_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
     framebuf_create_info.renderPass = renderpass_;
     framebuf_create_info.attachmentCount = uint32_t(image_views.size());
     framebuf_create_info.pAttachments = image_views.data();
-    framebuf_create_info.width = w;
-    framebuf_create_info.height = h;
+    framebuf_create_info.width = _w;
+    framebuf_create_info.height = _h;
     framebuf_create_info.layers = 1;
 
     const VkResult res = vkCreateFramebuffer(api_ctx->device, &framebuf_create_info, nullptr, &handle_);

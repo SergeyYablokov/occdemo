@@ -231,14 +231,13 @@ void PrimDraw::DrawPrim(const ePrim prim, const Ren::Program *p, const Ren::Fram
     {
         VkPipelineStageFlags barrier_stages = 0;
 
-        int img_barriers_count = 0;
-        VkImageMemoryBarrier img_barriers[4] = {};
+        Ren::SmallVector<VkImageMemoryBarrier, 16> img_barriers;
 
         for (int i = 0; i < bindings_count; ++i) {
             const auto &b = bindings[i];
 
             if (b.trg == Ren::eBindTarget::Tex2D) {
-                auto &new_barrier = img_barriers[img_barriers_count++];
+                auto &new_barrier = img_barriers.emplace_back();
                 new_barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
                 new_barrier.oldLayout = b.handle.tex->layout;
                 new_barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
@@ -260,26 +259,62 @@ void PrimDraw::DrawPrim(const ePrim prim, const Ren::Program *p, const Ren::Fram
             }
         }
 
+        for (const auto &att : fb.color_attachments) {
+            auto &new_barrier = img_barriers.emplace_back();
+            new_barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+            new_barrier.oldLayout = att.ref->layout;
+            new_barrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+            new_barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            new_barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            new_barrier.image = att.ref->handle().img;
+            new_barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+            new_barrier.subresourceRange.baseMipLevel = 0;
+            new_barrier.subresourceRange.levelCount = VK_REMAINING_MIP_LEVELS;
+            new_barrier.subresourceRange.baseArrayLayer = 0;
+            new_barrier.subresourceRange.layerCount = VK_REMAINING_ARRAY_LAYERS;
+            new_barrier.srcAccessMask = att.ref->last_access_mask;
+            new_barrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+            barrier_stages |= att.ref->last_stage_mask;
+        }
+
+        if (fb.depth_attachment.ref) {
+            auto &new_barrier = img_barriers.emplace_back();
+            new_barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+            new_barrier.oldLayout = fb.depth_attachment.ref->layout;
+            new_barrier.newLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+            new_barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            new_barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            new_barrier.image = fb.depth_attachment.ref->handle().img;
+            new_barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
+            new_barrier.subresourceRange.baseMipLevel = 0;
+            new_barrier.subresourceRange.levelCount = VK_REMAINING_MIP_LEVELS;
+            new_barrier.subresourceRange.baseArrayLayer = 0;
+            new_barrier.subresourceRange.layerCount = VK_REMAINING_ARRAY_LAYERS;
+            new_barrier.srcAccessMask = fb.depth_attachment.ref->last_access_mask;
+            new_barrier.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+            barrier_stages |= fb.depth_attachment.ref->last_stage_mask;
+        }
+
         vkCmdPipelineBarrier(cmd_buf, barrier_stages,
                              VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT |
                                  VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
                                  VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
-                             0, 0, nullptr, 0, nullptr, img_barriers_count, img_barriers);
+                             0, 0, nullptr, 0, nullptr, uint32_t(img_barriers.size()), img_barriers.data());
     }
 
     VkRenderPassBeginInfo render_pass_begin_info = {};
     render_pass_begin_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
     render_pass_begin_info.renderPass = rp.handle();
     render_pass_begin_info.framebuffer = fb.handle();
-    render_pass_begin_info.renderArea = {0, 0, uint32_t(1280), uint32_t(720)};
+    render_pass_begin_info.renderArea = {0, 0, uint32_t(fb.w), uint32_t(fb.h)};
 
     vkCmdBeginRenderPass(cmd_buf, &render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
     vkCmdBindPipeline(cmd_buf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 
-    const VkViewport viewport = {0.0f, 0.0f, float(1280), float(720), 0.0f, 1.0f};
+    const VkViewport viewport = {0.0f, 0.0f, float(fb.w), float(fb.h), 0.0f, 1.0f};
     vkCmdSetViewport(cmd_buf, 0, 1, &viewport);
 
-    const VkRect2D scissor = {0, 0, uint32_t(1280), uint32_t(720)};
+    const VkRect2D scissor = {0, 0, uint32_t(fb.w), uint32_t(fb.h)};
     vkCmdSetScissor(cmd_buf, 0, 1, &scissor);
 
     vkCmdBindDescriptorSets(cmd_buf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_layout, 0, 1, &descr_set, 0, nullptr);
@@ -291,7 +326,7 @@ void PrimDraw::DrawPrim(const ePrim prim, const Ren::Program *p, const Ren::Fram
     VkBuffer ndx_buf = ctx_->default_indices_buf()->handle().buf;
 
     if (prim == ePrim::Quad) {
-        VkDeviceSize offset = {quad_vtx1_offset_};
+        const VkDeviceSize offset = {quad_vtx1_offset_};
         vkCmdBindVertexBuffers(cmd_buf, 0, 1, &vtx_buf, &offset);
         vkCmdBindIndexBuffer(cmd_buf, ndx_buf, VkDeviceSize(quad_ndx_offset_), VK_INDEX_TYPE_UINT16);
         vkCmdDrawIndexed(cmd_buf, uint32_t(6), // index count

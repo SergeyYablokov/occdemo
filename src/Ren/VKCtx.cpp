@@ -702,4 +702,5 @@ void Ren::DestroyDeferredResources(ApiContext *api_ctx, int i) {
     for (VkRenderPass rp : api_ctx->render_passes_to_destroy[i]) {
         vkDestroyRenderPass(api_ctx->device, rp, nullptr);
     }
+    api_ctx->render_passes_to_destroy[i].clear();
 }
