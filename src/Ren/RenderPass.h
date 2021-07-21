@@ -17,6 +17,11 @@ struct RenderTarget {
     eStoreOp store = eStoreOp::DontCare;
     eLoadOp stencil_load = eLoadOp::DontCare;
     eStoreOp stencil_store = eStoreOp::DontCare;
+
+    RenderTarget() = default;
+    RenderTarget(WeakTex2DRef _ref, eLoadOp _load, eStoreOp _store, eLoadOp _stencil_load = eLoadOp::DontCare,
+                 eStoreOp _stencil_store = eStoreOp::DontCare)
+        : ref(_ref), load(_load), store(_store), stencil_load(_stencil_load), stencil_store(_stencil_store) {}
 };
 
 class RenderPass {
@@ -24,7 +29,7 @@ class RenderPass {
 #if defined(USE_VK_RENDER)
     VkRenderPass render_pass_ = VK_NULL_HANDLE;
 #endif
-    
+
     void Destroy();
 
   public:

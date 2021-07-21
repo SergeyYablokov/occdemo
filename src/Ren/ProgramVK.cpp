@@ -46,8 +46,8 @@ Ren::Program &Ren::Program::operator=(Program &&rhs) noexcept {
     name_ = std::move(rhs.name_);
 
     api_ctx_ = exchange(rhs.api_ctx_, nullptr);
-    desc_set_layouts_ = std::move(rhs.desc_set_layouts_);
-    rhs.desc_set_layouts_.assign(VK_NULL_HANDLE);
+    desc_set_layouts_ = rhs.desc_set_layouts_;
+    rhs.desc_set_layouts_.fill(VK_NULL_HANDLE);
 
     RefCounter::operator=(std::move(rhs));
 
@@ -60,7 +60,7 @@ void Ren::Program::Destroy() {
             vkDestroyDescriptorSetLayout(api_ctx_->device, l, nullptr);
         }
     }
-    desc_set_layouts_.assign(VK_NULL_HANDLE);
+    desc_set_layouts_.fill(VK_NULL_HANDLE);
 }
 
 void Ren::Program::Init(ShaderRef vs_ref, ShaderRef fs_ref, ShaderRef tcs_ref, ShaderRef tes_ref,

@@ -11,8 +11,8 @@ namespace Ren {
 class ILog;
 
 struct Range {
-    uint32_t offset = 0;
-    uint32_t size = 0;
+    uint32_t offset;
+    uint32_t size;
 };
 
 class Shader : public RefCounter {

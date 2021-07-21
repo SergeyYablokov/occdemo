@@ -109,6 +109,7 @@ void RpCombine::LazyInit(Ren::Context &ctx, ShaderLoader &sh, RpAllocTex *output
     }
 
     const Ren::WeakTex2DRef output = output_tex ? output_tex->ref : ctx.backbuffer_ref();
+    const Ren::RenderTarget render_target = {output, Ren::eLoadOp::DontCare, Ren::eStoreOp::Store};
     const Ren::RenderTarget render_targets[] = {{output, Ren::eLoadOp::DontCare, Ren::eStoreOp::Store}};
 
     if (!render_pass_[ctx.backend_frame()].Setup(ctx.api_ctx(), render_targets, 1, {}, ctx.log())) {
