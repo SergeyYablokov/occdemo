@@ -39,6 +39,7 @@ set(SOURCE_FILES Anim.h
                  CPUFeatures.h
                  CPUFeatures.cpp
                  DebugMarker.h
+                 DescriptorPool.h
                  MemoryAllocator.h
                  Fence.h
                  Fixed.h
@@ -126,6 +127,7 @@ elseif(${RENDERER} STREQUAL "VK")
     set(SOURCE_FILES ${SOURCE_FILES}
                      BufferVK.cpp
                      ContextVK.cpp
+                     DescriptorPoolVK.cpp
                      FenceVK.cpp
                      FramebufferVK.cpp
                      MemoryAllocatorVK.cpp

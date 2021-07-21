@@ -65,17 +65,21 @@ void RpSkydome::DrawSkydome(RpBuilder &builder, RpAllocTex &color_tex, RpAllocTe
     Ren::Context &ctx = builder.ctx();
     Ren::ApiContext *api_ctx = ctx.api_ctx();
 
+    VkDescriptorSetLayout descr_set_layout = skydome_prog_->descr_set_layouts()[0];
+    VkDescriptorSet descr_set =
+        ctx.default_descr_alloc()->Alloc(1 /* img_count */, 1 /* ubuf_count */, 0 /* sbuf_count */, descr_set_layout);
+
     {                                               // update descriptor set
         const VkDescriptorBufferInfo buf_infos[] = {// shared data
                                                     {unif_shared_data_buf.ref->handle().buf, 0, VK_WHOLE_SIZE}};
 
         const VkDescriptorImageInfo img_infos[] = {// environment texture
-                                                   env_->env_map->sampler().handle(), env_->env_map->handle().view,
+                                                   env_->env_map->handle().sampler, env_->env_map->handle().view,
                                                    VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
 
         VkWriteDescriptorSet descr_writes[2];
         descr_writes[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descr_writes[0].dstSet = desc_set_[api_ctx->backend_frame];
+        descr_writes[0].dstSet = descr_set;
         descr_writes[0].dstBinding = REN_UB_SHARED_DATA_LOC;
         descr_writes[0].dstArrayElement = 0;
         descr_writes[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -86,7 +90,7 @@ void RpSkydome::DrawSkydome(RpBuilder &builder, RpAllocTex &color_tex, RpAllocTe
         descr_writes[0].pNext = nullptr;
 
         descr_writes[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descr_writes[1].dstSet = desc_set_[api_ctx->backend_frame];
+        descr_writes[1].dstSet = descr_set;
         descr_writes[1].dstBinding = REN_BASE0_TEX_SLOT;
         descr_writes[1].dstArrayElement = 0;
         descr_writes[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
@@ -225,7 +229,7 @@ void RpSkydome::DrawSkydome(RpBuilder &builder, RpAllocTex &color_tex, RpAllocTe
     vkCmdSetScissor(cmd_buf, 0, 1, &scissor);
 
     vkCmdBindDescriptorSets(cmd_buf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_layout_, 0, 1,
-                            &desc_set_[api_ctx_->backend_frame], 0, nullptr);
+                            &descr_set /*desc_set_[api_ctx_->backend_frame]*/, 0, nullptr);
 
     Ren::Mat4f translate_matrix;
     translate_matrix = Ren::Translate(translate_matrix, draw_cam_pos_);
@@ -255,7 +259,7 @@ void RpSkydome::DrawSkydome(RpBuilder &builder, RpAllocTex &color_tex, RpAllocTe
 bool RpSkydome::InitPipeline(Ren::Context &ctx, RpAllocTex &color_tex, RpAllocTex &spec_tex, RpAllocTex &depth_tex) {
     Ren::ApiContext *api_ctx = ctx.api_ctx();
 
-    { // create descriptor set layout
+    /*{ // create descriptor set layout
         const VkDescriptorSetLayoutBinding layout_bindings[] = {
             // shared data
             {REN_UB_SHARED_DATA_LOC, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1,
@@ -273,53 +277,13 @@ bool RpSkydome::InitPipeline(Ren::Context &ctx, RpAllocTex &color_tex, RpAllocTe
             ctx.log()->Error("Failed to create descriptor set layout!");
             return false;
         }
-    }
-
-    { // create descriptor pool
-        VkDescriptorPoolSize pool_sizes[2];
-        pool_sizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        pool_sizes[0].descriptorCount = 1;
-
-        pool_sizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        pool_sizes[1].descriptorCount = 1;
-
-        VkDescriptorPoolCreateInfo pool_info = {};
-        pool_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-        pool_info.poolSizeCount = 2;
-        pool_info.pPoolSizes = pool_sizes;
-        pool_info.maxSets = Ren::MaxFramesInFlight;
-
-        const VkResult res = vkCreateDescriptorPool(api_ctx->device, &pool_info, nullptr, &desc_pool_);
-        if (res != VK_SUCCESS) {
-            ctx.log()->Error("Failed to create descriptor pool!");
-            return false;
-        }
-    }
-
-    { // create descriptor set
-        VkDescriptorSetAllocateInfo alloc_info = {};
-        alloc_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-        alloc_info.descriptorPool = desc_pool_;
-        alloc_info.descriptorSetCount = Ren::MaxFramesInFlight;
-
-        VkDescriptorSetLayout desc_set_layouts[Ren::MaxFramesInFlight];
-        for (int i = 0; i < Ren::MaxFramesInFlight; i++) {
-            desc_set_layouts[i] = desc_set_layout_;
-        }
-        alloc_info.pSetLayouts = desc_set_layouts;
-
-        const VkResult res = vkAllocateDescriptorSets(api_ctx->device, &alloc_info, desc_set_);
-        if (res != VK_SUCCESS) {
-            ctx.log()->Error("Failed to allocate descriptor sets!");
-            return false;
-        }
-    }
+    }*/
 
     { // create pipeline layout
         VkPipelineLayoutCreateInfo layout_create_info = {};
         layout_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
         layout_create_info.setLayoutCount = 1;
-        layout_create_info.pSetLayouts = &desc_set_layout_;
+        layout_create_info.pSetLayouts = skydome_prog_->descr_set_layouts();
 
         VkPushConstantRange pc_ranges[1] = {};
         pc_ranges[0].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
@@ -567,12 +531,12 @@ bool RpSkydome::InitPipeline(Ren::Context &ctx, RpAllocTex &color_tex, RpAllocTe
 }
 
 RpSkydome::~RpSkydome() {
-    if (desc_set_layout_) {
+    /*if (desc_set_layout_) {
         vkDestroyDescriptorSetLayout(api_ctx_->device, desc_set_layout_, nullptr);
-    }
-    if (desc_pool_) {
+    }*/
+    /*if (desc_pool_) {
         vkDestroyDescriptorPool(api_ctx_->device, desc_pool_, nullptr);
-    }
+    }*/
     /*if (render_pass_) {
         vkDestroyRenderPass(api_ctx_->device, render_pass_, nullptr);
     }*/

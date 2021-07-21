@@ -8,7 +8,7 @@
 #include "../PrimDraw.h"
 #include "../Renderer_Structs.h"
 
-void RpBlur::Setup(RpBuilder &builder, const ViewState *view_state, Ren::TexHandle down_buf_4x,
+void RpBlur::Setup(RpBuilder &builder, const ViewState *view_state, Ren::WeakTex2DRef down_buf_4x,
                    const char blur_res_tex_name[]) {
     view_state_ = view_state;
     down_buf_4x_ = down_buf_4x;
@@ -42,7 +42,7 @@ void RpBlur::Execute(RpBuilder &builder) {
     Ren::RastState applied_state = rast_state;
 
     { // horizontal
-        const PrimDraw::Binding binding = {Ren::eBindTarget::Tex2D, REN_BASE0_TEX_SLOT, down_buf_4x_};
+        const PrimDraw::Binding binding = {Ren::eBindTarget::Tex2D, REN_BASE0_TEX_SLOT, *down_buf_4x_};
 
         const PrimDraw::Uniform uniforms[] = {
             {0, Ren::Vec4f{0.0f, 0.0f, float(applied_state.viewport[2]), float(applied_state.viewport[3])}}, {1, 0.0f}};
@@ -51,7 +51,7 @@ void RpBlur::Execute(RpBuilder &builder) {
     }
 
     { // vertical
-        const PrimDraw::Binding binding = {Ren::eBindTarget::Tex2D, REN_BASE0_TEX_SLOT, blur_temp_4x.ref->handle()};
+        const PrimDraw::Binding binding = {Ren::eBindTarget::Tex2D, REN_BASE0_TEX_SLOT, *blur_temp_4x.ref};
 
         const PrimDraw::Uniform uniforms[] = {
             {0, Ren::Vec4f{0.0f, 0.0f, float(applied_state.viewport[2]), float(applied_state.viewport[3])}}, {1, 1.0f}};

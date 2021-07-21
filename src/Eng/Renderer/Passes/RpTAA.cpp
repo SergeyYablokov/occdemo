@@ -64,9 +64,9 @@ void RpTAA::Execute(RpBuilder &builder) {
 
         Ren::Program *blit_prog = blit_static_vel_prog_.get();
 
-        const PrimDraw::Binding bindings[] = {{Ren::eBindTarget::Tex2D, 0, depth_tex.ref->handle()},
-                                              {Ren::eBindTarget::UBuf, REN_UB_SHARED_DATA_LOC, 0,
-                                               sizeof(SharedDataBlock), unif_shared_data_buf.ref->handle()}};
+        const PrimDraw::Binding bindings[] = {
+            {Ren::eBindTarget::Tex2D, 0, *depth_tex.ref},
+            {Ren::eBindTarget::UBuf, REN_UB_SHARED_DATA_LOC, 0, sizeof(SharedDataBlock), *unif_shared_data_buf.ref}};
 
         const PrimDraw::Uniform uniforms[] = {{0, Ren::Vec4f{applied_state.viewport}}};
 
@@ -84,10 +84,10 @@ void RpTAA::Execute(RpBuilder &builder) {
         float exposure = reduced_average_ > std::numeric_limits<float>::epsilon() ? (1.0f / reduced_average_) : 1.0f;
         exposure = std::min(exposure, max_exposure_);
 
-        const PrimDraw::Binding bindings[] = {{Ren::eBindTarget::Tex2D, 0, clean_tex.ref->handle()},
-                                              {Ren::eBindTarget::Tex2D, 1, history_tex_->handle()},
-                                              {Ren::eBindTarget::Tex2D, 2, depth_tex.ref->handle()},
-                                              {Ren::eBindTarget::Tex2D, 3, velocity_tex.ref->handle()}};
+        const PrimDraw::Binding bindings[] = {{Ren::eBindTarget::Tex2D, 0, *clean_tex.ref},
+                                              {Ren::eBindTarget::Tex2D, 1, *history_tex_},
+                                              {Ren::eBindTarget::Tex2D, 2, *depth_tex.ref},
+                                              {Ren::eBindTarget::Tex2D, 3, *velocity_tex.ref}};
 
         const PrimDraw::Uniform uniforms[] = {
             {0, Ren::Vec4f{applied_state.viewport}},

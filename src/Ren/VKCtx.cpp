@@ -530,9 +530,10 @@ bool Ren::InitCommandBuffers(VkCommandPool &command_pool, VkCommandPool &temp_co
     return true;
 }
 
-bool Ren::InitPresentImageViews(SmallVectorImpl<VkImage> &present_images, SmallVectorImpl<VkImageView> &present_image_views,
-                         VkDevice device, VkSwapchainKHR swapchain, VkSurfaceFormatKHR surface_format,
-                         VkCommandBuffer setup_cmd_buf, VkQueue present_queue, ILog *log) {
+bool Ren::InitPresentImageViews(SmallVectorImpl<VkImage> &present_images,
+                                SmallVectorImpl<VkImageView> &present_image_views, VkDevice device,
+                                VkSwapchainKHR swapchain, VkSurfaceFormatKHR surface_format,
+                                VkCommandBuffer setup_cmd_buf, VkQueue present_queue, ILog *log) {
     uint32_t image_count;
     vkGetSwapchainImagesKHR(device, swapchain, &image_count, nullptr);
 
@@ -677,6 +678,11 @@ void Ren::DestroyDeferredResources(ApiContext *api_ctx, int i) {
         vkDestroyImage(api_ctx->device, img, nullptr);
     }
     api_ctx->images_to_destroy[i].clear();
+    for (VkSampler sampler : api_ctx->samplers_to_destroy[i]) {
+        vkDestroySampler(api_ctx->device, sampler, nullptr);
+    }
+    api_ctx->samplers_to_destroy[i].clear();
+
     api_ctx->allocs_to_free[i].clear();
 
     for (VkBufferView view : api_ctx->buf_views_to_destroy[i]) {

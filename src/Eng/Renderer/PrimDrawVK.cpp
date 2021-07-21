@@ -7,11 +7,22 @@
 
 namespace PrimDrawInternal {
 extern const float fs_quad_positions[] = {-1.0f, -1.0f, 1.0f, -1.0f, 1.0f, 1.0f, -1.0f, 1.0f};
-extern const float fs_quad_norm_uvs[] = {0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f};
+extern const float fs_quad_norm_uvs[] = {0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f, 0.0f};
 extern const uint16_t fs_quad_indices[] = {0, 1, 2, 0, 2, 3};
 const int TempBufSize = 256;
 #include "__sphere_mesh.inl"
 } // namespace PrimDrawInternal
+
+PrimDraw::~PrimDraw() {
+    if (ctx_) {
+        Ren::ApiContext *api_ctx = ctx_->api_ctx();
+        for (auto &pipeline : pipelines_) {
+            vkDestroyPipelineLayout(api_ctx->device, pipeline.layout, nullptr);
+            vkDestroyDescriptorPool(api_ctx->device, pipeline.desc_pool, nullptr);
+            vkDestroyPipeline(api_ctx->device, pipeline.pipeline, nullptr);
+        }
+    }
+}
 
 bool PrimDraw::LazyInit(Ren::Context &ctx) {
     using namespace PrimDrawInternal;
@@ -92,7 +103,7 @@ bool PrimDraw::LazyInit(Ren::Context &ctx) {
             temp_buf_ndx_offset_ = ndx_buf->AllocRegion(TempBufSize, "temp");
         }
 
-        api_ctx_ = ctx.api_ctx();
+        ctx_ = &ctx;
         initialized_ = true;
     }
 
@@ -118,9 +129,9 @@ bool PrimDraw::LazyInit(Ren::Context &ctx) {
     return true;
 }
 
-void PrimDraw::CleanUp(Ren::Context &ctx) {
-    Ren::BufferRef vtx_buf1 = ctx.default_vertex_buf1(), vtx_buf2 = ctx.default_vertex_buf2(),
-                   ndx_buf = ctx.default_indices_buf();
+void PrimDraw::CleanUp() {
+    Ren::BufferRef vtx_buf1 = ctx_->default_vertex_buf1(), vtx_buf2 = ctx_->default_vertex_buf2(),
+                   ndx_buf = ctx_->default_indices_buf();
 
     if (quad_vtx1_offset_ != 0xffffffff) {
         vtx_buf1->FreeRegion(quad_vtx1_offset_);
@@ -147,92 +158,162 @@ void PrimDraw::CleanUp(Ren::Context &ctx) {
     }
 }
 
+void PrimDraw::Reset() {}
+
 void PrimDraw::DrawPrim(const ePrim prim, const Ren::Program *p, const Ren::Framebuffer &fb, const Ren::RenderPass &rp,
                         const Binding bindings[], const int bindings_count, const void *uniform_data,
                         const int uniform_data_len, const int uniform_data_offset) {
     using namespace PrimDrawInternal;
 
-    VkPipeline pipeline = FindOrCreatePipeline(p, rp, bindings, bindings_count);
+    Ren::ApiContext *api_ctx = ctx_->api_ctx();
 
-    // VkCommandBuffer cmd_buf = api_ctx_->draw_cmd_buf[api_ctx_->backend_frame];
+    VkPipeline pipeline;
+    VkPipelineLayout pipeline_layout;
+    std::tie(pipeline, pipeline_layout) = FindOrCreatePipeline(p, rp, bindings, bindings_count);
 
-#if 0
-    glBindFramebuffer(GL_FRAMEBUFFER, rt.fb);
-    // glViewport(rt.viewport[0], rt.viewport[1], rt.viewport[2], rt.viewport[3]);
+    VkDescriptorSetLayout descr_set_layout = p->descr_set_layouts()[0];
+    VkDescriptorSet descr_set = VK_NULL_HANDLE;
 
-    for (int i = 0; i < bindings_count; i++) {
-        const auto &b = bindings[i];
-        if (b.trg == Ren::eBindTarget::UBuf) {
-            if (b.offset) {
-                assert(b.size != 0);
-                glBindBufferRange(GL_UNIFORM_BUFFER, b.loc, b.handle.id, b.offset,
-                                  b.size);
-            } else {
-                glBindBufferBase(GL_UNIFORM_BUFFER, b.loc, b.handle.id);
-            }
-        } else {
-            ren_glBindTextureUnit_Comp(Ren::GLBindTarget(b.trg), GLuint(b.loc),
-                                       GLuint(b.handle.id));
+    { // allocate and update descriptor set
+        VkDescriptorImageInfo img_infos[16];
+        uint32_t img_infos_count = 0;
+        VkDescriptorBufferInfo ubuf_infos[16];
+        uint32_t ubuf_infos_count = 0;
+        VkDescriptorBufferInfo sbuf_infos[16];
+        uint32_t sbuf_infos_count = 0;
+
+        Ren::SmallVector<VkWriteDescriptorSet, 48> descr_writes;
+
+        for (int i = 0; i < bindings_count; ++i) {
+            const auto &b = bindings[i];
+
+            if (b.trg == Ren::eBindTarget::Tex2D) {
+                auto &info = img_infos[img_infos_count++];
+                info.sampler = b.handle.tex->handle().sampler;
+                info.imageView = b.handle.tex->handle().view;
+                info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+                auto &new_write = descr_writes.emplace_back();
+                new_write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+                new_write.dstSet = {};
+                new_write.dstBinding = b.loc;
+                new_write.dstArrayElement = 0;
+                new_write.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+                new_write.descriptorCount = 1;
+                new_write.pBufferInfo = nullptr;
+                new_write.pImageInfo = &info;
+                new_write.pTexelBufferView = nullptr;
+                new_write.pNext = nullptr;
+            } else if (b.trg == Ren::eBindTarget::UBuf) {
+                auto &ubuf = ubuf_infos[ubuf_infos_count++];
+                ubuf.buffer = b.handle.buf->handle().buf;
+                ubuf.offset = b.offset;
+                ubuf.range = b.offset ? b.size : VK_WHOLE_SIZE;
+            } // else if (b.trg == Ren::eBindTarget::TexBuf)
         }
+
+        descr_set =
+            ctx_->default_descr_alloc()->Alloc(img_infos_count, ubuf_infos_count, sbuf_infos_count, descr_set_layout);
+        if (!descr_set) {
+            ctx_->log()->Error("Failed to allocate descriptor set!");
+            return;
+        }
+
+        for (auto &d : descr_writes) {
+            d.dstSet = descr_set;
+        }
+
+        vkUpdateDescriptorSets(api_ctx->device, uint32_t(descr_writes.size()), descr_writes.data(), 0, nullptr);
     }
 
-    glUseProgram(p->id());
+    VkCommandBuffer cmd_buf = api_ctx->draw_cmd_buf[api_ctx->backend_frame];
 
-    for (int i = 0; i < uniforms_count; i++) {
-        const auto &u = uniforms[i];
-        if (u.type == Ren::eType::Float32) {
-            if (u.size == 1) {
-                glUniform1f(GLint(u.loc), u.fdata[0]);
-            } else if (u.size == 2) {
-                glUniform2f(GLint(u.loc), u.fdata[0], u.fdata[1]);
-            } else if (u.size == 3) {
-                glUniform3f(GLint(u.loc), u.fdata[0], u.fdata[1], u.fdata[2]);
-            } else if (u.size == 4) {
-                glUniform4f(GLint(u.loc), u.fdata[0], u.fdata[1], u.fdata[2], u.fdata[3]);
-            } else {
-                assert(u.size % 4 == 0);
-                glUniformMatrix4fv(GLint(u.loc), 1, GL_FALSE, u.pfdata);
-            }
-        } else if (u.type == Ren::eType::Int32) {
-            if (u.size == 1) {
-                glUniform1i(GLint(u.loc), u.idata[0]);
-            } else if (u.size == 2) {
-                glUniform2i(GLint(u.loc), u.idata[0], u.idata[1]);
-            } else if (u.size == 3) {
-                glUniform3i(GLint(u.loc), u.idata[0], u.idata[1], u.idata[2]);
-            } else if (u.size == 4) {
-                glUniform4i(GLint(u.loc), u.idata[0], u.idata[1], u.idata[2], u.idata[3]);
-            } else {
-                assert(u.size % 4 == 0);
-                glUniform4iv(GLint(u.loc), GLsizei(u.size / 4), u.pidata);
+    {
+        VkPipelineStageFlags barrier_stages = 0;
+
+        int img_barriers_count = 0;
+        VkImageMemoryBarrier img_barriers[4] = {};
+
+        for (int i = 0; i < bindings_count; ++i) {
+            const auto &b = bindings[i];
+
+            if (b.trg == Ren::eBindTarget::Tex2D) {
+                auto &new_barrier = img_barriers[img_barriers_count++];
+                new_barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+                new_barrier.oldLayout = b.handle.tex->layout;
+                new_barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+                new_barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+                new_barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+                new_barrier.image = b.handle.tex->handle().img;
+                new_barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+                new_barrier.subresourceRange.baseMipLevel = 0;
+                new_barrier.subresourceRange.levelCount = VK_REMAINING_MIP_LEVELS;
+                new_barrier.subresourceRange.baseArrayLayer = 0;
+                new_barrier.subresourceRange.layerCount = VK_REMAINING_ARRAY_LAYERS;
+                new_barrier.srcAccessMask = b.handle.tex->last_access_mask;
+                new_barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+                barrier_stages |= b.handle.tex->last_stage_mask;
+
+                b.handle.tex->layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+                b.handle.tex->last_access_mask = VK_ACCESS_SHADER_READ_BIT;
+                b.handle.tex->last_stage_mask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
             }
         }
+
+        vkCmdPipelineBarrier(cmd_buf, barrier_stages,
+                             VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT |
+                                 VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
+                                 VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
+                             0, 0, nullptr, 0, nullptr, img_barriers_count, img_barriers);
     }
+
+    VkRenderPassBeginInfo render_pass_begin_info = {};
+    render_pass_begin_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+    render_pass_begin_info.renderPass = rp.handle();
+    render_pass_begin_info.framebuffer = fb.handle();
+    render_pass_begin_info.renderArea = {0, 0, uint32_t(1280), uint32_t(720)};
+
+    vkCmdBeginRenderPass(cmd_buf, &render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
+    vkCmdBindPipeline(cmd_buf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+
+    const VkViewport viewport = {0.0f, 0.0f, float(1280), float(720), 0.0f, 1.0f};
+    vkCmdSetViewport(cmd_buf, 0, 1, &viewport);
+
+    const VkRect2D scissor = {0, 0, uint32_t(1280), uint32_t(720)};
+    vkCmdSetScissor(cmd_buf, 0, 1, &scissor);
+
+    vkCmdBindDescriptorSets(cmd_buf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_layout, 0, 1, &descr_set, 0, nullptr);
+
+    vkCmdPushConstants(cmd_buf, pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+                       uniform_data_offset, uniform_data_len, uniform_data);
+
+    VkBuffer vtx_buf = ctx_->default_vertex_buf1()->handle().buf;
+    VkBuffer ndx_buf = ctx_->default_indices_buf()->handle().buf;
 
     if (prim == ePrim::Quad) {
-        glBindVertexArray(fs_quad_vao_.id());
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT,
-                       (const GLvoid *)uintptr_t(quad_ndx_offset_));
-    } else if (prim == ePrim::Sphere) {
-        glBindVertexArray(sphere_vao_.id());
-        glDrawElements(GL_TRIANGLES, GLsizei(__sphere_indices_count), GL_UNSIGNED_SHORT,
-                       (void *)uintptr_t(sphere_ndx_offset_));
+        VkDeviceSize offset = {quad_vtx1_offset_};
+        vkCmdBindVertexBuffers(cmd_buf, 0, 1, &vtx_buf, &offset);
+        vkCmdBindIndexBuffer(cmd_buf, ndx_buf, VkDeviceSize(quad_ndx_offset_), VK_INDEX_TYPE_UINT16);
+        vkCmdDrawIndexed(cmd_buf, uint32_t(6), // index count
+                         1,                    // instance count
+                         0,                    // first index
+                         0,                    // vertex offset
+                         0);                   // first instance
     }
 
-#ifndef NDEBUG
-    Ren::ResetGLState();
-#endif
-#endif
+    vkCmdEndRenderPass(cmd_buf);
 }
 
-VkPipeline PrimDraw::FindOrCreatePipeline(const Ren::Program *p, const Ren::RenderPass &rp, const Binding bindings[],
-                                          const int bindings_count) {
+std::pair<VkPipeline, VkPipelineLayout> PrimDraw::FindOrCreatePipeline(const Ren::Program *p, const Ren::RenderPass &rp,
+                                                                       const Binding bindings[],
+                                                                       const int bindings_count) {
     for (size_t i = 0; i < pipelines_.size(); ++i) {
         if (pipelines_[i].p == p && pipelines_[i].rp == &rp) {
-            return pipelines_[i].pipeline;
+            return std::make_pair(pipelines_[i].pipeline, pipelines_[i].layout);
         }
     }
 
+    Ren::ApiContext *api_ctx = ctx_->api_ctx();
     CachedPipeline &new_pipeline = pipelines_.emplace_back();
 
     new_pipeline.p = p;
@@ -250,11 +331,11 @@ VkPipeline PrimDraw::FindOrCreatePipeline(const Ren::Program *p, const Ren::Rend
         }
 
         const VkResult res =
-            vkCreatePipelineLayout(api_ctx_->device, &layout_create_info, nullptr, &new_pipeline.layout);
+            vkCreatePipelineLayout(api_ctx->device, &layout_create_info, nullptr, &new_pipeline.layout);
         if (res != VK_SUCCESS) {
             log_->Error("Failed to create pipeline layout!");
             pipelines_.pop_back();
-            return VK_NULL_HANDLE;
+            return std::make_pair(VkPipeline{}, VkPipelineLayout{});
         }
     }
 
@@ -276,13 +357,13 @@ VkPipeline PrimDraw::FindOrCreatePipeline(const Ren::Program *p, const Ren::Rend
 
         VkVertexInputBindingDescription vtx_binding_desc[1] = {};
         vtx_binding_desc[0].binding = 0;
-        vtx_binding_desc[0].stride = buf1_stride;
+        vtx_binding_desc[0].stride = 2 * sizeof(float);
         vtx_binding_desc[0].inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 
         VkVertexInputAttributeDescription vtx_attrib_desc[2] = {};
         vtx_attrib_desc[0].binding = 0;
         vtx_attrib_desc[0].location = REN_VTX_POS_LOC;
-        vtx_attrib_desc[0].format = VK_FORMAT_R32G32B32_SFLOAT;
+        vtx_attrib_desc[0].format = VK_FORMAT_R32G32_SFLOAT;
         vtx_attrib_desc[0].offset = 0;
 
         vtx_attrib_desc[1].binding = 0;
@@ -406,14 +487,14 @@ VkPipeline PrimDraw::FindOrCreatePipeline(const Ren::Program *p, const Ren::Rend
         pipeline_create_info.basePipelineHandle = VK_NULL_HANDLE;
         pipeline_create_info.basePipelineIndex = 0;
 
-        const VkResult res = vkCreateGraphicsPipelines(api_ctx_->device, VK_NULL_HANDLE, 1, &pipeline_create_info,
+        const VkResult res = vkCreateGraphicsPipelines(api_ctx->device, VK_NULL_HANDLE, 1, &pipeline_create_info,
                                                        nullptr, &new_pipeline.pipeline);
         if (res != VK_SUCCESS) {
             log_->Error("Failed to create graphics pipeline!");
             pipelines_.pop_back();
-            return VK_NULL_HANDLE;
+            return std::make_pair(VkPipeline{}, VkPipelineLayout{});
         }
     }
 
-    return VK_NULL_HANDLE;
+    return std::make_pair(new_pipeline.pipeline, new_pipeline.layout);
 }

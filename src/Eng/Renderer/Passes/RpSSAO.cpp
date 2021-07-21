@@ -8,7 +8,7 @@
 #include "../PrimDraw.h"
 #include "../Renderer_Structs.h"
 
-void RpSSAO::Setup(RpBuilder &builder, const ViewState *view_state, Ren::TexHandle rand2d_dirs_4x4_tex,
+void RpSSAO::Setup(RpBuilder &builder, const ViewState *view_state, Ren::WeakTex2DRef rand2d_dirs_4x4_tex,
                    const char shared_data_buf[], const char depth_down_2x[], const char depth_tex[],
                    const char output_tex[]) {
     view_state_ = view_state;
@@ -63,10 +63,9 @@ void RpSSAO::Execute(RpBuilder &builder) {
 
     { // prepare ao buffer
         const PrimDraw::Binding bindings[] = {
-            {Ren::eBindTarget::Tex2D, REN_BASE0_TEX_SLOT, down_depth_2x_tex.ref->handle()},
-            {Ren::eBindTarget::Tex2D, REN_BASE1_TEX_SLOT, rand2d_dirs_4x4_tex_},
-            {Ren::eBindTarget::UBuf, REN_UB_SHARED_DATA_LOC, 0, sizeof(SharedDataBlock),
-             unif_shared_data_buf.ref->handle()}};
+            {Ren::eBindTarget::Tex2D, REN_BASE0_TEX_SLOT, *down_depth_2x_tex.ref},
+            {Ren::eBindTarget::Tex2D, REN_BASE1_TEX_SLOT, *rand2d_dirs_4x4_tex_},
+            {Ren::eBindTarget::UBuf, REN_UB_SHARED_DATA_LOC, 0, sizeof(SharedDataBlock), *unif_shared_data_buf.ref}};
 
         const PrimDraw::Uniform uniforms[] = {{0, Ren::Vec4f{applied_state.viewport}}};
 
@@ -74,15 +73,15 @@ void RpSSAO::Execute(RpBuilder &builder) {
     }
 
     { // blur ao buffer
-        PrimDraw::Binding bindings[] = {{Ren::eBindTarget::Tex2D, 0, down_depth_2x_tex.ref->handle()},
-                                        {Ren::eBindTarget::Tex2D, 1, ssao1_tex.ref->handle()}};
+        PrimDraw::Binding bindings[] = {{Ren::eBindTarget::Tex2D, 0, *down_depth_2x_tex.ref},
+                                        {Ren::eBindTarget::Tex2D, 1, *ssao1_tex.ref}};
 
         PrimDraw::Uniform uniforms[] = {{0, Ren::Vec4f{applied_state.viewport}}, {3, 0.0f}};
 
         prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, {&ssao_buf2_fb_, 0}, blit_bilateral_prog_.get(), bindings, 2,
                             uniforms, 2);
 
-        bindings[1] = {Ren::eBindTarget::Tex2D, 1, ssao2_tex.ref->handle()};
+        bindings[1] = {Ren::eBindTarget::Tex2D, 1, *ssao2_tex.ref};
 
         uniforms[0] = {0, Ren::Vec4f{applied_state.viewport}};
         uniforms[1] = {3, 1.0f};
@@ -98,11 +97,11 @@ void RpSSAO::Execute(RpBuilder &builder) {
     applied_state = rast_state;
 
     { // upsample ao
-        PrimDraw::Binding bindings[] = {{Ren::eBindTarget::Tex2D, 0, depth_tex.ref->handle()},
-                                        {Ren::eBindTarget::Tex2D, 1, down_depth_2x_tex.ref->handle()},
-                                        {Ren::eBindTarget::Tex2D, 2, ssao1_tex.ref->handle()},
-                                        {Ren::eBindTarget::UBuf, REN_UB_SHARED_DATA_LOC, 0, sizeof(SharedDataBlock),
-                                         unif_shared_data_buf.ref->handle()}};
+        PrimDraw::Binding bindings[] = {
+            {Ren::eBindTarget::Tex2D, 0, *depth_tex.ref},
+            {Ren::eBindTarget::Tex2D, 1, *down_depth_2x_tex.ref},
+            {Ren::eBindTarget::Tex2D, 2, *ssao1_tex.ref},
+            {Ren::eBindTarget::UBuf, REN_UB_SHARED_DATA_LOC, 0, sizeof(SharedDataBlock), *unif_shared_data_buf.ref}};
 
         Ren::Program *blit_upscale_prog = nullptr;
         if (view_state_->is_multisampled) {

@@ -13,7 +13,7 @@ class RpBlur : public RenderPassBase {
     Ren::ProgramRef blit_gauss_prog_;
 
     // temp data (valid only between Setup and Execute calls)
-    Ren::TexHandle down_buf_4x_;
+    Ren::WeakTex2DRef down_buf_4x_;
     const ViewState *view_state_ = nullptr;
 
     RpResource blur_temp_4x_, output_tex_;
@@ -26,7 +26,7 @@ class RpBlur : public RenderPassBase {
   public:
     RpBlur(PrimDraw &prim_draw) : prim_draw_(prim_draw) {}
 
-    void Setup(RpBuilder &builder, const ViewState *view_state, Ren::TexHandle down_buf_4x,
+    void Setup(RpBuilder &builder, const ViewState *view_state, Ren::WeakTex2DRef down_buf_4x,
                const char blur_res_tex_name[]);
     void Execute(RpBuilder &builder) override;
 

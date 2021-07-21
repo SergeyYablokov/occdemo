@@ -161,8 +161,11 @@ bool Ren::LoadVulkan(ILog *log) {
     LOAD_VK_FUN(vkDestroySemaphore)
     LOAD_VK_FUN(vkCreateSampler)
     LOAD_VK_FUN(vkDestroySampler)
+
     LOAD_VK_FUN(vkCreateDescriptorPool)
     LOAD_VK_FUN(vkDestroyDescriptorPool)
+    LOAD_VK_FUN(vkResetDescriptorPool)
+
     LOAD_VK_FUN(vkAllocateDescriptorSets)
     LOAD_VK_FUN(vkFreeDescriptorSets)
     LOAD_VK_FUN(vkUpdateDescriptorSets)

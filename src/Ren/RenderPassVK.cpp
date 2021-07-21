@@ -41,8 +41,8 @@ void Ren::RenderPass::Destroy() {
     depth_attachment_ = {};
 }
 
-bool Ren::RenderPass::Setup(ApiContext *api_ctx, const RenderTarget color_rts[], int color_rts_count,
-                            RenderTarget depth_rt, ILog *log) {
+bool Ren::RenderPass::Setup(ApiContext *api_ctx, const RenderTarget color_rts[], const int color_rts_count,
+                            const RenderTarget depth_rt, ILog *log) {
     if (color_rts_count == color_attachments_.size() &&
         std::equal(color_rts, color_rts + color_rts_count, color_attachments_.data(),
                    [](const RenderTarget &rt, const TexHandle &h) {

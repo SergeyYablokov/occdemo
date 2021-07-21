@@ -25,7 +25,7 @@ class Shader : public RefCounter {
                        ILog *log);
 
   public:
-    SmallVector<Descr, 16> attr_bindings, unif_bindings, blck_bindings;
+    SmallVector<Descr, 16> attr_bindings, unif_bindings;
     SmallVector<Range, 4> pc_ranges;
 
     Shader(const char *name, ApiContext *api_ctx, const char *shader_src, eShaderType type, eShaderLoadStatus *status,

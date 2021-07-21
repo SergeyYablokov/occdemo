@@ -35,9 +35,9 @@ void RpDownColor::Execute(RpBuilder &builder) {
 
     PrimDraw::Binding bindings[2];
 
-    bindings[0] = {Ren::eBindTarget::Tex2D, REN_BASE0_TEX_SLOT, color_tex.ref->handle()};
+    bindings[0] = {Ren::eBindTarget::Tex2D, REN_BASE0_TEX_SLOT, *color_tex.ref};
     bindings[1] = {Ren::eBindTarget::UBuf, REN_UB_SHARED_DATA_LOC, 0, sizeof(SharedDataBlock),
-                   unif_shared_data_buf.ref->handle()};
+                   *unif_shared_data_buf.ref};
 
     const PrimDraw::Uniform uniforms[] = {
         {0, Ren::Vec4f{0.0f, 0.0f, float(view_state_->act_res[0]) / float(view_state_->scr_res[0]),

@@ -16,7 +16,7 @@ class RpDOF : public RenderPassBase {
 
     // temp data (valid only between Setup and Execute calls)
     const Ren::Camera *draw_cam_ = nullptr;
-    Ren::TexHandle down_buf_4x_;
+    Ren::WeakTex2DRef down_buf_4x_;
     const ViewState *view_state_ = nullptr;
 
     RpResource shared_data_buf_;
@@ -38,7 +38,7 @@ class RpDOF : public RenderPassBase {
 
     void Setup(RpBuilder &builder, const Ren::Camera *draw_cam, const ViewState *view_state,
                const char shared_data_buf[], const char color_tex_name[], const char depth_tex_name[],
-               const char depth_down_2x_name[], const char depth_down_4x_name[], Ren::TexHandle down_buf_4x,
+               const char depth_down_2x_name[], const char depth_down_4x_name[], Ren::WeakTex2DRef down_buf_4x,
                const char output_tex_name[]);
     void Execute(RpBuilder &builder) override;
 

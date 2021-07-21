@@ -50,8 +50,8 @@ void RpDebugEllipsoids::DrawProbes(RpBuilder &builder) {
 
     RpAllocBuf &unif_shared_data_buf = builder.GetReadBuffer(shared_data_buf_);
 
-    const PrimDraw::Binding bindings[] = {{Ren::eBindTarget::UBuf, REN_UB_SHARED_DATA_LOC, 0, sizeof(SharedDataBlock),
-                                           unif_shared_data_buf.ref->handle()}};
+    const PrimDraw::Binding bindings[] = {
+        {Ren::eBindTarget::UBuf, REN_UB_SHARED_DATA_LOC, 0, sizeof(SharedDataBlock), *unif_shared_data_buf.ref}};
 
     for (int i = 0; i < int(ellipsoids_.count); i++) {
         const EllipsItem &e = ellipsoids_.data[i];

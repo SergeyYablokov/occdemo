@@ -10,7 +10,7 @@
 #include "../Renderer_Structs.h"
 
 void RpReflections::Setup(RpBuilder &builder, const ViewState *view_state, const ProbeStorage *probe_storage,
-                          Ren::TexHandle down_buf_4x_tex, Ren::Tex2DRef brdf_lut, const char shared_data_buf[],
+                          Ren::WeakTex2DRef down_buf_4x_tex, Ren::Tex2DRef brdf_lut, const char shared_data_buf[],
                           const char cells_buf[], const char items_buf[], const char depth_tex[],
                           const char normal_tex[], const char spec_tex[], const char depth_down_2x[],
                           const char output_tex_name[]) {
@@ -81,11 +81,10 @@ void RpReflections::Execute(RpBuilder &builder) {
         }
 
         const PrimDraw::Binding bindings[] = {
-            {Ren::eBindTarget::Tex2D, REN_REFL_DEPTH_TEX_SLOT, depth_down_2x_tex.ref->handle()},
-            {clean_buf_bind_target, REN_REFL_NORM_TEX_SLOT, normal_tex.ref->handle()},
-            {clean_buf_bind_target, REN_REFL_SPEC_TEX_SLOT, spec_tex.ref->handle()},
-            {Ren::eBindTarget::UBuf, REN_UB_SHARED_DATA_LOC, 0, sizeof(SharedDataBlock),
-             unif_sh_data_buf.ref->handle()}};
+            {Ren::eBindTarget::Tex2D, REN_REFL_DEPTH_TEX_SLOT, *depth_down_2x_tex.ref},
+            {clean_buf_bind_target, REN_REFL_NORM_TEX_SLOT, *normal_tex.ref},
+            {clean_buf_bind_target, REN_REFL_SPEC_TEX_SLOT, *spec_tex.ref},
+            {Ren::eBindTarget::UBuf, REN_UB_SHARED_DATA_LOC, 0, sizeof(SharedDataBlock), *unif_sh_data_buf.ref}};
 
         const PrimDraw::Uniform uniforms[] = {
             {0, Ren::Vec4f{0.0f, 0.0f, float(view_state_->act_res[0]), float(view_state_->act_res[1])}}};
@@ -96,7 +95,7 @@ void RpReflections::Execute(RpBuilder &builder) {
     { // dilate ssr buffer
         Ren::Program *dilate_prog = blit_ssr_dilate_prog_.get();
 
-        const PrimDraw::Binding bindings[] = {{Ren::eBindTarget::Tex2D, REN_BASE0_TEX_SLOT, ssr1_tex.ref->handle()}};
+        const PrimDraw::Binding bindings[] = {{Ren::eBindTarget::Tex2D, REN_BASE0_TEX_SLOT, *ssr1_tex.ref}};
 
         const PrimDraw::Uniform uniforms[] = {
             {0, Ren::Vec4f{0.0f, 0.0f, float(view_state_->scr_res[0]) / 2.0f, float(view_state_->scr_res[1]) / 2.0f}}};
@@ -121,22 +120,20 @@ void RpReflections::Execute(RpBuilder &builder) {
         applied_state = rast_state;
 
         const PrimDraw::Binding bindings[] = {
-            {clean_buf_bind_target, REN_REFL_SPEC_TEX_SLOT, spec_tex.ref->handle()},
-            {clean_buf_bind_target, REN_REFL_DEPTH_TEX_SLOT, depth_tex.ref->handle()},
-            {clean_buf_bind_target, REN_REFL_NORM_TEX_SLOT, normal_tex.ref->handle()},
+            {clean_buf_bind_target, REN_REFL_SPEC_TEX_SLOT, *spec_tex.ref},
+            {clean_buf_bind_target, REN_REFL_DEPTH_TEX_SLOT, *depth_tex.ref},
+            {clean_buf_bind_target, REN_REFL_NORM_TEX_SLOT, *normal_tex.ref},
             //
-            {Ren::eBindTarget::Tex2D, REN_REFL_DEPTH_LOW_TEX_SLOT, depth_down_2x_tex.ref->handle()},
-            {Ren::eBindTarget::Tex2D, REN_REFL_SSR_TEX_SLOT, ssr2_tex.ref->handle()},
+            {Ren::eBindTarget::Tex2D, REN_REFL_DEPTH_LOW_TEX_SLOT, *depth_down_2x_tex.ref},
+            {Ren::eBindTarget::Tex2D, REN_REFL_SSR_TEX_SLOT, *ssr2_tex.ref},
             //
-            {Ren::eBindTarget::Tex2D, REN_REFL_PREV_TEX_SLOT, down_buf_4x_tex_},
-            {Ren::eBindTarget::Tex2D, REN_REFL_BRDF_TEX_SLOT, brdf_lut_->handle()},
+            {Ren::eBindTarget::Tex2D, REN_REFL_PREV_TEX_SLOT, *down_buf_4x_tex_},
+            {Ren::eBindTarget::Tex2D, REN_REFL_BRDF_TEX_SLOT, *brdf_lut_},
             //
-            {Ren::eBindTarget::TexBuf, REN_CELLS_BUF_SLOT, cells_buf.tbos[0]->handle()},
-            {Ren::eBindTarget::TexBuf, REN_ITEMS_BUF_SLOT, items_buf.tbos[0]->handle()},
-            {Ren::eBindTarget::TexCubeArray, REN_ENV_TEX_SLOT,
-             probe_storage_ ? probe_storage_->handle() : Ren::TexHandle{}},
-            {Ren::eBindTarget::UBuf, REN_UB_SHARED_DATA_LOC, 0, sizeof(SharedDataBlock),
-             unif_sh_data_buf.ref->handle()}};
+            {Ren::eBindTarget::TexBuf, REN_CELLS_BUF_SLOT, *cells_buf.tbos[0]},
+            {Ren::eBindTarget::TexBuf, REN_ITEMS_BUF_SLOT, *items_buf.tbos[0]},
+            {Ren::eBindTarget::TexCubeArray, REN_ENV_TEX_SLOT, *probe_storage_},
+            {Ren::eBindTarget::UBuf, REN_UB_SHARED_DATA_LOC, 0, sizeof(SharedDataBlock), *unif_sh_data_buf.ref}};
 
         const PrimDraw::Uniform uniforms[] = {{0, Ren::Vec4f{0.0f, 0.0f, 1.0f, 1.0f}}};
 

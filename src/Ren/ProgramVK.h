@@ -26,7 +26,6 @@ class Program : public RefCounter {
     std::array<ShaderRef, int(eShaderType::_Count)> shaders_;
     SmallVector<Attribute, 8> attributes_;
     SmallVector<Uniform, 16> uniforms_;
-    SmallVector<UniformBlock, 4> uniform_blocks_;
     String name_;
 
     ApiContext *api_ctx_ = nullptr;
@@ -80,17 +79,6 @@ class Program : public RefCounter {
             }
         }
         return uniforms_[0];
-    }
-
-    const UniformBlock &uniform_block(const int i) const { return uniform_blocks_[i]; }
-
-    const UniformBlock &uniform_block(const char *name) const {
-        for (int i = 0; i < int(uniform_blocks_.size()); i++) {
-            if (uniform_blocks_[i].name == name) {
-                return uniform_blocks_[i];
-            }
-        }
-        return uniform_blocks_[0];
     }
 
     const ShaderRef &shader(eShaderType type) const { return shaders_[int(type)]; }

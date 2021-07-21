@@ -248,7 +248,6 @@ Ren::Texture2D &Ren::Texture2D::operator=(Ren::Texture2D &&rhs) noexcept {
 
     api_ctx_ = exchange(rhs.api_ctx_, nullptr);
     handle_ = exchange(rhs.handle_, {});
-    sampler_ = std::move(rhs.sampler_);
     alloc_ = exchange(rhs.alloc_, {});
     params_ = exchange(rhs.params_, {});
     ready_ = exchange(rhs.ready_, false);
@@ -374,6 +373,7 @@ void Ren::Texture2D::Free() {
 
         api_ctx_->image_views_to_destroy[api_ctx_->backend_frame].push_back(handle_.view);
         api_ctx_->images_to_destroy[api_ctx_->backend_frame].push_back(handle_.img);
+        api_ctx_->samplers_to_destroy[api_ctx_->backend_frame].push_back(handle_.sampler);
         api_ctx_->allocs_to_free[api_ctx_->backend_frame].emplace_back(std::move(alloc_));
 
         handle_ = {};
@@ -481,7 +481,7 @@ bool Ren::Texture2D::Realloc(const int w, const int h, int mip_count, const int 
     }
 #endif
 
-    const TexHandle new_handle = {new_image, new_image_view, TextureHandleCounter++};
+    const TexHandle new_handle = {new_image, new_image_view, exchange(handle_.sampler, {}), TextureHandleCounter++};
     uint16_t new_initialized_mips = 0;
 
     // copy data from old texture
@@ -740,7 +740,30 @@ void Ren::Texture2D::InitFromRAWData(Buffer *sbuf, int data_off, void *_cmd_buf,
         initialized_mips_ |= (1u << 0);
     }
 
-    sampler_.Init(api_ctx_, p.sampling);
+    { // create new sampler
+        VkSamplerCreateInfo sampler_info = {};
+        sampler_info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+        sampler_info.magFilter = g_vk_min_mag_filter[size_t(p.sampling.filter)];
+        sampler_info.minFilter = g_vk_min_mag_filter[size_t(p.sampling.filter)];
+        sampler_info.addressModeU = g_vk_wrap_mode[size_t(p.sampling.repeat)];
+        sampler_info.addressModeV = g_vk_wrap_mode[size_t(p.sampling.repeat)];
+        sampler_info.addressModeW = g_vk_wrap_mode[size_t(p.sampling.repeat)];
+        sampler_info.anisotropyEnable = VK_TRUE;
+        sampler_info.maxAnisotropy = AnisotropyLevel;
+        sampler_info.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+        sampler_info.unnormalizedCoordinates = VK_FALSE;
+        sampler_info.compareEnable = VK_FALSE;
+        sampler_info.compareOp = VK_COMPARE_OP_ALWAYS;
+        sampler_info.mipmapMode = g_vk_mipmap_mode[size_t(p.sampling.filter)];
+        sampler_info.mipLodBias = p.sampling.lod_bias.to_float();
+        sampler_info.minLod = p.sampling.min_lod.to_float();
+        sampler_info.maxLod = p.sampling.max_lod.to_float();
+
+        const VkResult res = vkCreateSampler(api_ctx_->device, &sampler_info, nullptr, &handle_.sampler);
+        if (res != VK_SUCCESS) {
+            log->Error("Failed to create sampler!");
+        }
+    }
 }
 
 void Ren::Texture2D::InitFromTGAFile(const void *data, Buffer &sbuf, void *_cmd_buf, MemoryAllocators *mem_allocs,
@@ -1058,7 +1081,6 @@ void Ren::Texture2D::InitFromKTXFile(const void *data, const int size, Buffer &s
     this->layout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
     this->last_access_mask = VK_ACCESS_TRANSFER_WRITE_BIT;
     this->last_stage_mask = VK_PIPELINE_STAGE_TRANSFER_BIT;
-
 
     ApplySampling(p.sampling, log);
 }
@@ -1844,6 +1866,36 @@ void Ren::Texture2D::SetSubImage(const int level, const int offsetx, const int o
         initialized_mips_ |= (1u << level);
     }
 }
+
+void Ren::Texture2D::SetSampling(const SamplingParams params) {
+    if (handle_.sampler) {
+        api_ctx_->samplers_to_destroy->emplace_back(handle_.sampler);
+    }
+
+    VkSamplerCreateInfo sampler_info = {};
+    sampler_info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+    sampler_info.magFilter = g_vk_min_mag_filter[size_t(params.filter)];
+    sampler_info.minFilter = g_vk_min_mag_filter[size_t(params.filter)];
+    sampler_info.addressModeU = g_vk_wrap_mode[size_t(params.repeat)];
+    sampler_info.addressModeV = g_vk_wrap_mode[size_t(params.repeat)];
+    sampler_info.addressModeW = g_vk_wrap_mode[size_t(params.repeat)];
+    sampler_info.anisotropyEnable = VK_TRUE;
+    sampler_info.maxAnisotropy = AnisotropyLevel;
+    sampler_info.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+    sampler_info.unnormalizedCoordinates = VK_FALSE;
+    sampler_info.compareEnable = VK_FALSE;
+    sampler_info.compareOp = VK_COMPARE_OP_ALWAYS;
+    sampler_info.mipmapMode = g_vk_mipmap_mode[size_t(params.filter)];
+    sampler_info.mipLodBias = params.lod_bias.to_float();
+    sampler_info.minLod = params.min_lod.to_float();
+    sampler_info.maxLod = params.max_lod.to_float();
+
+    const VkResult res = vkCreateSampler(api_ctx_->device, &sampler_info, nullptr, &handle_.sampler);
+    assert(res == VK_SUCCESS && "Failed to create sampler!");
+
+    params_.sampling = params;
+}
+
 
 void Ren::Texture2D::DownloadTextureData(const eTexFormat format, void *out_data) const {
 #if defined(__ANDROID__)

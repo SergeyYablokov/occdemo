@@ -24,4 +24,7 @@ out vec2 aVertexUVs_;
 void main() {
     aVertexUVs_ = params.transform.xy + aVertexUVs * params.transform.zw;
     gl_Position = vec4(aVertexPosition, 0.5, 1.0);
+#if defined(VULKAN)
+    gl_Position.y = -gl_Position.y;
+#endif
 } 

@@ -53,9 +53,9 @@ void RpDebugProbes::DrawProbes(RpBuilder &builder) {
     RpAllocBuf &unif_shared_data_buf = builder.GetReadBuffer(shared_data_buf_);
 
     const PrimDraw::Binding bindings[] = {
-        {Ren::eBindTarget::TexCubeArray, REN_BASE0_TEX_SLOT, probe_storage_->handle()},
+        {Ren::eBindTarget::TexCubeArray, REN_BASE0_TEX_SLOT, *probe_storage_},
         {Ren::eBindTarget::UBuf, REN_UB_SHARED_DATA_LOC, 0, sizeof(SharedDataBlock),
-         unif_shared_data_buf.ref->handle()}};
+         *unif_shared_data_buf.ref}};
 
     debug_roughness_ += 0.1f;
     if (debug_roughness_ > 8.0f) {

@@ -161,6 +161,8 @@ void Viewer::Frame() {
 
     api_ctx->active_present_image = next_image_index;
 
+    ctx->default_descr_alloc()->Reset();
+
     ///////////////////////////////////////////////////////////////
 
     VkCommandBufferBeginInfo begin_info = {};

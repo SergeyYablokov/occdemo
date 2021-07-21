@@ -84,6 +84,7 @@ Gui::Renderer::Renderer(Ren::Context &ctx, const JsObject &config) : ctx_(ctx) {
 
     Ren::ApiContext *api_ctx = ctx_.api_ctx();
 
+#ifndef NDEBUG
     for (int i = 0; i < Ren::MaxFramesInFlight; ++i) {
         VkFenceCreateInfo fence_info = {};
         fence_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
@@ -96,6 +97,7 @@ Gui::Renderer::Renderer(Ren::Context &ctx, const JsObject &config) : ctx_(ctx) {
 
         buf_range_fences_[i] = Ren::SyncFence{api_ctx->device, new_fence};
     }
+#endif
 
     { // create descriptor pool
         VkDescriptorPoolSize pool_size;

@@ -8,6 +8,7 @@ extern "C" {
 #include "VKCtx.cpp"
 #include "BufferVK.cpp"
 #include "ContextVK.cpp"
+#include "DescriptorPoolVK.cpp"
 #include "FenceVK.cpp"
 #include "FramebufferVK.cpp"
 #include "MemoryAllocatorVK.cpp"

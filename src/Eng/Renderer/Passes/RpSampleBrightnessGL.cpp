@@ -53,7 +53,7 @@ void RpSampleBrightness::Execute(RpBuilder &builder) {
     Ren::RastState applied_state = rast_state;
 
     { // Sample texture
-        const PrimDraw::Binding binding = {Ren::eBindTarget::Tex2D, REN_BASE0_TEX_SLOT, tex_to_sample_};
+        const PrimDraw::Binding binding = {Ren::eBindTarget::Tex2D, REN_BASE0_TEX_SLOT, *tex_to_sample_};
 
         const PrimDraw::Uniform uniforms[] = {
             {0, Ren::Vec4f{0.0f, 0.0f, 1.0f, 1.0f}},

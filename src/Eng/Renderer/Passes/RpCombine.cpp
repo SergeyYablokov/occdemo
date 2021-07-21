@@ -79,8 +79,8 @@ void RpCombine::Execute(RpBuilder &builder) {
     uniform_params.fade = fade_;
 
     const PrimDraw::Binding bindings[] = {
-        {Ren::eBindTarget::Tex2D, HDR_TEX_SLOT, color_tex.ref->handle()},
-        {Ren::eBindTarget::Tex2D, BLURED_TEX_SLOT, blur_tex ? blur_tex->ref->handle() : dummy_black_->handle()}};
+        {Ren::eBindTarget::Tex2D, HDR_TEX_SLOT, *color_tex.ref},
+        {Ren::eBindTarget::Tex2D, BLURED_TEX_SLOT, blur_tex ? *blur_tex->ref : *dummy_black_}};
 
     prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, blit_combine_prog_.get(), output_fb_[builder.ctx().backend_frame()],
                         render_pass_[builder.ctx().backend_frame()], bindings, 2, &uniform_params,
@@ -109,7 +109,7 @@ void RpCombine::LazyInit(Ren::Context &ctx, ShaderLoader &sh, RpAllocTex *output
     }
 
     const Ren::WeakTex2DRef output = output_tex ? output_tex->ref : ctx.backbuffer_ref();
-    const Ren::RenderTarget render_targets[] = {{output, Ren::eLoadOp::DontCare, Ren::eStoreOp::Store}};
+    const Ren::RenderTarget render_targets[] = {{output, Ren::eLoadOp::Load, Ren::eStoreOp::Store}};
 
     if (!render_pass_[ctx.backend_frame()].Setup(ctx.api_ctx(), render_targets, 1, {}, ctx.log())) {
         ctx.log()->Error("RpCombine: render_pass_ init failed!");

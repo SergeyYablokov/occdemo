@@ -23,9 +23,7 @@ class RpSkydome : public RenderPassBase {
     Ren::MeshRef skydome_mesh_;
 #if defined(USE_VK_RENDER)
     Ren::ApiContext *api_ctx_ = nullptr;
-    VkDescriptorSetLayout desc_set_layout_ = VK_NULL_HANDLE;
-    VkDescriptorPool desc_pool_ = VK_NULL_HANDLE;
-    VkDescriptorSet desc_set_[Ren::MaxFramesInFlight] = {};
+    //VkDescriptorSetLayout desc_set_layout_ = VK_NULL_HANDLE;
     VkPipelineLayout pipeline_layout_ = VK_NULL_HANDLE;
     VkPipeline pipeline_ = VK_NULL_HANDLE;
 #elif defined(USE_GL_RENDER)

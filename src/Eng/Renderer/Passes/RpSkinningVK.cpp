@@ -12,6 +12,7 @@ void RpSkinning::Execute(RpBuilder &builder) {
     RpAllocBuf &shape_keys_buf = builder.GetReadBuffer(shape_keys_buf_);
 
     if (skin_regions_.count) {
+        Ren::Context &ctx = builder.ctx();
         Ren::ApiContext *api_ctx = builder.ctx().api_ctx();
         VkCommandBuffer cmd_buf = api_ctx->draw_cmd_buf[api_ctx->backend_frame];
 
@@ -96,6 +97,10 @@ void RpSkinning::Execute(RpBuilder &builder) {
         vtx_buf1_->last_stage_mask = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
         vtx_buf2_->last_stage_mask = VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
 
+        VkDescriptorSetLayout descr_set_layout = skinning_prog_->descr_set_layouts()[0];
+        VkDescriptorSet descr_set = ctx.default_descr_alloc()->Alloc(0 /* img_count */, 0 /* ubuf_count */,
+                                                                     6 /* sbuf_count */, descr_set_layout);
+
         {                                                // update descriptor set
             const VkDescriptorBufferInfo buf_infos[6] = {// input vertices binding
                                                          {skin_vtx_buf_->handle().buf, 0, VK_WHOLE_SIZE},
@@ -112,7 +117,7 @@ void RpSkinning::Execute(RpBuilder &builder) {
 
             VkWriteDescriptorSet descr_write;
             descr_write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-            descr_write.dstSet = desc_set_[api_ctx->backend_frame];
+            descr_write.dstSet = descr_set;
             descr_write.dstBinding = 0;
             descr_write.dstArrayElement = 0;
             descr_write.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
@@ -128,8 +133,7 @@ void RpSkinning::Execute(RpBuilder &builder) {
         const int SkinLocalGroupSize = 128;
 
         vkCmdBindPipeline(cmd_buf, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline_);
-        vkCmdBindDescriptorSets(cmd_buf, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline_layout_, 0, 1,
-                                &desc_set_[api_ctx->backend_frame], 0, nullptr);
+        vkCmdBindDescriptorSets(cmd_buf, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline_layout_, 0, 1, &descr_set, 0, nullptr);
 
         for (uint32_t i = 0; i < skin_regions_.count; i++) {
             const SkinRegion &sr = skin_regions_.data[i];
@@ -176,43 +180,6 @@ bool RpSkinning::InitPipeline(Ren::Context &ctx) {
 
     api_ctx_ = api_ctx;
 
-    { // create descriptor pool
-        VkDescriptorPoolSize pool_size;
-        pool_size.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-        pool_size.descriptorCount = 6;
-
-        VkDescriptorPoolCreateInfo pool_info = {};
-        pool_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-        pool_info.poolSizeCount = 1;
-        pool_info.pPoolSizes = &pool_size;
-        pool_info.maxSets = Ren::MaxFramesInFlight;
-
-        const VkResult res = vkCreateDescriptorPool(api_ctx->device, &pool_info, nullptr, &desc_pool_);
-        if (res != VK_SUCCESS) {
-            ctx.log()->Error("Failed to create descriptor pool!");
-            return false;
-        }
-    }
-
-    { // create descriptor set
-        VkDescriptorSetAllocateInfo alloc_info = {};
-        alloc_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-        alloc_info.descriptorPool = desc_pool_;
-        alloc_info.descriptorSetCount = Ren::MaxFramesInFlight;
-
-        VkDescriptorSetLayout desc_set_layouts[Ren::MaxFramesInFlight];
-        for (int i = 0; i < Ren::MaxFramesInFlight; i++) {
-            desc_set_layouts[i] = skinning_prog_->descr_set_layouts()[0];
-        }
-        alloc_info.pSetLayouts = desc_set_layouts;
-
-        const VkResult res = vkAllocateDescriptorSets(api_ctx->device, &alloc_info, desc_set_);
-        if (res != VK_SUCCESS) {
-            ctx.log()->Error("Failed to allocate descriptor sets!");
-            return false;
-        }
-    }
-
     { // create pipeline layout
         VkPipelineLayoutCreateInfo layout_create_info = {};
         layout_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
@@ -258,9 +225,9 @@ bool RpSkinning::InitPipeline(Ren::Context &ctx) {
 }
 
 RpSkinning::~RpSkinning() {
-    if (desc_pool_) {
+    /*if (desc_pool_) {
         vkDestroyDescriptorPool(api_ctx_->device, desc_pool_, nullptr);
-    }
+    }*/
     if (pipeline_layout_) {
         vkDestroyPipelineLayout(api_ctx_->device, pipeline_layout_, nullptr);
     }

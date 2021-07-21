@@ -16,7 +16,7 @@ class RpSampleBrightness : public RenderPassBase {
     Ren::ProgramRef blit_red_prog_;
 
     // temp data (valid only between Setup and Execute calls)
-    Ren::TexHandle tex_to_sample_;
+    Ren::WeakTex2DRef tex_to_sample_;
 
     RpResource reduced_tex_;
 
@@ -33,7 +33,7 @@ class RpSampleBrightness : public RenderPassBase {
     RpSampleBrightness(PrimDraw &prim_draw, Ren::Vec2i res) : prim_draw_(prim_draw), res_(res) {}
     ~RpSampleBrightness() = default;
 
-    void Setup(RpBuilder &builder, Ren::TexHandle tex_to_sample, const char reduced_tex[]);
+    void Setup(RpBuilder &builder, Ren::WeakTex2DRef tex_to_sample, const char reduced_tex[]);
     void Execute(RpBuilder &builder) override;
 
     const char *name() const override { return "SAMPLE BRIGHTNESS"; }

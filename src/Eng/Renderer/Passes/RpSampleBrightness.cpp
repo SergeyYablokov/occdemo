@@ -4,7 +4,7 @@
 
 #include "../../Utils/ShaderLoader.h"
 
-void RpSampleBrightness::Setup(RpBuilder &builder, Ren::TexHandle tex_to_sample, const char reduced_tex[]) {
+void RpSampleBrightness::Setup(RpBuilder &builder, Ren::WeakTex2DRef tex_to_sample, const char reduced_tex[]) {
     tex_to_sample_ = tex_to_sample;
 
     { // aux buffer which gathers frame luminance

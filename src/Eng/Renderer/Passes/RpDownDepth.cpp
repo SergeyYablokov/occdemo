@@ -46,9 +46,8 @@ void RpDownDepth::Execute(RpBuilder &builder) {
 
     const PrimDraw::Binding bindings[] = {
         {view_state_->is_multisampled ? Ren::eBindTarget::Tex2DMs : Ren::eBindTarget::Tex2D, REN_BASE0_TEX_SLOT,
-         depth_tex.ref->handle()},
-        {Ren::eBindTarget::UBuf, REN_UB_SHARED_DATA_LOC, 0, sizeof(SharedDataBlock),
-         unif_shared_data_buf.ref->handle()}};
+         *depth_tex.ref},
+        {Ren::eBindTarget::UBuf, REN_UB_SHARED_DATA_LOC, 0, sizeof(SharedDataBlock), *unif_shared_data_buf.ref}};
 
     const PrimDraw::Uniform uniforms[] = {
         {0, Ren::Vec4f{0.0f, 0.0f, float(view_state_->act_res[0]), float(view_state_->act_res[1])}}, {1, 1.0f}};

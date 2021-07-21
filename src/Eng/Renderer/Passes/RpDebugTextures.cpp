@@ -105,13 +105,13 @@ void RpDebugTextures::Execute(RpBuilder &builder) {
         PrimDraw::Binding bindings[3];
 
         if (view_state_->is_multisampled) {
-            bindings[0] = {Ren::eBindTarget::Tex2DMs, REN_BASE0_TEX_SLOT, depth_tex.ref->handle()};
+            bindings[0] = {Ren::eBindTarget::Tex2DMs, REN_BASE0_TEX_SLOT, *depth_tex.ref};
         } else {
-            bindings[0] = {Ren::eBindTarget::Tex2D, REN_BASE0_TEX_SLOT, depth_tex.ref->handle()};
+            bindings[0] = {Ren::eBindTarget::Tex2D, REN_BASE0_TEX_SLOT, *depth_tex.ref};
         }
 
-        bindings[1] = {Ren::eBindTarget::TexBuf, REN_CELLS_BUF_SLOT, cells_buf.tbos[0]->handle()};
-        bindings[2] = {Ren::eBindTarget::TexBuf, REN_ITEMS_BUF_SLOT, items_buf.tbos[0]->handle()};
+        bindings[1] = {Ren::eBindTarget::TexBuf, REN_CELLS_BUF_SLOT, *cells_buf.tbos[0]};
+        bindings[2] = {Ren::eBindTarget::TexBuf, REN_ITEMS_BUF_SLOT, *items_buf.tbos[0]};
 
         prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, {&output_fb_, 0}, blit_prog, bindings, 3, uniforms, 4);
     }
@@ -186,10 +186,10 @@ void RpDebugTextures::Execute(RpBuilder &builder) {
 
         PrimDraw::Binding bindings[3];
         bindings[0] = {Ren::eBindTarget::UBuf, REN_UB_SHARED_DATA_LOC, 0, sizeof(SharedDataBlock),
-                       unif_shared_data_buf.ref->handle()};
+                       *unif_shared_data_buf.ref};
         bindings[1] = {view_state_->is_multisampled ? Ren::eBindTarget::Tex2DMs : Ren::eBindTarget::Tex2D, 0,
-                       depth_tex.ref->handle()};
-        bindings[2] = {Ren::eBindTarget::TexBuf, 1, nodes_tbo_->handle()};
+                       *depth_tex.ref};
+        bindings[2] = {Ren::eBindTarget::TexBuf, 1, *nodes_tbo_};
 
         const PrimDraw::Uniform uniforms[] = {
             {0, Ren::Vec4f{0.0f, 0.0f, float(view_state_->act_res[0]), float(view_state_->act_res[1])}},
@@ -270,7 +270,7 @@ int RpDebugTextures::BlitTex(Ren::RastState &applied_state, const int x, const i
     rast_state.ApplyChanged(applied_state);
     applied_state = rast_state;
 
-    const PrimDraw::Binding bindings[] = {{Ren::eBindTarget::Tex2D, REN_BASE0_TEX_SLOT, tex->handle()}};
+    const PrimDraw::Binding bindings[] = {{Ren::eBindTarget::Tex2D, REN_BASE0_TEX_SLOT, *tex}};
 
     const PrimDraw::Uniform uniforms[] = {{0, Ren::Vec4f{0.0f, 0.0f, float(p.w), float(p.h)}}, {4, mul}};
 

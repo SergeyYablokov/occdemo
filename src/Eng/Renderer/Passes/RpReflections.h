@@ -15,7 +15,7 @@ class RpReflections : public RenderPassBase {
         blit_ssr_compose_ms_prog_;
 
     // temp data (valid only between Setup and Execute calls)
-    Ren::TexHandle down_buf_4x_tex_;
+    Ren::WeakTex2DRef down_buf_4x_tex_;
     Ren::Tex2DRef brdf_lut_;
     const ViewState *view_state_ = nullptr;
     const ProbeStorage *probe_storage_ = nullptr;
@@ -41,7 +41,7 @@ class RpReflections : public RenderPassBase {
     RpReflections(PrimDraw &prim_draw) : prim_draw_(prim_draw) {}
 
     void Setup(RpBuilder &builder, const ViewState *view_state, const ProbeStorage *probe_storage,
-               Ren::TexHandle down_buf_4x_tex, Ren::Tex2DRef brdf_lut, const char shared_data_buf[],
+               Ren::WeakTex2DRef down_buf_4x_tex, Ren::Tex2DRef brdf_lut, const char shared_data_buf[],
                const char cells_buf[], const char items_buf[], const char depth_tex[], const char normal_tex[],
                const char spec_tex[], const char depth_down_2x[], const char output_tex_name[]);
     void Execute(RpBuilder &builder) override;

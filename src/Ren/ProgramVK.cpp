@@ -43,7 +43,6 @@ Ren::Program &Ren::Program::operator=(Program &&rhs) noexcept {
     shaders_ = std::move(rhs.shaders_);
     attributes_ = std::move(rhs.attributes_);
     uniforms_ = std::move(rhs.uniforms_);
-    uniform_blocks_ = std::move(rhs.uniform_blocks_);
     name_ = std::move(rhs.name_);
 
     api_ctx_ = exchange(rhs.api_ctx_, nullptr);
@@ -159,7 +158,6 @@ bool Ren::Program::InitDescSetLayouts(ILog *log) {
 void Ren::Program::InitBindings(ILog *log) {
     attributes_.clear();
     uniforms_.clear();
-    uniform_blocks_.clear();
     pc_ranges_.clear();
 
     for (int i = 0; i < int(eShaderType::_Count); ++i) {
@@ -169,13 +167,6 @@ void Ren::Program::InitBindings(ILog *log) {
         }
 
         const Shader &sh = (*sh_ref);
-        for (const Descr &b : sh.blck_bindings) {
-            auto it = std::find(std::begin(uniform_blocks_), std::end(uniform_blocks_), b);
-            if (it == std::end(uniform_blocks_)) {
-                uniform_blocks_.emplace_back(b);
-            }
-        }
-
         for (const Descr &u : sh.unif_bindings) {
             auto it = std::find(std::begin(uniforms_), std::end(uniforms_), u);
             if (it == std::end(uniforms_)) {

@@ -5,7 +5,9 @@
 #include <Ren/RenderPass.h>
 #include <Ren/Texture.h>
 
-#if defined(USE_GL_RENDER)
+#if defined(USE_VK_RENDER)
+#include <Ren/DescriptorPool.h>
+#elif defined(USE_GL_RENDER)
 #include <Ren/VaoGL.h>
 #endif
 
@@ -25,25 +27,30 @@ class PrimDraw {
 
     uint32_t temp_buf1_vtx_offset_ = 0xffffffff, temp_buf2_vtx_offset_ = 0xffffffff, temp_buf_ndx_offset_ = 0xffffffff;
 
-    Ren::ApiContext *api_ctx_ = nullptr;
+    Ren::Context *ctx_ = nullptr;
     Ren::ILog *log_ = nullptr;
 #if defined(USE_VK_RENDER)
     struct CachedPipeline {
         const Ren::Program *p;
         const Ren::RenderPass *rp;
-        VkPipelineLayout layout;
-        VkPipeline pipeline;
+        VkPipelineLayout layout = VK_NULL_HANDLE;
+        VkDescriptorPool desc_pool = VK_NULL_HANDLE;
+        VkPipeline pipeline = VK_NULL_HANDLE;
     };
     Ren::SmallVector<CachedPipeline, 16> pipelines_;
 
-    VkPipeline FindOrCreatePipeline(const Ren::Program *p, const Ren::RenderPass &rp, const Binding bindings[],
-                                    const int bindings_count);
+    std::pair<VkPipeline, VkPipelineLayout> FindOrCreatePipeline(const Ren::Program *p, const Ren::RenderPass &rp,
+                                                                 const Binding bindings[], const int bindings_count);
 #elif defined(USE_GL_RENDER)
     Ren::Vao fs_quad_vao_, sphere_vao_;
 #endif
   public:
+    ~PrimDraw();
+
     bool LazyInit(Ren::Context &ctx);
-    void CleanUp(Ren::Context &ctx);
+    void CleanUp();
+
+    void Reset();
 
 #if defined(USE_GL_RENDER)
     uint32_t fs_quad_vao() const { return fs_quad_vao_.id(); }
@@ -55,18 +62,17 @@ class PrimDraw {
 #endif
 
     struct Handle {
-#if defined(USE_GL_RENDER)
-        uint32_t id = 0;
-#endif
+        union {
+            const Ren::Texture2D *tex;
+            const Ren::Buffer *buf;
+            const Ren::Texture1D *tex_buf;
+            const ProbeStorage *cube_arr;
+        };
         Handle() = default;
-
-#if defined(USE_GL_RENDER)
-        Handle(Ren::TexHandle h) : id(h.id) {}
-        Handle(Ren::BufHandle h) : id(h.id) {}
-#elif defined(USE_VK_RENDER)
-        Handle(Ren::TexHandle h) {}
-        Handle(Ren::BufHandle h) {}
-#endif
+        Handle(const Ren::Texture2D &_tex) : tex(&_tex) {}
+        Handle(const Ren::Buffer &_buf) : buf(&_buf) {}
+        Handle(const Ren::Texture1D &_tex) : tex_buf(&_tex) {}
+        Handle(const ProbeStorage &_probes) : cube_arr(&_probes) {}
     };
 
     struct Binding {
@@ -82,7 +88,7 @@ class PrimDraw {
             : trg(_trg), loc(_loc), offset(uint16_t(_offset)), size(uint16_t(_size)), handle(_handle) {}
     };
 #if defined(USE_GL_RENDER)
-    static_assert(sizeof(Binding) == 12, "!");
+    static_assert(sizeof(Binding) == 16, "!");
 #elif defined(USE_VK_RENDER)
 #pragma message("Add size check here!")
 #endif

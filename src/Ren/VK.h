@@ -128,6 +128,7 @@
 
 #define vkCreateDescriptorPool ren_vkCreateDescriptorPool
 #define vkDestroyDescriptorPool ren_vkDestroyDescriptorPool
+#define vkResetDescriptorPool ren_vkResetDescriptorPool
 
 #define vkAllocateDescriptorSets ren_vkAllocateDescriptorSets
 #define vkFreeDescriptorSets ren_vkFreeDescriptorSets
@@ -271,6 +272,7 @@ EXTERN_FUNC PFN_vkDestroySampler ren_vkDestroySampler;
 
 EXTERN_FUNC PFN_vkCreateDescriptorPool ren_vkCreateDescriptorPool;
 EXTERN_FUNC PFN_vkDestroyDescriptorPool ren_vkDestroyDescriptorPool;
+EXTERN_FUNC PFN_vkResetDescriptorPool ren_vkResetDescriptorPool;
 
 EXTERN_FUNC PFN_vkAllocateDescriptorSets ren_vkAllocateDescriptorSets;
 EXTERN_FUNC PFN_vkFreeDescriptorSets ren_vkFreeDescriptorSets;

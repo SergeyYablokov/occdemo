@@ -1,5 +1,6 @@
 #include "Context.h"
 
+#include "DescriptorPool.h"
 #include "VKCtx.h"
 
 #if defined(VK_USE_PLATFORM_WIN32_KHR)
@@ -37,6 +38,7 @@ Ren::Context::~Context() {
 
         for (int i = 0; i < MaxFramesInFlight; ++i) {
             DestroyDeferredResources(api_ctx_.get(), i);
+            default_descr_alloc_[i].reset();
 
             vkDestroyFence(api_ctx_->device, api_ctx_->in_flight_fences[i], nullptr);
             vkDestroySemaphore(api_ctx_->device, api_ctx_->render_finished_semaphores[i], nullptr);
@@ -78,6 +80,10 @@ Ren::Context::~Context() {
     }
 }
 
+Ren::DescrMultiPoolAlloc *Ren::Context::default_descr_alloc() const {
+    return default_descr_alloc_[api_ctx_->backend_frame].get();
+}
+
 bool Ren::Context::Init(const int w, const int h, ILog *log, const char *preferred_device) {
     if (!LoadVulkan(log)) {
         return false;
@@ -92,6 +98,9 @@ bool Ren::Context::Init(const int w, const int h, ILog *log, const char *preferr
 #ifndef NDEBUG
     const char *enabled_layers[] = {"VK_LAYER_KHRONOS_validation"};
     const int enabled_layers_count = 1;
+#else
+    const char **enabled_layers = nullptr;
+    const int enabled_layers_count = 0;
 #endif
 
     if (!InitVkInstance(api_ctx_->instance, enabled_layers, enabled_layers_count, log)) {
@@ -187,7 +196,14 @@ bool Ren::Context::Init(const int w, const int h, ILog *log, const char *preferr
         params.flags = eTexFlags::TexNoOwnership;
 
         api_ctx_->present_image_refs.emplace_back(textures_.Add(name_buf, api_ctx_.get(), api_ctx_->present_images[i],
-                                                                api_ctx_->present_image_views[i], params, log_));
+                                                                api_ctx_->present_image_views[i], VkSampler{}, params,
+                                                                log_));
+    }
+
+    for (int i = 0; i < MaxFramesInFlight; ++i) {
+        default_descr_alloc_[i].reset(new DescrMultiPoolAlloc(api_ctx_.get(), 4 /* pool_step */, 32 /* max_img_count */,
+                                                              8 /* max_ubuf_count */, 32 /* max_sbuf_count */,
+                                                              16 /* initial_sets_count */));
     }
 
     return true;
@@ -228,7 +244,8 @@ void Ren::Context::Resize(int w, int h) {
         params.flags = eTexFlags::TexNoOwnership;
 
         api_ctx_->present_image_refs.emplace_back(textures_.Add(name_buf, api_ctx_.get(), api_ctx_->present_images[i],
-                                                                api_ctx_->present_image_views[i], params, log_));
+                                                                api_ctx_->present_image_views[i], VkSampler{}, params,
+                                                                log_));
     }
 }
 

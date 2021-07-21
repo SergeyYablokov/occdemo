@@ -32,16 +32,17 @@ enum eTexFlags {
 struct TexHandle {
     VkImage img = VK_NULL_HANDLE;
     VkImageView view = VK_NULL_HANDLE;
+    VkSampler sampler = VK_NULL_HANDLE;
     uint32_t generation = 0; // used to identify unique texture (name can be reused)
 
     TexHandle() = default;
-    TexHandle(VkImage _img, VkImageView _view, uint32_t _generation)
-        : img(_img), view(_view), generation(_generation) {}
+    TexHandle(VkImage _img, VkImageView _view, VkSampler _sampler, uint32_t _generation)
+        : img(_img), view(_view), sampler(_sampler), generation(_generation) {}
 
     explicit operator bool() const { return img != VK_NULL_HANDLE; }
 };
 inline bool operator==(const TexHandle lhs, const TexHandle rhs) {
-    return lhs.img == rhs.img && lhs.view == rhs.view && lhs.generation == rhs.generation;
+    return lhs.img == rhs.img && lhs.view == rhs.view && lhs.sampler == rhs.sampler && lhs.generation == rhs.generation;
 }
 inline bool operator!=(const TexHandle lhs, const TexHandle rhs) { return !operator==(lhs, rhs); }
 inline bool operator<(const TexHandle lhs, const TexHandle rhs) {
@@ -62,7 +63,6 @@ class TextureStageBuf;
 class Texture2D : public RefCounter {
     ApiContext *api_ctx_ = nullptr;
     TexHandle handle_;
-    Sampler sampler_;
     MemAllocation alloc_;
     Tex2DParams params_;
     uint16_t initialized_mips_ = 0;
@@ -104,9 +104,9 @@ class Texture2D : public RefCounter {
     Texture2D() = default;
     Texture2D(const char *name, ApiContext *api_ctx, const Tex2DParams &params, MemoryAllocators *mem_allocs,
               ILog *log);
-    Texture2D(const char *name, ApiContext *api_ctx, VkImage img, VkImageView view, const Tex2DParams &params,
-              ILog *log)
-        : handle_{img, view, 0}, params_(params), ready_(true), name_(name) {}
+    Texture2D(const char *name, ApiContext *api_ctx, VkImage img, VkImageView view, VkSampler sampler,
+              const Tex2DParams &params, ILog *log)
+        : handle_{img, view, sampler, 0}, params_(params), ready_(true), name_(name) {}
     Texture2D(const char *name, ApiContext *api_ctx, const void *data, const uint32_t size, const Tex2DParams &p,
               Buffer &stage_buf, void *_cmd_buf, MemoryAllocators *mem_allocs, eTexLoadStatus *load_status, ILog *log);
     Texture2D(const char *name, ApiContext *api_ctx, const void *data[6], const int size[6], const Tex2DParams &p,
@@ -128,7 +128,7 @@ class Texture2D : public RefCounter {
                  void *_cmd_buf, MemoryAllocators *mem_allocs, ILog *log);
 
     TexHandle handle() const { return handle_; }
-    const Sampler &sampler() const { return sampler_; }
+    VkSampler sampler() const { return handle_.sampler; }
     uint16_t initialized_mips() const { return initialized_mips_; }
 
     const Tex2DParams &params() const { return params_; }
@@ -137,8 +137,8 @@ class Texture2D : public RefCounter {
     bool ready() const { return ready_; }
     const String &name() const { return name_; }
 
-    void SetSampling(SamplingParams sampling) { sampler_.Init(api_ctx_, sampling); }
-    void ApplySampling(SamplingParams sampling, ILog *log) { sampler_.Init(api_ctx_, sampling); }
+    void SetSampling(SamplingParams sampling);
+    void ApplySampling(SamplingParams sampling, ILog *log) { SetSampling(sampling); }
 
     void SetSubImage(int level, int offsetx, int offsety, int sizex, int sizey, Ren::eTexFormat format,
                      const void *data, int data_len);

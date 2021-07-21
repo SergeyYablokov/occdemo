@@ -239,7 +239,7 @@ Renderer::Renderer(Ren::Context &ctx, ShaderLoader &sh, std::shared_ptr<Sys::Thr
 }
 
 Renderer::~Renderer() {
-    prim_draw_.CleanUp(ctx_);
+    prim_draw_.CleanUp();
     DestroyRendererInternal();
     swCullCtxDestroy(&cull_ctx_);
 }
@@ -436,7 +436,7 @@ void Renderer::ExecuteDrawList(const DrawList &list, const PersistentBuffers &pe
         const uint32_t use_ssao_mask = (EnableZFill | EnableSSAO | DebugWireframe);
         const uint32_t use_ssao = (EnableZFill | EnableSSAO);
         if ((list.render_flags & use_ssao_mask) == use_ssao) {
-            rp_ssao_.Setup(rp_builder_, &view_state_, rand2d_dirs_4x4_->handle(), SHARED_DATA_BUF, DEPTH_DOWN_2X_TEX,
+            rp_ssao_.Setup(rp_builder_, &view_state_, rand2d_dirs_4x4_, SHARED_DATA_BUF, DEPTH_DOWN_2X_TEX,
                            MAIN_DEPTH_TEX, SSAO_TEX);
             rp_tail->p_next = &rp_ssao_;
             rp_tail = rp_tail->p_next;
@@ -475,9 +475,9 @@ void Renderer::ExecuteDrawList(const DrawList &list, const PersistentBuffers &pe
 
         const char *refl_out_name = view_state_.is_multisampled ? RESOLVED_COLOR_TEX : MAIN_COLOR_TEX;
 
-        rp_reflections_.Setup(rp_builder_, &view_state_, list.probe_storage, down_tex_4x_->handle(), brdf_lut_,
-                              SHARED_DATA_BUF, CELLS_BUF, ITEMS_BUF, MAIN_DEPTH_TEX, MAIN_NORMAL_TEX, MAIN_SPEC_TEX,
-                              DEPTH_DOWN_2X_TEX, refl_out_name);
+        rp_reflections_.Setup(rp_builder_, &view_state_, list.probe_storage, down_tex_4x_, brdf_lut_, SHARED_DATA_BUF,
+                              CELLS_BUF, ITEMS_BUF, MAIN_DEPTH_TEX, MAIN_NORMAL_TEX, MAIN_SPEC_TEX, DEPTH_DOWN_2X_TEX,
+                              refl_out_name);
         rp_tail->p_next = &rp_reflections_;
         rp_tail = rp_tail->p_next;
 
@@ -540,7 +540,7 @@ void Renderer::ExecuteDrawList(const DrawList &list, const PersistentBuffers &pe
             }
 
             rp_dof_.Setup(rp_builder_, &list.draw_cam, &view_state_, SHARED_DATA_BUF, color_in_name, MAIN_DEPTH_TEX,
-                          DEPTH_DOWN_2X_TEX, DEPTH_DOWN_4X_TEX, down_tex_4x_->handle(), dof_out_name);
+                          DEPTH_DOWN_2X_TEX, DEPTH_DOWN_4X_TEX, down_tex_4x_, dof_out_name);
             rp_tail->p_next = &rp_dof_;
             rp_tail = rp_tail->p_next;
         }
@@ -550,7 +550,7 @@ void Renderer::ExecuteDrawList(const DrawList &list, const PersistentBuffers &pe
         //
         if ((list.render_flags & (EnableSSR | EnableBloom | EnableTonemap)) &&
             ((list.render_flags & DebugWireframe) == 0)) {
-            rp_blur_.Setup(rp_builder_, &view_state_, down_tex_4x_->handle(), BLUR_RES_TEX);
+            rp_blur_.Setup(rp_builder_, &view_state_, down_tex_4x_, BLUR_RES_TEX);
             rp_tail->p_next = &rp_blur_;
             rp_tail = rp_tail->p_next;
         }
@@ -559,7 +559,7 @@ void Renderer::ExecuteDrawList(const DrawList &list, const PersistentBuffers &pe
         // Sample brightness
         //
         if (list.render_flags & EnableTonemap) {
-            rp_sample_brightness_.Setup(rp_builder_, down_tex_4x_->handle(), REDUCED_TEX);
+            rp_sample_brightness_.Setup(rp_builder_, down_tex_4x_, REDUCED_TEX);
             rp_tail->p_next = &rp_sample_brightness_;
             rp_tail = rp_tail->p_next;
         }

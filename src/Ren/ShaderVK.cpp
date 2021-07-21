@@ -47,7 +47,6 @@ Ren::Shader &Ren::Shader::operator=(Shader &&rhs) noexcept {
 
     attr_bindings = std::move(rhs.attr_bindings);
     unif_bindings = std::move(rhs.unif_bindings);
-    blck_bindings = std::move(rhs.blck_bindings);
 
     return (*this);
 }
@@ -91,7 +90,6 @@ void Ren::Shader::InitFromSPIRV(const uint8_t *shader_code, const int code_size,
 
     attr_bindings.clear();
     unif_bindings.clear();
-    blck_bindings.clear();
     pc_ranges.clear();
 
     for (uint32_t i = 0; i < module.input_variable_count; i++) {
@@ -106,17 +104,19 @@ void Ren::Shader::InitFromSPIRV(const uint8_t *shader_code, const int code_size,
 
     for (uint32_t i = 0; i < module.descriptor_binding_count; i++) {
         const auto &desc = module.descriptor_bindings[i];
-        if (desc.descriptor_type == SPV_REFLECT_DESCRIPTOR_TYPE_UNIFORM_BUFFER) {
+        /*if (desc.descriptor_type == SPV_REFLECT_DESCRIPTOR_TYPE_UNIFORM_BUFFER) {
             Descr &new_item = blck_bindings.emplace_back();
             new_item.name = String{desc.name};
+            new_item.desc_type = VkDescriptorType(desc.descriptor_type);
             new_item.loc = desc.binding;
-        } else {
+            new_item.set = desc.set;
+        } else {*/
             Descr &new_item = unif_bindings.emplace_back();
             new_item.name = String{desc.name};
             new_item.desc_type = VkDescriptorType(desc.descriptor_type);
             new_item.loc = desc.binding;
             new_item.set = desc.set;
-        }
+        //}
     }
 
     for (uint32_t i = 0; i < module.push_constant_block_count; ++i) {

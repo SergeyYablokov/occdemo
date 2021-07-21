@@ -20,8 +20,6 @@ class RpSkinning : public RenderPassBase {
 
 #if defined(USE_VK_RENDER)
     Ren::ApiContext *api_ctx_ = nullptr;
-    VkDescriptorPool desc_pool_ = VK_NULL_HANDLE;
-    VkDescriptorSet desc_set_[Ren::MaxFramesInFlight] = {};
     VkPipelineLayout pipeline_layout_ = VK_NULL_HANDLE;
     VkPipeline pipeline_ = VK_NULL_HANDLE;
 #endif
