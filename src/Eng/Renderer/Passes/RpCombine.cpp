@@ -83,7 +83,7 @@ void RpCombine::Execute(RpBuilder &builder) {
         {Ren::eBindTarget::Tex2D, BLURED_TEX_SLOT, blur_tex ? *blur_tex->ref : *dummy_black_}};
 
     prim_draw_.DrawPrim(PrimDraw::ePrim::Quad, blit_combine_prog_.get(), output_fb_[builder.ctx().backend_frame()],
-                        render_pass_[builder.ctx().backend_frame()], bindings, 2, &uniform_params,
+                        handle_[builder.ctx().backend_frame()], bindings, 2, &uniform_params,
                         sizeof(BlitCombine::Params), 0);
 }
 
@@ -112,11 +112,11 @@ void RpCombine::LazyInit(Ren::Context &ctx, ShaderLoader &sh, RpAllocTex *output
     const Ren::RenderTarget render_target = {output, Ren::eLoadOp::DontCare, Ren::eStoreOp::Store};
     const Ren::RenderTarget render_targets[] = {{output, Ren::eLoadOp::DontCare, Ren::eStoreOp::Store}};
 
-    if (!render_pass_[ctx.backend_frame()].Setup(ctx.api_ctx(), render_targets, 1, {}, ctx.log())) {
+    if (!handle_[ctx.backend_frame()].Setup(ctx.api_ctx(), render_targets, 1, {}, ctx.log())) {
         ctx.log()->Error("RpCombine: render_pass_ init failed!");
     }
 
-    if (!output_fb_[ctx.backend_frame()].Setup(ctx.api_ctx(), render_pass_[ctx.backend_frame()].handle(),
+    if (!output_fb_[ctx.backend_frame()].Setup(ctx.api_ctx(), handle_[ctx.backend_frame()].handle(),
                                                output_tex ? output_tex->desc.w : ctx.w(),
                                                output_tex ? output_tex->desc.h : ctx.h(), output, {}, {}, false)) {
         ctx.log()->Error("RpCombine: output_fb_ init failed!");

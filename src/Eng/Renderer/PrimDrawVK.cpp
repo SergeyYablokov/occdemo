@@ -481,7 +481,7 @@ std::pair<VkPipeline, VkPipelineLayout> PrimDraw::FindOrCreatePipeline(const Ren
         depth_state_ci.maxDepthBounds = 1.0f;
 
         VkPipelineColorBlendAttachmentState color_blend_attachment_states[Ren::MaxRTAttachments] = {};
-        for (size_t i = 0; i < rp.color_attachments_.size(); ++i) {
+        for (size_t i = 0; i < rp.color_rts.size(); ++i) {
             color_blend_attachment_states[i].blendEnable = VK_FALSE;
             color_blend_attachment_states[i].colorWriteMask = 0xf;
         }
@@ -490,7 +490,7 @@ std::pair<VkPipeline, VkPipelineLayout> PrimDraw::FindOrCreatePipeline(const Ren
         color_blend_state_ci.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
         color_blend_state_ci.logicOpEnable = VK_FALSE;
         color_blend_state_ci.logicOp = VK_LOGIC_OP_CLEAR;
-        color_blend_state_ci.attachmentCount = uint32_t(rp.color_attachments_.size());
+        color_blend_state_ci.attachmentCount = uint32_t(rp.color_rts.size());
         color_blend_state_ci.pAttachments = color_blend_attachment_states;
         color_blend_state_ci.blendConstants[0] = 0.0f;
         color_blend_state_ci.blendConstants[1] = 0.0f;

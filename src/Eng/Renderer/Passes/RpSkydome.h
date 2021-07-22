@@ -29,7 +29,7 @@ class RpSkydome : public RenderPassBase {
 #elif defined(USE_GL_RENDER)
     Ren::Vao skydome_vao_;
 #endif
-    Ren::RenderPass render_pass_;
+    Ren::RenderPass handle_;
     Ren::Framebuffer cached_fb_;
 
     RpResource shared_data_buf_;

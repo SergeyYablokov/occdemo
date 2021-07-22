@@ -27,7 +27,7 @@ class RpCombine : public RenderPassBase {
 
     void LazyInit(Ren::Context &ctx, ShaderLoader &sh, RpAllocTex *output_tex);
 
-    Ren::RenderPass render_pass_[Ren::MaxFramesInFlight];
+    Ren::RenderPass handle_[Ren::MaxFramesInFlight];
     Ren::Framebuffer output_fb_[Ren::MaxFramesInFlight];
   public:
     RpCombine(PrimDraw &prim_draw) : prim_draw_(prim_draw) {}

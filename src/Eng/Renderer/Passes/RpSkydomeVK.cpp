@@ -214,7 +214,7 @@ void RpSkydome::DrawSkydome(RpBuilder &builder, RpAllocTex &color_tex, RpAllocTe
 
     VkRenderPassBeginInfo render_pass_begin_info = {};
     render_pass_begin_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-    render_pass_begin_info.renderPass = render_pass_.handle();
+    render_pass_begin_info.renderPass = handle_.handle();
     render_pass_begin_info.framebuffer = cached_fb_.handle();
     render_pass_begin_info.renderArea = {0, 0, uint32_t(view_state_->act_res[0]), uint32_t(view_state_->act_res[1])};
 
@@ -357,7 +357,7 @@ bool RpSkydome::InitPipeline(Ren::Context &ctx, RpAllocTex &color_tex, RpAllocTe
         render_pass_create_info.subpassCount = 1;
         render_pass_create_info.pSubpasses = &subpass;
 
-        const VkResult res = vkCreateRenderPass(api_ctx->device, &render_pass_create_info, nullptr, &render_pass_);
+        const VkResult res = vkCreateRenderPass(api_ctx->device, &render_pass_create_info, nullptr, &handle_);
         if (res != VK_SUCCESS) {
             ctx.log()->Error("Failed to create render pass!");
             return false;
@@ -368,7 +368,7 @@ bool RpSkydome::InitPipeline(Ren::Context &ctx, RpAllocTex &color_tex, RpAllocTe
                                                 {} /* normals texture */,
                                                 {spec_tex.ref, Ren::eLoadOp::DontCare, Ren::eStoreOp::Store}};
 
-    if (!render_pass_.Setup(ctx.api_ctx(), render_targets, 3,
+    if (!handle_.Setup(ctx.api_ctx(), render_targets, 3,
                             {depth_tex.ref, Ren::eLoadOp::DontCare, Ren::eStoreOp::Store}, ctx.log())) {
         ctx.log()->Error("Failed to create render pass!");
         return false;
@@ -512,7 +512,7 @@ bool RpSkydome::InitPipeline(Ren::Context &ctx, RpAllocTex &color_tex, RpAllocTe
         pipeline_create_info.pColorBlendState = &color_blend_state_ci;
         pipeline_create_info.pDynamicState = &dynamic_state_ci;
         pipeline_create_info.layout = pipeline_layout_;
-        pipeline_create_info.renderPass = render_pass_.handle();
+        pipeline_create_info.renderPass = handle_.handle();
         pipeline_create_info.subpass = 0;
         pipeline_create_info.basePipelineHandle = VK_NULL_HANDLE;
         pipeline_create_info.basePipelineIndex = 0;
@@ -537,8 +537,8 @@ RpSkydome::~RpSkydome() {
     /*if (desc_pool_) {
         vkDestroyDescriptorPool(api_ctx_->device, desc_pool_, nullptr);
     }*/
-    /*if (render_pass_) {
-        vkDestroyRenderPass(api_ctx_->device, render_pass_, nullptr);
+    /*if (handle_) {
+        vkDestroyRenderPass(api_ctx_->device, handle_, nullptr);
     }*/
     if (pipeline_layout_) {
         vkDestroyPipelineLayout(api_ctx_->device, pipeline_layout_, nullptr);

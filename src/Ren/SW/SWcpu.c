@@ -183,7 +183,7 @@ void swCPUInfoInit(SWcpu_info *info) {
             os_saves_YMM = (xcr_feature_mask & 0x6) != 0;
         }
 
-        int cpu_FMA_support = (cpu_info[3] & ((int)1 << 12)) != 0;
+        int cpu_FMA_support = (cpu_info[2] & ((int)1 << 12)) != 0;
 
         int cpu_AVX_support = (cpu_info[2] & (1 << 28)) != 0;
         info->avx_supported = os_saves_YMM && cpu_AVX_support;

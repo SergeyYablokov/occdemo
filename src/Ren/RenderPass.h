@@ -27,14 +27,21 @@ struct RenderTarget {
 class RenderPass {
     ApiContext *api_ctx_ = nullptr;
 #if defined(USE_VK_RENDER)
-    VkRenderPass render_pass_ = VK_NULL_HANDLE;
+    VkRenderPass handle_ = VK_NULL_HANDLE;
 #endif
+
+    struct RtDesc {
+        eLoadOp load = eLoadOp::DontCare;
+        eStoreOp store = eStoreOp::DontCare;
+        eLoadOp stencil_load = eLoadOp::DontCare;
+        eStoreOp stencil_store = eStoreOp::DontCare;
+    };
 
     void Destroy();
 
   public:
-    SmallVector<TexHandle, MaxRTAttachments> color_attachments_;
-    TexHandle depth_attachment_;
+    SmallVector<TexHandle, MaxRTAttachments> color_rts;
+    TexHandle depth_rt;
 
     RenderPass() = default;
     RenderPass(const RenderPass &rhs) = delete;
@@ -45,7 +52,7 @@ class RenderPass {
     RenderPass &operator=(RenderPass &&rhs);
 
 #if defined(USE_VK_RENDER)
-    VkRenderPass handle() const { return render_pass_; }
+    VkRenderPass handle() const { return handle_; }
 #else
     void *handle() const { return nullptr; }
 #endif
